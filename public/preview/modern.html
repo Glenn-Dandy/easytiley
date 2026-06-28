@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview · Modern (HA-inspiriert)</title>
+<style>
+:root{
+  --bg:#0f1115; --surface:#191c22; --surface2:#21252e; --line:rgba(255,255,255,.06);
+  --text:#e9edf4; --muted:#9aa3b2; --accent:#54a0ff; --on:#ffc24b;
+  --good:#43d17a; --r:20px;
+}
+.light{ --bg:#f3f4f7; --surface:#ffffff; --surface2:#f0f2f6; --line:rgba(0,0,0,.06);
+  --text:#1b2330; --muted:#7b8494; --accent:#3b82f6; --on:#f5a623; }
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.4 "Inter",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:18px}
+.bar{display:flex;align-items:center;gap:12px;padding:6px 4px 18px}
+.bar h1{font-size:17px;font-weight:800}
+.bar .sp{flex:1}
+.pill{padding:7px 14px;border-radius:999px;background:var(--surface);color:var(--muted);font-size:13px;font-weight:600;border:1px solid var(--line)}
+.pill.on{background:var(--text);color:var(--bg);border:none}
+.sect{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 4px 10px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+/* base card */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px;display:flex;align-items:center;gap:12px;min-height:66px;transition:.18s}
+.chip{width:46px;height:46px;min-width:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:var(--surface2);color:var(--muted)}
+.tx{min-width:0;flex:1}
+.tx .name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .st{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* light/switch ON state */
+.card.on{background:color-mix(in srgb,var(--on) 15%,var(--surface))}
+.card.on .chip{background:color-mix(in srgb,var(--on) 26%,transparent);color:var(--on);box-shadow:0 0 22px -6px var(--on)}
+.card.on .st{color:var(--on)}
+.card .toggle{width:46px;height:27px;border-radius:999px;background:var(--surface2);position:relative;flex:0 0 auto}
+.card .toggle::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.18s}
+.card.on .toggle{background:var(--on)} .card.on .toggle::after{left:22px}
+/* sensor accent chips */
+.chip.temp{color:#ff8a5b} .chip.hum{color:#4cc9f0} .chip.pow{color:#b388ff}
+/* spans */
+.s2{grid-column:span 2}.s2r{grid-row:span 2}
+/* slider mini */
+.mini-slider{height:6px;border-radius:6px;background:var(--surface2);margin-top:8px;position:relative}
+.mini-slider>i{position:absolute;left:0;top:0;bottom:0;width:62%;border-radius:6px;background:linear-gradient(90deg,var(--on),#ffd98a)}
+/* weather wide */
+.weather{flex-direction:column;align-items:stretch;gap:10px;padding:16px}
+.weather .top{display:flex;align-items:center;gap:12px}
+.weather .deg{font-size:30px;font-weight:800}
+.weather .fc{display:flex;justify-content:space-between;gap:8px;margin-top:2px}
+.weather .fc div{text-align:center;color:var(--muted);font-size:12px}
+.weather .fc b{display:block;color:var(--text);font-size:14px;margin-top:2px}
+/* group */
+.group{grid-column:span 2;grid-row:span 2;flex-direction:column;align-items:stretch;gap:10px;background:var(--surface2)}
+.group .ghead{display:flex;align-items:center;gap:10px;font-weight:800}
+.group .gbody{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.group .gbody .card{background:var(--surface);min-height:58px;padding:11px}
+/* scenes */
+.scenes{display:flex;gap:8px;flex-wrap:wrap}
+.scene{padding:9px 14px;border-radius:14px;background:var(--surface2);font-weight:700;font-size:14px}
+.scene.p{background:var(--accent);color:#06223a}
+</style></head>
+<body class="dark">
+<div class="wrap">
+  <div class="bar"><h1>⌂ Zuhause</h1><div class="sp"></div>
+    <span class="pill on">Wohnzimmer</span><span class="pill">Schlafzimmer</span><span class="pill">Wetter</span>
+    <span class="pill" id="themeBtn" style="cursor:pointer">◐</span></div>
+
+  <div class="sect">Sensoren</div>
+  <div class="grid">
+    <div class="card"><div class="chip temp">🌡️</div><div class="tx"><div class="name">Wohnzimmer</div><div class="st">21.4 °C</div></div></div>
+    <div class="card"><div class="chip hum">💧</div><div class="tx"><div class="name">Luftfeuchte</div><div class="st">48 %</div></div></div>
+    <div class="card"><div class="chip pow">⚡</div><div class="tx"><div class="name">Verbrauch</div><div class="st">432 W · 3.1 kWh</div></div></div>
+    <div class="card"><div class="chip">🚪</div><div class="tx"><div class="name">Haustür</div><div class="st">Geschlossen</div></div></div>
+  </div>
+
+  <div class="sect">Licht</div>
+  <div class="grid">
+    <div class="card on"><div class="chip">💡</div><div class="tx"><div class="name">Stehlampe</div><div class="st">An · 62 %</div><div class="mini-slider"><i></i></div></div></div>
+    <div class="card"><div class="chip">💡</div><div class="tx"><div class="name">Küche</div><div class="st">Aus</div></div><div class="toggle"></div></div>
+    <div class="card on"><div class="chip">🛋️</div><div class="tx"><div class="name">Sofa RGB</div><div class="st">An · Warmweiß</div></div><div class="toggle"></div></div>
+    <div class="card"><div class="chip">📺</div><div class="tx"><div class="name">TV</div><div class="st">Aus</div></div><div class="toggle"></div></div>
+  </div>
+
+  <div class="sect">Übersicht</div>
+  <div class="grid">
+    <div class="card weather s2"><div class="top"><div class="chip" style="color:#ffd166">⛅</div><div class="tx"><div class="name">Wetter</div><div class="st">Wolkig · 10 km/h</div></div><div class="deg">24°</div></div>
+      <div class="fc"><div>Mo<b>25°</b></div><div>Di<b>23°</b></div><div>Mi<b>21°</b></div><div>Do<b>26°</b></div><div>Fr<b>24°</b></div></div></div>
+    <div class="card group"><div class="ghead"><div class="chip" style="font-size:18px;width:34px;height:34px;min-width:34px">🗂️</div>Küche</div>
+      <div class="gbody">
+        <div class="card on"><div class="chip">💡</div><div class="tx"><div class="name">Licht</div><div class="st">An</div></div></div>
+        <div class="card"><div class="chip temp">🌡️</div><div class="tx"><div class="name">Temp</div><div class="st">23.0 °C</div></div></div>
+        <div class="card"><div class="chip hum">💧</div><div class="tx"><div class="name">Feuchte</div><div class="st">51 %</div></div></div>
+        <div class="card"><div class="chip">☕</div><div class="tx"><div class="name">Kaffee</div><div class="st">Aus</div></div></div>
+      </div></div>
+  </div>
+
+  <div class="sect">Szenen</div>
+  <div class="scenes">
+    <div class="scene p">Guten Morgen</div><div class="scene">Filmabend</div><div class="scene">Alles aus</div><div class="scene">Party</div>
+  </div>
+</div>
+<script>
+  themeBtn.onclick=()=>document.body.classList.toggle('light');
+</script>
+</body></html>
