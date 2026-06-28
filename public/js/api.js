@@ -19,10 +19,7 @@ const API = {
   devices(names)        { return this._get('devices' + (names ? '?names=' + encodeURIComponent(names) : '')); },
   deviceList()          { return this._get('devicelist'); },
   cmd(device, args)     { return this._send('cmd', 'POST', { device, args }); },
-  async readingsGroup(name) {
-    const r = await fetch('/api/readingsgroup?name=' + encodeURIComponent(name));
-    return r.text();
-  },
+  readingsGroup(name) { return this._get('readingsgroup?name=' + encodeURIComponent(name)); },
   rawCmd(cmd)           { return this._send('cmd', 'POST', { cmd }); },
 
   settings()            { return this._get('settings'); },

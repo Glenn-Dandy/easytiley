@@ -74,13 +74,18 @@ main { padding: 12px; }
   border-radius: 12px; background: none; cursor: pointer;
 }
 
-/* readingsGroup (FHEM renders dark-on-light, so give it a light panel) */
+/* readingsGroup -> our own themed table */
 .rg-wrap { flex: 1; overflow: auto; margin-top: 4px; }
-.rg-content { background: #faf7ec; color: #161616; border-radius: 8px; padding: 6px 8px; font-size: 13px; }
-.rg-content table { border-collapse: collapse; }
-.rg-content td, .rg-content th { padding: 2px 7px; vertical-align: middle; }
-.rg-content a { color: #0a58ca; text-decoration: none; }
-.rg-content hr { border: none; border-top: 1px solid #ccc; margin: 3px 0; }
+.rg-content { color: var(--text); font-size: 13px; }
+.rg-table { border-collapse: collapse; width: 100%; }
+.rg-table td { padding: 4px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.rg-table tr:last-child td { border-bottom: none; }
+.rg-table tr:hover td { background: rgba(255, 255, 255, .04); }
+.rg-table .rg-v { vertical-align: middle; }
+.rg-table td:first-child .rg-v { color: var(--muted); }   /* first column = labels */
+.rg-table .rg-sep td { padding: 0; height: 0; border-bottom: 2px solid var(--line); }
+.rg-table svg, .rg-table img { width: 22px; height: 22px; vertical-align: middle; }
+.rg-table svg, .rg-table svg path, .rg-table svg * { fill: var(--text); }  /* make mono icons visible on dark */
 .rg-empty, .rg-loading { color: var(--muted); padding: 10px; font-size: 13px; }
 
 /* ---- Grid / tiles ---- */

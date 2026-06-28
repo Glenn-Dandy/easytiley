@@ -109,11 +109,23 @@
       const target = item && item.querySelector('.rg-content');
       if (!target) continue;
       try {
-        const html = await API.readingsGroup(t.device);
+        const { rows } = await API.readingsGroup(t.device);
         target.classList.remove('rg-loading');
-        target.innerHTML = html;
+        target.innerHTML = renderRgTable(rows);
       } catch (e) { target.classList.remove('rg-loading'); target.textContent = 'Fehler: ' + e.message; }
     }
+  }
+
+  // Build our own themed table from the parsed readingsGroup rows.
+  function renderRgTable(rows) {
+    if (!rows || !rows.length) return '<div class="rg-empty">– keine Daten –</div>';
+    const cols = rows.reduce((m, r) => Math.max(m, r.cells.length), 1);
+    let h = '<table class="rg-table">';
+    for (const r of rows) {
+      if (r.sep) { h += `<tr class="rg-sep"><td colspan="${cols}"></td></tr>`; continue; }
+      h += '<tr>' + r.cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+    }
+    return h + '</table>';
   }
 
   // ---- widgets -------------------------------------------------------------

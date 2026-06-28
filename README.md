@@ -56,8 +56,9 @@ Kacheltypen: `Wert/Sensor`, `Schalter (on/off)`, `Dimmer (0–100 %)`,
 **Räume als Tabs:** Jeder Tab oben ist ein Raum/Dashboard. **＋** legt einen an;
 im Editiermodus benennt ein Klick auf den aktiven Tab ihn um, **✕** löscht ihn.
 
-**readingsGroup-Kachel:** zeigt eine FHEM-`readingsGroup` (z. B. Wetter) 1:1 an –
-FHEM rendert sie selbst, das Frontend bettet das HTML ein (Aktualisierung alle 30 s).
+**readingsGroup-Kachel:** zeigt eine FHEM-`readingsGroup` (z. B. Wetter). FHEM
+rendert intern, das Backend parst Werte + Icons heraus (DOMDocument) und das
+Frontend zeichnet eine **eigene Tabelle im Dark-Theme** (Aktualisierung alle 30 s).
 
 **Farbe-Kachel:** Farbwähler; der passende Befehl wird automatisch gewählt –
 `rgb` (Hex) bzw. `hsv`, je nachdem was das Gerät kann (auch fremde Lampen).

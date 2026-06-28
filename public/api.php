@@ -78,6 +78,63 @@ function detect_onoff(array $rawReadings): ?string
     return array_key_first($found);
 }
 
+/**
+ * Parse FHEM's rendered readingsGroup HTML into structured rows so the frontend
+ * can draw its own themed table. Keeps icons (img/svg), drops FHEM styling.
+ * Returns [ ['sep'=>bool, 'cells'=>[htmlString,...]], ... ].
+ */
+/** Text content of a node, but skipping icon subtrees (svg/img carry junk text like potrace comments). */
+function rg_text(DOMNode $n): string
+{
+    if ($n->nodeType === XML_TEXT_NODE) return $n->nodeValue;
+    if ($n->nodeType !== XML_ELEMENT_NODE) return '';
+    $tag = strtolower($n->nodeName);
+    if ($tag === 'svg' || $tag === 'img') return '';
+    $s = '';
+    foreach ($n->childNodes as $c) $s .= rg_text($c);
+    return $s;
+}
+
+function rg_parse(string $html): array
+{
+    if (trim($html) === '') return [];
+    $doc = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $doc->loadHTML('<?xml encoding="utf-8"?><div>' . $html . '</div>');
+    libxml_clear_errors();
+    $xp = new DOMXPath($doc);
+
+    // The real grid is the inner table with class "readingsGroup".
+    $table = $xp->query("//table[contains(@class,'readingsGroup')]")->item(0)
+          ?: $xp->query('//table')->item(0);
+    if (!$table) return [];
+
+    $rows = [];
+    foreach ($xp->query('.//tr', $table) as $tr) {
+        // only the tr's own cells (the inner table has no nested tables)
+        $cells = [];
+        $sep   = false;
+        foreach ($xp->query('./td | ./th', $tr) as $td) {
+            if ($xp->query('.//hr', $td)->length) { $sep = true; continue; }
+            $icons = '';
+            foreach ($xp->query('.//img | .//svg', $td) as $node) {
+                foreach (['informid', 'informId', 'class', 'id'] as $a) {
+                    if ($node->hasAttribute($a)) $node->removeAttribute($a);
+                }
+                $icon = $doc->saveHTML($node);
+                $icon = preg_replace('/<!--.*?-->/s', '', $icon);                       // potrace comments
+                $icon = preg_replace('#<(metadata|desc|title)\b[^>]*>.*?</\1>#is', '', $icon); // hidden text
+                $icons .= $icon;
+            }
+            $text = preg_replace('/\s+/u', ' ', trim(rg_text($td)));
+            $cells[] = $icons . ($text !== '' ? '<span class="rg-v">' . htmlspecialchars($text, ENT_QUOTES) . '</span>' : '');
+        }
+        if ($sep && !$cells) { $rows[] = ['sep' => true, 'cells' => []]; }
+        elseif ($cells)      { $rows[] = ['sep' => false, 'cells' => $cells]; }
+    }
+    return $rows;
+}
+
 try {
     $db = new Db($DB_PATH);
     // Runtime-configurable FHEM URL (settings override the build-time env default),
@@ -105,8 +162,8 @@ try {
             }
             out(['fhemUrl' => $fhemUrl, 'default' => $FHEM_URL]);
 
-        // ---- readingsGroup: let FHEM render it, embed the HTML --------------
-        case 'readingsgroup': // GET ?name=WetterInfo
+        // ---- readingsGroup: parse FHEM's rendering into our own table -------
+        case 'readingsgroup': // GET ?name=WetterInfo -> { rows:[{sep,cells[]}] }
             $name = preg_replace('/[^A-Za-z0-9_.\-]/', '', (string)($_GET['name'] ?? ''));
             if ($name === '') fail('name required', 400);
             $html = $fhem->cmd("{readingsGroup_2html('$name')}");
@@ -114,14 +171,8 @@ try {
             $p = parse_url($fhemUrl);
             $host = ($p['scheme'] ?? 'http') . '://' . ($p['host'] ?? '')
                   . (isset($p['port']) ? ':' . $p['port'] : '');
-            $html = str_replace(
-                ['="/fhem/', "='/fhem/", 'url(/fhem/'],
-                ['="' . $host . '/fhem/', "='" . $host . '/fhem/', 'url(' . $host . '/fhem/'],
-                $html
-            );
-            header('Content-Type: text/html; charset=utf-8');
-            echo trim($html) === '' ? '<div class="rg-empty">– keine Daten –</div>' : $html;
-            exit;
+            $html = str_replace(['="/fhem/', "='/fhem/"], ['="' . $host . '/fhem/', "='" . $host . '/fhem/'], $html);
+            out(['rows' => rg_parse($html)]);
 
         // ---- FHEM live data -------------------------------------------------
         case 'devices': // GET ?names=Lamp,Door   (omit names = all 294, heavy)
