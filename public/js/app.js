@@ -203,11 +203,21 @@
   }
 
   async function save() {
-    // Merge live geometry from gridstack with our tile config.
-    const nodes = grid.save(false); // [{x,y,w,h,id}]
-    const layout = nodes.map(n => {
-      const t = tiles[n.id] || {};
-      return { ...t, x: n.x ?? t.x ?? 0, y: n.y ?? t.y ?? 0, w: n.w ?? t.w ?? 2, h: n.h ?? t.h ?? 2 };
+    // Read geometry from each item's gridstackNode (always explicit, incl. size 1).
+    // grid.save() omits w/h when they equal the default (1), which silently
+    // dropped shrink-to-1 resizes.
+    const num = (item, k) => { const v = item.getAttribute('gs-' + k); return v == null ? undefined : parseInt(v, 10); };
+    const layout = [...grid.el.querySelectorAll('.grid-stack-item')].map(item => {
+      const id = item.getAttribute('gs-id');
+      const t  = tiles[id] || {};
+      const n  = item.gridstackNode || {};
+      return {
+        ...t,
+        x: n.x ?? num(item, 'x') ?? t.x ?? 0,
+        y: n.y ?? num(item, 'y') ?? t.y ?? 0,
+        w: n.w ?? num(item, 'w') ?? t.w ?? 2,
+        h: n.h ?? num(item, 'h') ?? t.h ?? 2,
+      };
     });
     try {
       await API.saveDashboard(currentDash.id, currentDash.name, layout);
