@@ -4,10 +4,13 @@ Web-Dashboard für FHEM mit editierbaren Gerätekacheln (FTUI-Optik).
 Kacheln hinzufügen, verschieben, vergrößern und speichern — alles im Browser.
 
 ```
-Browser ──HTTP──> nginx + php-fpm (Docker) ──HTTP──> FHEMWEB (192.168.10.2:8083)
+Browser ──HTTP──> 1 Docker-Container ──HTTP──> FHEMWEB (192.168.10.2:8083)
+                  (nginx + php-fpm)
                        │
                        └── SQLite (data/fhem.db)  ← Dashboards & Kachel-Layouts
 ```
+
+> nginx **und** php-fpm laufen zusammen in **einem** Image (via supervisord) — ein Container genügt.
 
 * **Frontend:** Vanilla JS + [Gridstack](https://gridstackjs.com) (Drag&Drop/Resize), FTUI-Stil.
 * **Backend:** PHP 8.3, spricht FHEMWEB via `jsonlist2` + `set` an (CSRF-Token automatisch).
@@ -16,16 +19,43 @@ Browser ──HTTP──> nginx + php-fpm (Docker) ──HTTP──> FHEMWEB (19
 
 ## Start
 
-Voraussetzung: Docker + Docker Compose (siehe unten).
+Voraussetzung: Docker + Docker Compose.
 
 ```bash
-cp .env.example .env          # FHEM_URL / Port ggf. anpassen
-chmod 777 data                # php-fpm (uid 82 im Container) muss in data/ schreiben
+mkdir -p data && chmod 777 data   # php-fpm (uid 82) muss in data/ schreiben
 docker compose up -d --build
 # -> http://localhost:8080
 ```
 
-### Docker auf dieser Box installieren (einmalig, braucht sudo)
+FHEM-Adresse danach **im Browser unter ⚙ Einstellungen** setzen (kein Rebuild nötig).
+Optional vorab per Env: `FHEM_URL=http://<ip>:8083/fhem docker compose up -d`.
+
+## Woanders installieren
+
+Auf dem Zielrechner Docker installieren, dann **eine** der beiden Varianten:
+
+**A) Per Git (empfohlen):**
+```bash
+git clone <repo-url> fhem-frontend && cd fhem-frontend
+mkdir -p data && chmod 777 data
+docker compose up -d --build          # baut das Image lokal
+# -> http://<ziel-ip>:8080 , FHEM-Adresse unter ⚙ eintragen
+```
+
+**B) Ohne Git – Image exportieren/importieren:**
+```bash
+# auf dieser Box:
+docker save fhem-frontend:latest | gzip > fhem-frontend.tar.gz
+# Datei auf den Zielrechner kopieren (scp/USB), dort:
+docker load < fhem-frontend.tar.gz
+docker run -d --name fhem -p 8080:80 -v fhem-data:/var/www/data --restart unless-stopped fhem-frontend:latest
+```
+
+Hinweise: Der Container muss das FHEM im Netz erreichen (gleiches LAN/Routing).
+Die Dashboards liegen in `data/fhem.db` (Variante A) bzw. im Volume `fhem-data`
+(Variante B) und überleben Updates/Rebuilds. Port ändern via `HTTP_PORT` in `.env`.
+
+### Docker installieren (Ubuntu, einmalig, braucht sudo)
 
 ```bash
 sudo apt-get update

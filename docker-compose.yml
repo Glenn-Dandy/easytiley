@@ -1,21 +1,15 @@
 services:
-  php:
-    build: ./docker/php
-    volumes:
-      - ./:/var/www
-      - ./docker/php/www-pool.conf:/usr/local/etc/php-fpm.d/zzz-pool.conf:ro
+  app:
+    build: .
+    image: fhem-frontend:latest
+    ports:
+      - "${HTTP_PORT:-8080}:80"
     environment:
       - FHEM_URL=${FHEM_URL:-http://192.168.10.2:8083/fhem}
       - DB_PATH=/var/www/data/fhem.db
-    restart: unless-stopped
-
-  web:
-    image: nginx:alpine
-    depends_on:
-      - php
     volumes:
-      - ./:/var/www:ro
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    ports:
-      - "${HTTP_PORT:-8080}:80"
+      - ./data:/var/www/data           # sqlite DB (dashboards) persists on the host
+      # Dev only: live-edit code without rebuild (comment out for deploy)
+      # - ./public:/var/www/public
+      # - ./src:/var/www/src
     restart: unless-stopped
