@@ -9,7 +9,7 @@
   const el = {};
   const DEFAULT_SIZE = {
     value:  { w: 2, h: 2 }, switch: { w: 2, h: 2 }, dimmer: { w: 3, h: 2 },
-    color:  { w: 2, h: 2 }, light: { w: 3, h: 4 }, readingsgroup: { w: 6, h: 4 },
+    color:  { w: 2, h: 2 }, light: { w: 3, h: 3 }, readingsgroup: { w: 6, h: 4 },
     group:  { w: 4, h: 4 }, button: { w: 2, h: 2 }, label: { w: 3, h: 1 },
   };
 
