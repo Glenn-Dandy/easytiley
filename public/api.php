@@ -79,10 +79,31 @@ function detect_onoff(array $rawReadings): ?string
 }
 
 try {
-    $fhem = new Fhem($FHEM_URL);
-    $db   = new Db($DB_PATH);
+    $db = new Db($DB_PATH);
+    // Runtime-configurable FHEM URL (settings override the build-time env default),
+    // so the same image works against any FHEM instance.
+    $fhemUrl = $db->getSetting('fhem_url') ?: $FHEM_URL;
+    $fhem    = new Fhem($fhemUrl);
 
     switch ($path) {
+
+        // ---- Settings -------------------------------------------------------
+        case 'settings':
+            if ($method === 'POST') {
+                $b   = body_json();
+                $url = trim((string)($b['fhemUrl'] ?? ''));
+                if ($url === '') fail('fhemUrl required', 400);
+                if (!preg_match('#^https?://#i', $url)) $url = 'http://' . $url;
+                $p = parse_url($url);                       // append /fhem if only host[:port] given
+                if (empty($p['path']) || $p['path'] === '/') $url = rtrim($url, '/') . '/fhem';
+                // Probe the candidate URL before (optionally) persisting.
+                $reachable = false;
+                try { $reachable = (new Fhem($url))->token() !== ''; } catch (Throwable $e) {}
+                $save = empty($b['test']);
+                if ($save) $db->setSetting('fhem_url', $url);
+                out(['ok' => true, 'reachable' => $reachable, 'saved' => $save, 'fhemUrl' => $url]);
+            }
+            out(['fhemUrl' => $fhemUrl, 'default' => $FHEM_URL]);
 
         // ---- FHEM live data -------------------------------------------------
         case 'devices': // GET ?names=Lamp,Door   (omit names = all 294, heavy)
@@ -94,7 +115,7 @@ try {
         case 'devicelist': // GET -> lightweight {name,type,room,readings[]} for the editor picker
             // Cached briefly: the full jsonlist2 is ~1.7 MB and would otherwise
             // be re-fetched on every page load / tab.
-            $cacheFile = dirname($DB_PATH) . '/devicelist.cache.json';
+            $cacheFile = dirname($DB_PATH) . '/devicelist.' . substr(md5($fhemUrl), 0, 8) . '.json';
             if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 300) {
                 echo file_get_contents($cacheFile); // fresh (< 5 min)
                 exit;

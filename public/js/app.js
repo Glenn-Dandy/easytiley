@@ -2,7 +2,8 @@
 (() => {
   let grid, currentDash = null, editMode = false;
   let tiles = {};               // id -> tile config
-  let deviceCache = [];         // [{name,type,room,readings[]}]
+  let deviceCache = [];         // [{name,type,room,readings[],sets[],onoff}]
+  let editingTileId = null;     // set while the dialog edits an existing tile
 
   const $  = sel => document.querySelector(sel);
   const el = {};
@@ -15,7 +16,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    ['dashSelect','addBtn','saveBtn','editBtn','status'].forEach(id => el[id] = document.getElementById(id));
+    ['dashSelect','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
 
     grid = GridStack.init({
       column: 12, cellHeight: 88, margin: 6, float: true,
@@ -28,7 +29,9 @@
     el.addBtn.addEventListener('click', openAddDialog);
     el.saveBtn.addEventListener('click', save);
     el.dashSelect.addEventListener('change', onDashChange);
+    el.settingsBtn.addEventListener('click', openSettings);
     setupDialog();
+    setupSettings();
 
     // NOTE: the full device list (heavy on single-threaded FHEM) is loaded
     // lazily on first "+ Kachel", not on every page load.
@@ -80,18 +83,28 @@
   }
 
   function onGridClick(e) {
-    const del = e.target.closest('.tile-del');
-    if (del && editMode) {
-      const item = del.closest('.grid-stack-item');
-      const id = item.getAttribute('gs-id');
+    if (!editMode) return;
+    const item = e.target.closest('.grid-stack-item');
+    if (!item) return;
+    const id = item.getAttribute('gs-id');
+    if (e.target.closest('.tile-del')) {
       grid.removeWidget(item);
       delete tiles[id];
+    } else if (e.target.closest('.tile-edit')) {
+      openEditDialog(id);
     }
+  }
+
+  // Replace a tile's content in place, keeping its grid position/size.
+  function rebuildTileContent(id) {
+    const item = grid.el.querySelector(`.grid-stack-item[gs-id="${id}"]`);
+    if (!item) return;
+    item.replaceChild(Tiles.build(tiles[id], onAction), item.querySelector('.grid-stack-item-content'));
   }
 
   // A tile interaction was triggered -> send to FHEM, refresh soon after.
   async function onAction(tile, args) {
-    if (!tile.device) return;
+    if (editMode || !tile.device) return;   // no toggling while editing
     try {
       setStatus('ok');
       await API.cmd(tile.device, args);
@@ -150,49 +163,48 @@
     } catch (err) { setStatus('err', err.message); }
   }
 
+  // Reading is auto-derived for switches (irrelevant for button/label),
+  // so only value/dimmer types show the field.
+  function dlgSyncRows() {
+    const t = document.getElementById('tType').value;
+    document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
+    document.getElementById('rowCmd').style.display     = t === 'button' ? '' : 'none';
+    document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
+  }
+
+  function fillReadings(deviceName) {
+    const d = deviceCache.find(x => x.name === deviceName);
+    document.getElementById('readingOptions').innerHTML =
+      (d ? d.readings : []).map(r => `<option value="${esc(r)}">`).join('');
+    return d;
+  }
+
   function setupDialog() {
-    const dlg = document.getElementById('tileDialog');
-    el.dlg = dlg;
+    el.dlg = document.getElementById('tileDialog');
     const type = document.getElementById('tType');
     const dev  = document.getElementById('tDevice');
-
     const reading = document.getElementById('tReading');
-
-    // Reading is auto-derived for switches (and irrelevant for button/label),
-    // so only the value/dimmer types show the field.
-    const syncRows = () => {
-      const t = type.value;
-      document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
-      document.getElementById('rowCmd').style.display     = t === 'button' ? '' : 'none';
-      document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
-    };
 
     // Fill the reading field with the sensible default for the chosen device+type.
     const applyDefaults = () => {
       const d = deviceCache.find(x => x.name === dev.value);
       if (!d) return;
-      if (type.value === 'switch') {
-        reading.value = d.onoff || 'state';            // YeeLight -> "power"
-      } else if (type.value === 'dimmer') {
-        reading.value = pickDim(d).reading;
-      }
+      if (type.value === 'switch')      reading.value = d.onoff || 'state'; // YeeLight -> "power"
+      else if (type.value === 'dimmer') reading.value = pickDim(d).reading;
     };
 
-    type.addEventListener('change', () => { syncRows(); applyDefaults(); });
-
+    type.addEventListener('change', () => { dlgSyncRows(); applyDefaults(); });
     dev.addEventListener('change', () => {
-      const d = deviceCache.find(x => x.name === dev.value);
-      document.getElementById('readingOptions').innerHTML =
-        (d ? d.readings : []).map(r => `<option value="${esc(r)}">`).join('');
+      const d = fillReadings(dev.value);
       if (d && !document.getElementById('tLabel').value)
         document.getElementById('tLabel').value = d.alias || d.name;
       applyDefaults();
     });
 
     document.getElementById('tileForm').addEventListener('submit', e => {
-      // submit fires for both buttons. returnValue isn't set yet here,
-      // so check the clicked button directly (Enter -> submitter null -> treat as OK).
-      if (e.submitter && e.submitter.value !== 'ok') return; // Abbrechen
+      // submit fires for every button. returnValue isn't set yet here, so check
+      // the clicked button directly (Enter -> submitter null -> treat as OK).
+      if (e.submitter && e.submitter.value !== 'ok') { editingTileId = null; return; }
       const f = e.target;
       const device = f.device.value.trim();
       const t = f.type.value;
@@ -204,21 +216,26 @@
       if (t === 'switch') rd = d ? (d.onoff || 'state') : (rd || 'state'); // on/off-Reading automatisch
       if (t === 'dimmer') { const p = pickDim(d); setcmd = p.setcmd; rd = rd || p.reading; }
 
-      const tile = {
-        id:     't' + Date.now() + Math.floor(performance.now()),
-        type:   t,
-        device, setcmd,
+      const cfg = {
+        type: t, device, setcmd,
         reading: rd || 'state',
-        label:  f.label.value.trim(),
-        unit:   f.unit.value.trim(),
-        cmd:    f.cmd.value.trim(),
-        x: 0, y: 0, ...DEFAULT_SIZE[t],
+        label: f.label.value.trim(),
+        unit:  f.unit.value.trim(),
+        cmd:   f.cmd.value.trim(),
       };
-      tiles[tile.id] = tile;
-      addWidget(tile);
-      f.reset(); syncRows();
+
+      if (editingTileId) {                          // --- update existing tile ---
+        tiles[editingTileId] = { ...tiles[editingTileId], ...cfg };
+        rebuildTileContent(editingTileId);
+      } else {                                      // --- create new tile ---
+        const tile = { id: 't' + Date.now() + Math.floor(performance.now()),
+                       x: 0, y: 0, ...DEFAULT_SIZE[t], ...cfg };
+        tiles[tile.id] = tile;
+        addWidget(tile);
+      }
+      editingTileId = null;
     });
-    syncRows();
+    dlgSyncRows();
   }
 
   // Pick the dim set-command + level reading a device actually supports
@@ -232,11 +249,76 @@
 
   function openAddDialog() {
     if (!deviceCache.length) loadDeviceCache(); // lazy: fills the picker when ready
+    editingTileId = null;
+    document.getElementById('dlgTitle').textContent = 'Kachel hinzufügen';
     document.getElementById('tileForm').reset();
-    document.querySelectorAll('#tileForm .row-extra').forEach(r => r.style.display = 'none');
-    document.getElementById('rowUnit').style.display = '';
+    dlgSyncRows();
     el.dlg.returnValue = '';
     el.dlg.showModal();
+  }
+
+  function openEditDialog(id) {
+    if (!deviceCache.length) loadDeviceCache();
+    const t = tiles[id];
+    if (!t) return;
+    editingTileId = id;
+    document.getElementById('dlgTitle').textContent = 'Kachel bearbeiten';
+    const f = document.getElementById('tileForm');
+    f.reset();
+    f.type.value   = t.type;
+    f.device.value = t.device || '';
+    fillReadings(t.device);
+    f.reading.value = t.reading || '';
+    f.label.value   = t.label || '';
+    f.unit.value    = t.unit || '';
+    f.cmd.value     = t.cmd || '';
+    dlgSyncRows();
+    el.dlg.returnValue = '';
+    el.dlg.showModal();
+  }
+
+  // ---- settings ------------------------------------------------------------
+  function setupSettings() {
+    el.settingsDlg = document.getElementById('settingsDialog');
+    document.getElementById('settingsForm').addEventListener('submit', async e => {
+      const action = e.submitter && e.submitter.value;
+      if (action === 'cancel') return;              // close normally
+      e.preventDefault();                           // keep open for test/save feedback
+      const url  = document.getElementById('sFhemUrl').value.trim();
+      const test = action === 'test';
+      if (!url) { settingsResult('Bitte eine Adresse eingeben.', false); return; }
+      settingsResult('…prüfe Verbindung…');
+      try {
+        const r = await API.saveSettings(url, test);
+        if (test) {
+          settingsResult(r.reachable ? '✓ erreichbar: ' + r.fhemUrl : '✗ nicht erreichbar: ' + r.fhemUrl, r.reachable);
+        } else if (r.reachable) {
+          settingsResult('✓ gespeichert & verbunden', true);
+          deviceCache = [];                         // refresh picker for the new instance
+          el.settingsDlg.close();
+          await loadDashboards();
+        } else {
+          settingsResult('⚠ gespeichert, aber nicht erreichbar: ' + r.fhemUrl, false);
+        }
+      } catch (err) { settingsResult('Fehler: ' + err.message, false); }
+    });
+  }
+
+  function settingsResult(text, ok) {
+    let r = document.getElementById('sResult');
+    if (!r) {
+      r = document.createElement('div'); r.id = 'sResult';
+      document.getElementById('settingsForm').insertBefore(r, document.querySelector('#settingsForm menu'));
+    }
+    r.textContent = text;
+    r.className = 'result' + (ok === true ? ' ok' : ok === false ? ' err' : '');
+  }
+
+  async function openSettings() {
+    try { const s = await API.settings(); document.getElementById('sFhemUrl').value = s.fhemUrl || ''; }
+    catch (e) { /* ignore */ }
+    settingsResult('');
+    el.settingsDlg.showModal();
   }
 
   // ---- helpers -------------------------------------------------------------

@@ -35,10 +35,20 @@ sudo usermod -aG docker "$USER"   # danach einmal ab- und neu anmelden
 
 ## Bedienung
 
-1. **Bearbeiten** klicken → Editiermodus (Kacheln lassen sich ziehen/skalieren).
-2. **+ Kachel** → Typ, Gerät (Suche über alle 294 Devices), Reading wählen.
-3. **Speichern** → Layout landet in SQLite.
-4. **Fertig** → normaler Anzeige-/Bedienmodus mit Live-Werten.
+1. **⚙ Einstellungen** → FHEM-Adresse (IP:Port oder volle URL) eintragen,
+   **Testen**, **Speichern**. Wird in SQLite abgelegt → dieselbe Instanz läuft
+   ohne Codeänderung gegen jedes FHEM.
+2. **Bearbeiten** klicken → Editiermodus (Kacheln ziehen/skalieren).
+3. **+ Kachel** → Typ + Gerät wählen (Reading wird für Schalter/Dimmer automatisch erkannt).
+4. **✎** auf einer Kachel → bestehende Kachel komplett bearbeiten; **✕** → entfernen.
+5. **Speichern** → Layout landet in SQLite.
+6. **Fertig** → normaler Anzeige-/Bedienmodus mit Live-Werten.
+
+### Auf einer anderen FHEM-Instanz betreiben
+
+Image/Container starten und unter **⚙ Einstellungen** die FHEM-Adresse setzen.
+`FHEM_URL` in `.env` ist nur noch der **Start-Default** (greift, solange in den
+Einstellungen nichts gespeichert wurde).
 
 Kacheltypen: `Wert/Sensor`, `Schalter (on/off)`, `Dimmer (0–100 %)`, `Button (set-Befehl)`, `Beschriftung`.
 

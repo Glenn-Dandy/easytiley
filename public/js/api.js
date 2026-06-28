@@ -21,6 +21,9 @@ const API = {
   cmd(device, args)     { return this._send('cmd', 'POST', { device, args }); },
   rawCmd(cmd)           { return this._send('cmd', 'POST', { cmd }); },
 
+  settings()            { return this._get('settings'); },
+  saveSettings(fhemUrl, test) { return this._send('settings', 'POST', { fhemUrl, test: !!test }); },
+
   dashboards()          { return this._get('dashboards'); },
   dashboard(id)         { return this._get('dashboard?id=' + id); },
   createDashboard(name) { return this._send('dashboards', 'POST', { name }); },

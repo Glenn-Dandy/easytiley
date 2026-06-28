@@ -24,12 +24,34 @@ class Db
                 updated TEXT
             )'
         );
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            )'
+        );
         // Seed a default dashboard on first run.
         $n = (int)$this->pdo->query('SELECT COUNT(*) FROM dashboards')->fetchColumn();
         if ($n === 0) {
             $this->pdo->prepare('INSERT INTO dashboards (name, layout, updated) VALUES (?, "[]", ?)')
                       ->execute(['Start', date('c')]);
         }
+    }
+
+    public function getSetting(string $key, ?string $default = null): ?string
+    {
+        $st = $this->pdo->prepare('SELECT value FROM settings WHERE key = ?');
+        $st->execute([$key]);
+        $v = $st->fetchColumn();
+        return $v === false ? $default : (string)$v;
+    }
+
+    public function setSetting(string $key, string $value): void
+    {
+        $this->pdo->prepare(
+            'INSERT INTO settings (key, value) VALUES (?, ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+        )->execute([$key, $value]);
     }
 
     public function listDashboards(): array

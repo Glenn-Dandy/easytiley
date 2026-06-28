@@ -25,6 +25,7 @@ const Tiles = (() => {
     const label = tile.label || tile.device || '';
     el.innerHTML =
       `<div class="tile-del" title="Entfernen">✕</div>
+       <div class="tile-edit" title="Bearbeiten">✎</div>
        <div class="tile-head"><span class="tile-icon">${ICONS[tile.type] || '⬚'}</span>
        <span class="tile-label">${escapeHtml(label)}</span></div>
        <div class="tile-body"></div>`;

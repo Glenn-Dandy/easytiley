@@ -15,6 +15,7 @@
     <span id="status" class="status" title="Verbindung"></span>
     <button id="addBtn"  class="btn hidden">+ Kachel</button>
     <button id="saveBtn" class="btn hidden">Speichern</button>
+    <button id="settingsBtn" class="btn" title="Einstellungen">⚙</button>
     <button id="editBtn" class="btn btn-toggle">Bearbeiten</button>
   </header>
 
@@ -62,6 +63,22 @@
       <menu>
         <button value="cancel" class="btn">Abbrechen</button>
         <button value="ok" id="tOk" class="btn btn-primary">Übernehmen</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Settings dialog -->
+  <dialog id="settingsDialog">
+    <form method="dialog" id="settingsForm">
+      <h3>Einstellungen</h3>
+      <label>FHEM-Adresse (IP oder URL)
+        <input name="fhemUrl" id="sFhemUrl" placeholder="z.B. 192.168.10.2:8083 oder http://host:8083/fhem">
+      </label>
+      <p class="hint" id="sHint">Beispiel: <code>192.168.10.2:8083</code> – <code>/fhem</code> wird ergänzt.</p>
+      <menu>
+        <button value="cancel" class="btn">Schließen</button>
+        <button value="test" id="sTest" class="btn">Testen</button>
+        <button value="ok" id="sOk" class="btn btn-primary">Speichern</button>
       </menu>
     </form>
   </dialog>
