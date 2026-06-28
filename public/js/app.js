@@ -10,7 +10,7 @@
   const DEFAULT_SIZE = {
     value:  { w: 2, h: 2 }, switch: { w: 2, h: 2 }, dimmer: { w: 3, h: 2 },
     color:  { w: 2, h: 2 }, readingsgroup: { w: 6, h: 4 },
-    button: { w: 2, h: 2 }, label:  { w: 3, h: 1 },
+    group:  { w: 4, h: 4 }, button: { w: 2, h: 2 }, label: { w: 3, h: 1 },
   };
 
   // ---- init ----------------------------------------------------------------
@@ -22,6 +22,7 @@
     grid = GridStack.init({
       column: 12, cellHeight: 72, margin: 6, float: true,
       disableDrag: true, disableResize: true,
+      acceptWidgets: true,                     // allow dragging tiles in/out of group boxes
       handle: '.tile-head',                    // drag by the header, leaving the corner free to resize
       resizable: { handles: 'se, s, e, sw' },
     });
@@ -96,8 +97,9 @@
   async function loadDashboard(id) {
     currentDash = await API.dashboard(id);
     tiles = {};
+    eachGrid(g => { if (g !== grid) g.destroy(false); }); // tear down old sub-grids
     grid.removeAll();
-    for (const t of currentDash.layout) { tiles[t.id] = t; addWidget(t); }
+    for (const t of currentDash.layout) addWidget(t);     // addWidget registers + recurses into groups
     renderTabs(id);
     refreshReadingsGroups();
   }
@@ -130,17 +132,44 @@
   }
 
   // ---- widgets -------------------------------------------------------------
-  function addWidget(tile) {
+  const NESTED_OPTS = {                          // options for a group's sub-grid
+    column: 6, cellHeight: 60, margin: 4, float: true,
+    acceptWidgets: true, handle: '.tile-head', resizable: { handles: 'se, s, e, sw' },
+  };
+
+  // run a callback for every grid on the page (main grid + all group sub-grids)
+  function eachGrid(fn) {
+    document.querySelectorAll('.grid-stack').forEach(g => g.gridstack && fn(g.gridstack));
+  }
+
+  function addWidget(tile, targetGrid = grid) {
+    tiles[tile.id] = tile;
+    const big = tile.type === 'group';
     const item = document.createElement('div');
     item.className = 'grid-stack-item';
     item.setAttribute('gs-id', tile.id);
     item.setAttribute('gs-x', tile.x ?? 0);
     item.setAttribute('gs-y', tile.y ?? 0);
-    item.setAttribute('gs-w', tile.w ?? 2);
-    item.setAttribute('gs-h', tile.h ?? 2);
+    item.setAttribute('gs-w', tile.w ?? (big ? 4 : 2));
+    item.setAttribute('gs-h', tile.h ?? (big ? 4 : 2));
     item.appendChild(Tiles.build(tile, onAction));
-    grid.el.appendChild(item);
-    grid.makeWidget(item);
+    targetGrid.el.appendChild(item);
+    targetGrid.makeWidget(item);
+
+    if (big) { // turn the inner .grid-stack into a real sub-grid and fill it
+      const sub = GridStack.init({ ...NESTED_OPTS, disableDrag: !editMode, disableResize: !editMode },
+                                 item.querySelector('.grid-stack'));
+      for (const child of (tile.children || [])) addWidget(child, sub);
+    }
+  }
+
+  function removeTile(item, id) {
+    if (tiles[id] && tiles[id].type === 'group') {            // drop children configs too
+      item.querySelectorAll('.grid-stack-item').forEach(ci => delete tiles[ci.getAttribute('gs-id')]);
+    }
+    const owner = (item.gridstackNode && item.gridstackNode.grid) || grid;
+    owner.removeWidget(item);
+    delete tiles[id];
   }
 
   function onGridClick(e) {
@@ -148,12 +177,8 @@
     const item = e.target.closest('.grid-stack-item');
     if (!item) return;
     const id = item.getAttribute('gs-id');
-    if (e.target.closest('.tile-del')) {
-      grid.removeWidget(item);
-      delete tiles[id];
-    } else if (e.target.closest('.tile-edit')) {
-      openEditDialog(id);
-    }
+    if (e.target.closest('.tile-del'))       removeTile(item, id);
+    else if (e.target.closest('.tile-edit')) openEditDialog(id);
   }
 
   // Replace a tile's content in place, keeping its grid position/size.
@@ -193,8 +218,7 @@
   // ---- edit mode -----------------------------------------------------------
   function toggleEdit() {
     editMode = !editMode;
-    grid.enableMove(editMode);
-    grid.enableResize(editMode);
+    eachGrid(g => { g.enableMove(editMode); g.enableResize(editMode); }); // incl. group sub-grids
     document.body.classList.toggle('editing', editMode);
     el.editBtn.classList.toggle('active', editMode);
     el.editBtn.textContent = editMode ? 'Fertig' : 'Bearbeiten';
@@ -202,27 +226,36 @@
     el.saveBtn.classList.toggle('hidden', !editMode);
   }
 
-  async function save() {
-    // Read geometry from each item's gridstackNode (always explicit, incl. size 1).
-    // grid.save() omits w/h when they equal the default (1), which silently
-    // dropped shrink-to-1 resizes.
+  // Serialize one grid's direct items into tile configs (recurses into groups).
+  // Reads geometry from gridstackNode (always explicit, incl. size 1) — grid.save()
+  // omits w/h at the default (1), which would silently drop shrink-to-1 resizes.
+  function serializeGrid(gridEl) {
     const num = (item, k) => { const v = item.getAttribute('gs-' + k); return v == null ? undefined : parseInt(v, 10); };
-    const layout = [...grid.el.querySelectorAll('.grid-stack-item')].map(item => {
+    return [...gridEl.children].filter(c => c.classList.contains('grid-stack-item')).map(item => {
       const id = item.getAttribute('gs-id');
       const t  = tiles[id] || {};
       const n  = item.gridstackNode || {};
-      return {
+      const o = {
         ...t,
         x: n.x ?? num(item, 'x') ?? t.x ?? 0,
         y: n.y ?? num(item, 'y') ?? t.y ?? 0,
         w: n.w ?? num(item, 'w') ?? t.w ?? 2,
         h: n.h ?? num(item, 'h') ?? t.h ?? 2,
       };
+      if (t.type === 'group') {
+        const inner = item.querySelector('.grid-stack');
+        o.children = inner ? serializeGrid(inner) : (t.children || []);
+        delete o.device;
+      }
+      return o;
     });
+  }
+
+  async function save() {
+    const layout = serializeGrid(grid.el);
     try {
       await API.saveDashboard(currentDash.id, currentDash.name, layout);
       currentDash.layout = layout;
-      layout.forEach(t => tiles[t.id] = t);
       flash(el.saveBtn, 'Gespeichert ✓');
     } catch (err) {
       setStatus('err', err.message);
@@ -243,6 +276,8 @@
   // so only value/dimmer types show the field.
   function dlgSyncRows() {
     const t = document.getElementById('tType').value;
+    const noDevice = (t === 'group' || t === 'label');
+    document.getElementById('rowDevice').style.display  = noDevice ? 'none' : '';
     document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
     document.getElementById('rowCmd').style.display     = t === 'button' ? '' : 'none';
     document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
@@ -284,7 +319,7 @@
       const f = e.target;
       const device = f.device.value.trim();
       const t = f.type.value;
-      if (!device && t !== 'label') return; // kein Gerät -> nichts anlegen
+      if (!device && t !== 'label' && t !== 'group') return; // kein Gerät -> nichts anlegen
       const d = deviceCache.find(x => x.name === device);
 
       let rd = f.reading.value.trim();
@@ -302,11 +337,19 @@
       };
 
       if (editingTileId) {                          // --- update existing tile ---
-        tiles[editingTileId] = { ...tiles[editingTileId], ...cfg };
-        rebuildTileContent(editingTileId);
+        const ex = tiles[editingTileId] || {};
+        if (ex.type === 'group') {                  // groups: rename only (keep nested grid + children)
+          ex.label = cfg.label;
+          const lbl = document.querySelector(`.grid-stack-item[gs-id="${editingTileId}"] .tile-label`);
+          if (lbl) lbl.textContent = cfg.label;
+        } else {
+          tiles[editingTileId] = { ...ex, ...cfg };
+          rebuildTileContent(editingTileId);
+        }
       } else {                                      // --- create new tile ---
         const tile = { id: 't' + Date.now() + Math.floor(performance.now()),
                        x: 0, y: 0, ...DEFAULT_SIZE[t], ...cfg };
+        if (t === 'group') tile.children = [];
         tiles[tile.id] = tile;
         addWidget(tile);
       }

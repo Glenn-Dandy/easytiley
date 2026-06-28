@@ -2,7 +2,7 @@
 const Tiles = (() => {
 
   const ICONS = { value: '🌡', switch: '💡', dimmer: '🔆', color: '🎨',
-                  readingsgroup: '📋', button: '▶', label: '🏷' };
+                  readingsgroup: '📋', group: '🗂', button: '▶', label: '🏷' };
 
   // #rrggbb -> "H,S,V" (H 0-360, S/V 0-100) for devices that take `set x hsv`.
   function hexToHsv(hex) {
@@ -98,6 +98,11 @@ const Tiles = (() => {
       }
       case 'readingsgroup':
         body.innerHTML = `<div class="rg-wrap"><div class="rg-content rg-loading">lädt…</div></div>`;
+        break;
+      case 'group':
+        el.classList.add('tile-group');
+        body.className = 'tile-body tile-group-body';
+        body.innerHTML = `<div class="grid-stack grid-stack-nested"></div>`; // sub-grid, initialised by app.js
         break;
       case 'label':
         body.innerHTML = `<div class="tile-value">${escapeHtml(tile.label || '')}</div>`;
