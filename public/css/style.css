@@ -98,6 +98,18 @@ main { padding: 12px; }
 .grid-stack-nested > .grid-stack-item > .grid-stack-item-content { padding: 8px; border-radius: 10px; }
 body.editing .grid-stack-nested { outline: 1px dashed var(--line); border-radius: 8px; }
 
+/* button tile: several set-command buttons */
+.tile-buttons { flex-direction: row; flex-wrap: wrap; gap: 6px; align-content: center; justify-content: center; }
+.tile-buttons .tile-btn { padding: 8px 12px; font-size: 14px; }
+
+/* set-command picker in the dialog */
+#rowCmds > label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+.cmd-choices { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; max-height: 130px; overflow: auto; }
+.cmd-choice { display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 4px 9px; font-size: 13px; }
+.cmd-choice input { margin: 0; accent-color: var(--accent); }
+
 /* ---- Grid / tiles ---- */
 .grid-stack { min-height: 200px; }
 .grid-stack-item-content {

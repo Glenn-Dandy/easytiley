@@ -80,11 +80,15 @@ const Tiles = (() => {
         break;
       }
       case 'button': {
-        const b = document.createElement('button');
-        b.className = 'tile-btn';
-        b.textContent = tile.label || 'Senden';
-        b.addEventListener('click', () => onAction(tile, tile.cmd || 'on'));
-        body.appendChild(b);
+        const cmds = (tile.cmds && tile.cmds.length) ? tile.cmds : (tile.cmd ? [tile.cmd] : ['on']);
+        body.classList.add('tile-buttons');
+        for (const c of cmds) {
+          const b = document.createElement('button');
+          b.className = 'tile-btn';
+          b.textContent = c;
+          b.addEventListener('click', () => onAction(tile, c));
+          body.appendChild(b);
+        }
         break;
       }
       case 'color': {

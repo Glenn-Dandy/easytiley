@@ -276,14 +276,12 @@
     } catch (err) { setStatus('err', err.message); }
   }
 
-  // Reading is auto-derived for switches (irrelevant for button/label),
-  // so only value/dimmer types show the field.
+  // Reading is auto-derived for switches; only value/dimmer show the field.
   function dlgSyncRows() {
     const t = document.getElementById('tType').value;
-    const noDevice = (t === 'group' || t === 'label');
-    document.getElementById('rowDevice').style.display  = noDevice ? 'none' : '';
+    document.getElementById('rowDevice').style.display  = t === 'group' ? 'none' : '';
     document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
-    document.getElementById('rowCmd').style.display     = t === 'button' ? '' : 'none';
+    document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
     document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
   }
 
@@ -292,6 +290,16 @@
     document.getElementById('readingOptions').innerHTML =
       (d ? d.readings : []).map(r => `<option value="${esc(r)}">`).join('');
     return d;
+  }
+
+  const deviceSets = name => { const d = deviceCache.find(x => x.name === name); return (d && d.sets) || []; };
+
+  // Show the device's set-commands as checkboxes (each becomes a button).
+  function renderCmdChoices(deviceName, selected = []) {
+    const sets = deviceSets(deviceName);
+    document.getElementById('cmdChoices').innerHTML = sets.length
+      ? sets.map(s => `<label class="cmd-choice"><input type="checkbox" value="${esc(s)}"${selected.includes(s) ? ' checked' : ''}>${esc(s)}</label>`).join('')
+      : '<span class="hint">Keine set-Befehle bekannt (Gerät evtl. offline) – unten eintragen.</span>';
   }
 
   function setupDialog() {
@@ -308,12 +316,16 @@
       else if (type.value === 'dimmer') reading.value = pickDim(d).reading;
     };
 
-    type.addEventListener('change', () => { dlgSyncRows(); applyDefaults(); });
+    type.addEventListener('change', () => {
+      dlgSyncRows(); applyDefaults();
+      if (type.value === 'button') renderCmdChoices(dev.value);
+    });
     dev.addEventListener('change', () => {
       const d = fillReadings(dev.value);
       if (d && !document.getElementById('tLabel').value)
         document.getElementById('tLabel').value = d.alias || d.name;
       applyDefaults();
+      if (type.value === 'button') renderCmdChoices(dev.value);
     });
 
     document.getElementById('tileForm').addEventListener('submit', e => {
@@ -327,17 +339,22 @@
       const d = deviceCache.find(x => x.name === device);
 
       let rd = f.reading.value.trim();
-      let setcmd, colorcmd;
+      let setcmd, colorcmd, cmds;
       if (t === 'switch') rd = d ? (d.onoff || 'state') : (rd || 'state'); // on/off-Reading automatisch
       if (t === 'dimmer') { const p = pickDim(d); setcmd = p.setcmd; rd = rd || p.reading; }
       if (t === 'color')  { colorcmd = pickColor(d); rd = rd || (d && d.readings.includes('rgb') ? 'rgb' : 'state'); }
+      if (t === 'button') {
+        const checked = [...document.querySelectorAll('#cmdChoices input:checked')].map(i => i.value);
+        const custom  = f.cmds.value.split(',').map(s => s.trim()).filter(Boolean);
+        cmds = [...checked, ...custom];
+        if (!cmds.length) cmds = ['on'];
+      }
 
       const cfg = {
-        type: t, device, setcmd, colorcmd,
+        type: t, device, setcmd, colorcmd, cmds,
         reading: rd || 'state',
         label: f.label.value.trim(),
         unit:  f.unit.value.trim(),
-        cmd:   f.cmd.value.trim(),
       };
 
       if (editingTileId) {                          // --- update existing tile ---
@@ -388,8 +405,8 @@
     el.dlg.showModal();
   }
 
-  function openEditDialog(id) {
-    if (!deviceCache.length) loadDeviceCache();
+  async function openEditDialog(id) {
+    if (!deviceCache.length) await loadDeviceCache();
     const t = tiles[id];
     if (!t) return;
     editingTileId = id;
@@ -402,7 +419,12 @@
     f.reading.value = t.reading || '';
     f.label.value   = t.label || '';
     f.unit.value    = t.unit || '';
-    f.cmd.value     = t.cmd || '';
+    if (t.type === 'button') {
+      const list = t.cmds || (t.cmd ? [t.cmd] : []);
+      const sets = deviceSets(t.device);
+      renderCmdChoices(t.device, list.filter(c => sets.includes(c)));
+      f.cmds.value = list.filter(c => !sets.includes(c)).join(', ');
+    }
     dlgSyncRows();
     el.dlg.returnValue = '';
     el.dlg.showModal();

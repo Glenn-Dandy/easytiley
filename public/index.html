@@ -38,8 +38,7 @@
           <option value="color">Farbe (RGB/HSV)</option>
           <option value="readingsgroup">readingsGroup</option>
           <option value="group">Gruppe / Raum-Box</option>
-          <option value="button">Button (Befehl)</option>
-          <option value="label">Beschriftung</option>
+          <option value="button">Button(s) / Set-Befehle</option>
         </select>
       </label>
 
@@ -61,9 +60,11 @@
         <input name="unit" id="tUnit" placeholder="°C, %, …">
       </label>
 
-      <label class="row-extra" id="rowCmd">Befehl (set …)
-        <input name="cmd" id="tCmd" placeholder="z.B. on  /  pct 60">
-      </label>
+      <div class="row-extra" id="rowCmds">
+        <label>Set-Befehle (werden zu Buttons)</label>
+        <div id="cmdChoices" class="cmd-choices"></div>
+        <input name="cmds" id="tCmds" placeholder="eigene, kommagetrennt: pct 60, dimup">
+      </div>
 
       <menu>
         <button value="cancel" class="btn">Abbrechen</button>
