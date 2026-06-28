@@ -234,3 +234,13 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; ma
   background: var(--panel-2); color: var(--text); border: 1px solid var(--stroke);
   border-radius: 8px; padding: 4px 9px; font-size: 13px; font-weight: 600; }
 .cmd-choice input { margin: 0; accent-color: var(--accent); }
+
+/* light tile options in the dialog */
+#rowLight { display: flex; flex-direction: column; gap: 8px; }
+.lopt { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; color: var(--text); font-size: 14px; font-weight: 600; }
+.lopt input { width: auto; margin: 0; accent-color: var(--accent); }
+.lsub { margin: 0 0 0 26px; font-size: 12px; color: var(--muted); }
+#lRgbCmd { width: auto; }
+.lct-cfg { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.lct-cfg label { margin: 0; display: inline-flex; align-items: center; gap: 5px; }
+.lct-cfg input { width: 78px; margin: 0; }

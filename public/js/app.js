@@ -292,7 +292,19 @@
     document.getElementById('rowDevice').style.display  = t === 'group' ? 'none' : '';
     document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
     document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
+    document.getElementById('rowLight').style.display   = t === 'light'  ? '' : 'none';
     document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
+  }
+
+  // Sensible defaults for the light-tile option block (RGB cmd from device, CT 2000-6500K).
+  function initLightOpts() {
+    const d = deviceCache.find(x => x.name === document.getElementById('tDevice').value);
+    document.getElementById('lOptRgb').checked = true;
+    document.getElementById('lOptCt').checked  = true;
+    document.getElementById('lRgbCmd').value = pickColor(d);
+    document.getElementById('lCtCmd').value  = 'ct';
+    document.getElementById('lCtMin').value  = 2000;
+    document.getElementById('lCtMax').value  = 6500;
   }
 
   function fillReadings(deviceName) {
@@ -329,6 +341,7 @@
     type.addEventListener('change', () => {
       dlgSyncRows(); applyDefaults();
       if (type.value === 'button') renderCmdChoices(dev.value);
+      if (type.value === 'light')  initLightOpts();
     });
     dev.addEventListener('change', () => {
       const d = fillReadings(dev.value);
@@ -336,6 +349,7 @@
         document.getElementById('tLabel').value = d.alias || d.name;
       applyDefaults();
       if (type.value === 'button') renderCmdChoices(dev.value);
+      if (type.value === 'light')  document.getElementById('lRgbCmd').value = pickColor(d);
     });
 
     document.getElementById('tileForm').addEventListener('submit', e => {
@@ -349,11 +363,19 @@
       const d = deviceCache.find(x => x.name === device);
 
       let rd = f.reading.value.trim();
-      let setcmd, colorcmd, cmds, ctcmd;
+      let setcmd, colorcmd, cmds, ctcmd, useRgb, useCt, ctMin, ctMax;
       if (t === 'switch') rd = d ? (d.onoff || 'state') : (rd || 'state'); // on/off-Reading automatisch
       if (t === 'dimmer') { const p = pickDim(d); setcmd = p.setcmd; rd = rd || p.reading; }
       if (t === 'color')  { colorcmd = pickColor(d); rd = rd || (d && d.readings.includes('rgb') ? 'rgb' : 'state'); }
-      if (t === 'light')  { rd = d ? (d.onoff || 'state') : 'state'; colorcmd = pickColor(d); ctcmd = 'ct'; }
+      if (t === 'light') {
+        rd = d ? (d.onoff || 'state') : 'state';
+        useRgb   = document.getElementById('lOptRgb').checked;
+        colorcmd = document.getElementById('lRgbCmd').value;
+        useCt    = document.getElementById('lOptCt').checked;
+        ctcmd    = document.getElementById('lCtCmd').value.trim() || 'ct';
+        ctMin    = parseInt(document.getElementById('lCtMin').value, 10) || 2000;
+        ctMax    = parseInt(document.getElementById('lCtMax').value, 10) || 6500;
+      }
       if (t === 'button') {
         const checked = [...document.querySelectorAll('#cmdChoices input:checked')].map(i => i.value);
         const custom  = f.cmds.value.split(',').map(s => s.trim()).filter(Boolean);
@@ -362,7 +384,7 @@
       }
 
       const cfg = {
-        type: t, device, setcmd, colorcmd, cmds, ctcmd,
+        type: t, device, setcmd, colorcmd, cmds, ctcmd, useRgb, useCt, ctMin, ctMax,
         reading: rd || 'state',
         label: f.label.value.trim(),
         unit:  f.unit.value.trim(),
@@ -435,6 +457,14 @@
       const sets = deviceSets(t.device);
       renderCmdChoices(t.device, list.filter(c => sets.includes(c)));
       f.cmds.value = list.filter(c => !sets.includes(c)).join(', ');
+    }
+    if (t.type === 'light') {
+      document.getElementById('lOptRgb').checked = t.useRgb !== false;
+      document.getElementById('lOptCt').checked  = t.useCt  !== false;
+      document.getElementById('lRgbCmd').value = t.colorcmd || 'rgb';
+      document.getElementById('lCtCmd').value  = t.ctcmd || 'ct';
+      document.getElementById('lCtMin').value  = t.ctMin || 2000;
+      document.getElementById('lCtMax').value  = t.ctMax || 6500;
     }
     dlgSyncRows();
     el.dlg.returnValue = '';

@@ -67,6 +67,19 @@
         <input name="cmds" id="tCmds" placeholder="eigene, kommagetrennt: pct 60, dimup">
       </div>
 
+      <div class="row-extra" id="rowLight">
+        <label class="lopt"><input type="checkbox" id="lOptRgb"> RGB-Farbe</label>
+        <label class="lsub">Farb-Befehl
+          <select id="lRgbCmd"><option value="rgb">rgb</option><option value="hsv">hsv</option><option value="color">color</option></select>
+        </label>
+        <label class="lopt"><input type="checkbox" id="lOptCt"> Weiß (CT)</label>
+        <div class="lsub lct-cfg">
+          <label>Befehl <input id="lCtCmd" value="ct"></label>
+          <label>von K <input id="lCtMin" type="number" value="2000"></label>
+          <label>bis K <input id="lCtMax" type="number" value="6500"></label>
+        </div>
+      </div>
+
       <menu>
         <button value="cancel" class="btn">Abbrechen</button>
         <button value="ok" id="tOk" class="btn btn-primary">Übernehmen</button>

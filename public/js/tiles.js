@@ -103,19 +103,24 @@ const Tiles = (() => {
       case 'light': {
         body.classList.add('tile-light-body');
         const ctMin = tile.ctMin || 2000, ctMax = tile.ctMax || 6500;
-        body.innerHTML =
-          `<div class="lrow"><span class="llbl">An / Aus</span><div class="switch"><span class="knob"></span></div></div>
-           <div class="lrow"><span class="llbl">Farbe</span><input type="color" class="lcolor" value="#ffffff"></div>
-           <div class="lrow"><span class="llbl">Weiß <small class="ctval"></small></span>
+        const useRgb = tile.useRgb !== false, useCt = tile.useCt !== false;  // default both on
+        let html = `<div class="lrow"><span class="llbl">An / Aus</span><div class="switch"><span class="knob"></span></div></div>`;
+        if (useRgb) html += `<div class="lrow"><span class="llbl">Farbe</span><input type="color" class="lcolor" value="#ffffff"></div>`;
+        if (useCt)  html += `<div class="lrow"><span class="llbl">Weiß <small class="ctval"></small></span>
              <input type="range" class="lct" min="${ctMin}" max="${ctMax}" step="50" value="${ctMin}"></div>`;
+        body.innerHTML = html;
         const sw = body.querySelector('.switch');
         sw.addEventListener('click', () => onAction(tile, sw.classList.contains('on') ? 'off' : 'on'));
-        body.querySelector('.lcolor').addEventListener('change', e => onAction(tile, colorArg(tile, e.target.value)));
-        const ct = body.querySelector('.lct'), ctval = body.querySelector('.ctval');
-        const showct = () => ctval.textContent = ct.value + 'K';
-        ct.addEventListener('input', showct);
-        ct.addEventListener('change', () => onAction(tile, (tile.ctcmd || 'ct') + ' ' + ct.value));
-        showct();
+        const col = body.querySelector('.lcolor');
+        if (col) col.addEventListener('change', e => onAction(tile, colorArg(tile, e.target.value)));
+        const ct = body.querySelector('.lct');
+        if (ct) {
+          const ctval = body.querySelector('.ctval');
+          const showct = () => ctval.textContent = ct.value + 'K';
+          ct.addEventListener('input', showct);
+          ct.addEventListener('change', () => onAction(tile, (tile.ctcmd || 'ct') + ' ' + ct.value));
+          showct();
+        }
         break;
       }
       case 'readingsgroup':
