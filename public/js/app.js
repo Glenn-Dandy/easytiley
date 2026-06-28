@@ -30,16 +30,17 @@
     ['tabs','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
 
     grid = GridStack.init({
-      column: 12, cellHeight: 72, margin: 6, float: true,
+      column: 12, cellHeight: 76, margin: 6, float: true,
       disableDrag: true, disableResize: true,
       acceptWidgets: true,                     // allow dragging tiles in/out of group boxes
       handle: '.tile-drag',                    // drag via the edit-mode grip bar
       resizable: { handles: 'se, s, e, sw' },
     });
-    // Row height tracks column width (same proportions on laptop & tablet, so
-    // tiles don't clip content on narrow screens). 0.6 keeps a compact ratio.
-    syncCells();
-    window.addEventListener('resize', () => { clearTimeout(window._sc); window._sc = setTimeout(syncCells, 150); });
+    // The grid is built at a fixed design width and zoom-scaled to fit, so a
+    // layout looks identical on laptop and tablet (just proportionally smaller).
+    applyScale();
+    grid.on('change added removed resizestop dragstop', applyScale);
+    window.addEventListener('resize', () => { clearTimeout(window._sc); window._sc = setTimeout(applyScale, 120); });
 
     grid.el.addEventListener('click', onGridClick);
     el.editBtn.addEventListener('click', toggleEdit);
@@ -115,7 +116,7 @@
     grid.removeAll();
     for (const t of currentDash.layout) addWidget(t);     // addWidget registers + recurses into groups
     renderTabs(id);
-    syncCells();                                          // proportional rows (incl. new sub-grids)
+    applyScale();                                         // re-fit zoom after layout change
     refreshReadingsGroups();
   }
 
@@ -157,10 +158,19 @@
     document.querySelectorAll('.grid-stack').forEach(g => g.gridstack && fn(g.gridstack));
   }
 
-  // Keep row height proportional to column width on every grid -> consistent
-  // tile proportions across screen sizes (laptop/tablet).
-  function syncCells() {
-    eachGrid(g => { const cw = g.cellWidth(); if (cw > 0) g.cellHeight(Math.max(40, Math.round(cw * 0.6))); });
+  // Zoom the whole grid (built at REF px) down to fit the viewport, so the same
+  // layout renders identically — just smaller — on tablet vs laptop. Edit mode
+  // stays 1:1 so GridStack drag math is exact.
+  const REF = 1280;
+  function applyScale() {
+    const main = document.querySelector('main');
+    if (!main || !grid) return;
+    grid.el.style.width = REF + 'px';
+    grid.el.style.transformOrigin = 'top left';
+    const s = editMode ? 1 : Math.min(1, main.clientWidth / REF);
+    grid.el.style.transform = s === 1 ? '' : `scale(${s})`;
+    const h = grid.el.offsetHeight;            // unscaled layout height
+    grid.el.style.marginBottom = s < 1 ? `${-Math.round(h * (1 - s))}px` : '';
   }
 
   function addWidget(tile, targetGrid = grid) {
@@ -249,6 +259,7 @@
     el.editBtn.textContent = editMode ? 'Fertig' : 'Bearbeiten';
     el.addBtn.classList.toggle('hidden', !editMode);
     el.saveBtn.classList.toggle('hidden', !editMode);
+    applyScale();                                 // edit = 1:1, view = zoom-to-fit
   }
 
   // Serialize one grid's direct items into tile configs (recurses into groups).
@@ -433,7 +444,7 @@
         addWidget(tile);
       }
       editingTileId = null;
-      syncCells();                                  // proportional rows (e.g. new group sub-grid)
+      applyScale();                                 // re-fit zoom after adding a tile
       refreshReadingsGroups();                      // fill any new readingsGroup tile
     });
     dlgSyncRows();
