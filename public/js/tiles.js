@@ -26,6 +26,47 @@ const Tiles = (() => {
     return cmd + ' ' + hex.slice(1).toUpperCase(); // rgb/color -> RRGGBB
   }
 
+  // HSV -> #rrggbb (h 0-360, s/v 0-100) for the hue slider.
+  function hsvToHex(h, s, v) {
+    s /= 100; v /= 100;
+    const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+    let r, g, b;
+    if (h < 60)       [r, g, b] = [c, x, 0];
+    else if (h < 120) [r, g, b] = [x, c, 0];
+    else if (h < 180) [r, g, b] = [0, c, x];
+    else if (h < 240) [r, g, b] = [0, x, c];
+    else if (h < 300) [r, g, b] = [x, 0, c];
+    else              [r, g, b] = [c, 0, x];
+    const hx = n => ('0' + Math.round((n + m) * 255).toString(16)).slice(-2);
+    return '#' + hx(r) + hx(g) + hx(b);
+  }
+
+  const PRESETS = ['#ffffff', '#ffd6a5', '#ff5d5d', '#ffd25d', '#7bed9f', '#5dd2ff', '#6a5dff', '#ff5dce'];
+
+  // Modern colour control: live-preview swatch (opens native picker) + rainbow hue slider + presets.
+  function buildColorControl(tile, onAction) {
+    const wrap = document.createElement('div');
+    wrap.className = 'colorctl';
+    wrap.innerHTML =
+      `<div class="cc-top">
+         <label class="cc-swatch"><input type="color" class="lcolor" value="#ffffff"><span class="cc-preview"></span></label>
+         <input type="range" class="cc-hue" min="0" max="360" value="0">
+       </div>
+       <div class="cc-presets">${PRESETS.map(c => `<span class="cc-dot" style="background:${c}" data-c="${c}"></span>`).join('')}</div>`;
+    const input = wrap.querySelector('.lcolor');
+    const prev  = wrap.querySelector('.cc-preview');
+    const hue   = wrap.querySelector('.cc-hue');
+    const paint = hex => { input.value = hex; prev.style.background = hex; };
+    const send  = hex => { paint(hex); onAction(tile, colorArg(tile, hex)); };
+    paint(input.value);
+    input.addEventListener('input',  () => prev.style.background = input.value);
+    input.addEventListener('change', () => send(input.value));
+    hue.addEventListener('input',  () => paint(hsvToHex(+hue.value, 100, 100)));
+    hue.addEventListener('change', () => send(input.value));
+    wrap.querySelectorAll('.cc-dot').forEach(d => d.addEventListener('click', () => send(d.dataset.c)));
+    return wrap;
+  }
+
   function readingValue(tile, dev) {
     if (!dev) return null;
     const r = tile.reading || 'state';
@@ -46,11 +87,13 @@ const Tiles = (() => {
     el.dataset.tileId = tile.id;
 
     const label = tile.label || tile.device || '';
+    const head = tile.hideHeader ? '' :
+      `<div class="tile-head"><span class="tile-icon">${ICONS[tile.type] || '⬚'}</span>
+       <span class="tile-label">${escapeHtml(label)}</span></div>`;
     el.innerHTML =
       `<div class="tile-del" title="Entfernen">✕</div>
        <div class="tile-edit" title="Bearbeiten">✎</div>
-       <div class="tile-head"><span class="tile-icon">${ICONS[tile.type] || '⬚'}</span>
-       <span class="tile-label">${escapeHtml(label)}</span></div>
+       ${head}
        <div class="tile-body"></div>`;
 
     const body = el.querySelector('.tile-body');
@@ -80,43 +123,46 @@ const Tiles = (() => {
         break;
       }
       case 'button': {
-        const cmds = (tile.cmds && tile.cmds.length) ? tile.cmds : (tile.cmd ? [tile.cmd] : ['on']);
+        const list = (tile.buttons && tile.buttons.length) ? tile.buttons
+                   : (tile.cmds && tile.cmds.length) ? tile.cmds.map(c => ({ cmd: c }))
+                   : (tile.cmd ? [{ cmd: tile.cmd }] : [{ cmd: 'on' }]);
         body.classList.add('tile-buttons');
-        for (const c of cmds) {
-          const b = document.createElement('button');
-          b.className = 'tile-btn';
-          b.textContent = c;
-          b.addEventListener('click', () => onAction(tile, c));
-          body.appendChild(b);
+        for (const b of list) {
+          const btn = document.createElement('button');
+          btn.className = 'tile-btn';
+          btn.textContent = b.label || b.cmd;
+          btn.addEventListener('click', () => onAction(tile, b.cmd));
+          body.appendChild(btn);
         }
         break;
       }
-      case 'color': {
+      case 'color':
         body.className = 'tile-body tile-color';
-        const inp = document.createElement('input');
-        inp.type = 'color';
-        inp.value = '#ffffff';
-        inp.addEventListener('change', () => onAction(tile, colorArg(tile, inp.value)));
-        body.appendChild(inp);
+        body.appendChild(buildColorControl(tile, onAction));
         break;
-      }
       case 'light': {
         body.classList.add('tile-light-body');
         const ctMin = tile.ctMin || 2000, ctMax = tile.ctMax || 6500;
-        const useRgb = tile.useRgb !== false, useCt = tile.useCt !== false;  // default both on
+        const useRgb = tile.useRgb !== false, useCt = tile.useCt !== false, useDim = !!tile.useDim;
         let html = `<div class="lrow"><span class="llbl">An / Aus</span><div class="switch"><span class="knob"></span></div></div>`;
-        if (useRgb) html += `<div class="lrow"><span class="llbl">Farbe</span><input type="color" class="lcolor" value="#ffffff"></div>`;
-        if (useCt)  html += `<div class="lrow"><span class="llbl">Weiß <small class="ctval"></small></span>
-             <input type="range" class="lct" min="${ctMin}" max="${ctMax}" step="50" value="${ctMin}"></div>`;
+        if (useDim) html += `<div class="lrow"><span class="llbl">Helligkeit <small class="dimval"></small></span><input type="range" class="ldim" min="0" max="100" step="1" value="0"></div>`;
+        if (useCt)  html += `<div class="lrow"><span class="llbl">Weiß <small class="ctval"></small></span><input type="range" class="lct" min="${ctMin}" max="${ctMax}" step="50" value="${ctMin}"></div>`;
         body.innerHTML = html;
+
         const sw = body.querySelector('.switch');
         sw.addEventListener('click', () => onAction(tile, sw.classList.contains('on') ? 'off' : 'on'));
-        const col = body.querySelector('.lcolor');
-        if (col) col.addEventListener('change', e => onAction(tile, colorArg(tile, e.target.value)));
+        if (useRgb) body.querySelector('.lrow').after(buildColorControl(tile, onAction)); // after on/off row
+
+        const dim = body.querySelector('.ldim');
+        if (dim) {
+          const dv = body.querySelector('.dimval'); const showd = () => dv.textContent = dim.value + '%';
+          dim.addEventListener('input', showd);
+          dim.addEventListener('change', () => onAction(tile, (tile.dimcmd || 'pct') + ' ' + dim.value));
+          showd();
+        }
         const ct = body.querySelector('.lct');
         if (ct) {
-          const ctval = body.querySelector('.ctval');
-          const showct = () => ctval.textContent = ct.value + 'K';
+          const ctval = body.querySelector('.ctval'); const showct = () => ctval.textContent = ct.value + 'K';
           ct.addEventListener('input', showct);
           ct.addEventListener('change', () => onAction(tile, (tile.ctcmd || 'ct') + ' ' + ct.value));
           showct();
@@ -161,9 +207,7 @@ const Tiles = (() => {
         break;
       }
       case 'color': {
-        const inp = el.querySelector('input[type=color]');
-        const m = String(v ?? '').match(/^#?([0-9a-fA-F]{6})$/);
-        if (inp && m && document.activeElement !== inp) inp.value = '#' + m[1];
+        paintColor(el, v);
         break;
       }
       case 'light': {
@@ -171,9 +215,13 @@ const Tiles = (() => {
         el.querySelector('.switch')?.classList.toggle('on', on);
         el.classList.toggle('lit', on);
         const rgb = dev && dev.readings && dev.readings.rgb ? dev.readings.rgb.value : null;
-        const m = String(rgb ?? '').match(/^#?([0-9a-fA-F]{6})$/);
-        const ci = el.querySelector('.lcolor');
-        if (ci && m && document.activeElement !== ci) ci.value = '#' + m[1];
+        if (rgb != null) paintColor(el, rgb);
+        const dimr = dev && dev.readings && (dev.readings[tile.dimReading] || dev.readings.pct || dev.readings.bright);
+        const de = el.querySelector('.ldim');
+        if (de && dimr && document.activeElement !== de) {
+          const n = parseInt(String(dimr.value).replace(/[^\d]/g, ''), 10);
+          if (!isNaN(n)) { de.value = n; const dv = el.querySelector('.dimval'); if (dv) dv.textContent = n + '%'; }
+        }
         const ctr = dev && dev.readings && (dev.readings.ct || dev.readings.colortemperature);
         const ce = el.querySelector('.lct');
         if (ce && ctr && document.activeElement !== ce) {
@@ -190,6 +238,17 @@ const Tiles = (() => {
         break;
       }
     }
+  }
+
+  // Set a colour control's swatch/preview from a "#rrggbb" reading value.
+  function paintColor(el, val) {
+    const m = String(val ?? '').match(/^#?([0-9a-fA-F]{6})$/);
+    if (!m) return;
+    const hex = '#' + m[1];
+    const inp = el.querySelector('.lcolor');
+    if (inp && document.activeElement !== inp) inp.value = hex;
+    const pv = el.querySelector('.cc-preview');
+    if (pv) pv.style.background = hex;
   }
 
   function escapeHtml(s) {

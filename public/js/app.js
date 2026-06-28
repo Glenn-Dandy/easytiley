@@ -9,7 +9,7 @@
   const el = {};
   const DEFAULT_SIZE = {
     value:  { w: 2, h: 2 }, switch: { w: 2, h: 2 }, dimmer: { w: 3, h: 2 },
-    color:  { w: 2, h: 2 }, light: { w: 3, h: 3 }, readingsgroup: { w: 6, h: 4 },
+    color:  { w: 2, h: 2 }, light: { w: 3, h: 4 }, readingsgroup: { w: 6, h: 4 },
     group:  { w: 4, h: 4 }, button: { w: 2, h: 2 }, label: { w: 3, h: 1 },
   };
 
@@ -301,6 +301,7 @@
     const d = deviceCache.find(x => x.name === document.getElementById('tDevice').value);
     document.getElementById('lOptRgb').checked = true;
     document.getElementById('lOptCt').checked  = true;
+    document.getElementById('lOptDim').checked = !!(d && (d.sets || []).some(s => ['pct', 'bright', 'dim', 'level', 'brightness'].includes(s)));
     document.getElementById('lRgbCmd').value = pickColor(d);
     document.getElementById('lCtCmd').value  = 'ct';
     document.getElementById('lCtMin').value  = 2000;
@@ -316,12 +317,25 @@
 
   const deviceSets = name => { const d = deviceCache.find(x => x.name === name); return (d && d.sets) || []; };
 
-  // Show the device's set-commands as checkboxes (each becomes a button).
-  function renderCmdChoices(deviceName, selected = []) {
-    const sets = deviceSets(deviceName);
-    document.getElementById('cmdChoices').innerHTML = sets.length
-      ? sets.map(s => `<label class="cmd-choice"><input type="checkbox" value="${esc(s)}"${selected.includes(s) ? ' checked' : ''}>${esc(s)}</label>`).join('')
-      : '<span class="hint">Keine set-Befehle bekannt (Gerät evtl. offline) – unten eintragen.</span>';
+  // Button tile editor: each button is a row of [command + optional label].
+  function renderCmdSetList(deviceName) {            // autocomplete for the command field
+    document.getElementById('cmdSetList').innerHTML =
+      deviceSets(deviceName).map(s => `<option value="${esc(s)}">`).join('');
+  }
+  function addCmdRow(cmd = '', label = '') {
+    const row = document.createElement('div');
+    row.className = 'cmd-row';
+    row.innerHTML =
+      `<input class="cmd-c" list="cmdSetList" placeholder="Befehl, z.B. on" value="${esc(cmd)}">
+       <input class="cmd-l" placeholder="Text (optional)" value="${esc(label)}">
+       <button type="button" class="cmd-rm" title="Entfernen">✕</button>`;
+    row.querySelector('.cmd-rm').addEventListener('click', () => row.remove());
+    document.getElementById('cmdRows').appendChild(row);
+  }
+  function collectCmdRows() {
+    return [...document.querySelectorAll('#cmdRows .cmd-row')]
+      .map(r => ({ cmd: r.querySelector('.cmd-c').value.trim(), label: r.querySelector('.cmd-l').value.trim() }))
+      .filter(b => b.cmd);
   }
 
   function setupDialog() {
@@ -338,9 +352,11 @@
       else if (type.value === 'dimmer') reading.value = pickDim(d).reading;
     };
 
+    document.getElementById('cmdAdd').addEventListener('click', () => addCmdRow());
+
     type.addEventListener('change', () => {
       dlgSyncRows(); applyDefaults();
-      if (type.value === 'button') renderCmdChoices(dev.value);
+      if (type.value === 'button') { renderCmdSetList(dev.value); if (!document.querySelector('#cmdRows .cmd-row')) addCmdRow(); }
       if (type.value === 'light')  initLightOpts();
     });
     dev.addEventListener('change', () => {
@@ -348,7 +364,7 @@
       if (d && !document.getElementById('tLabel').value)
         document.getElementById('tLabel').value = d.alias || d.name;
       applyDefaults();
-      if (type.value === 'button') renderCmdChoices(dev.value);
+      if (type.value === 'button') renderCmdSetList(dev.value);
       if (type.value === 'light')  document.getElementById('lRgbCmd').value = pickColor(d);
     });
 
@@ -363,7 +379,7 @@
       const d = deviceCache.find(x => x.name === device);
 
       let rd = f.reading.value.trim();
-      let setcmd, colorcmd, cmds, ctcmd, useRgb, useCt, ctMin, ctMax;
+      let setcmd, colorcmd, buttons, ctcmd, useRgb, useCt, ctMin, ctMax, useDim, dimcmd, dimReading;
       if (t === 'switch') rd = d ? (d.onoff || 'state') : (rd || 'state'); // on/off-Reading automatisch
       if (t === 'dimmer') { const p = pickDim(d); setcmd = p.setcmd; rd = rd || p.reading; }
       if (t === 'color')  { colorcmd = pickColor(d); rd = rd || (d && d.readings.includes('rgb') ? 'rgb' : 'state'); }
@@ -375,16 +391,14 @@
         ctcmd    = document.getElementById('lCtCmd').value.trim() || 'ct';
         ctMin    = parseInt(document.getElementById('lCtMin').value, 10) || 2000;
         ctMax    = parseInt(document.getElementById('lCtMax').value, 10) || 6500;
+        if (document.getElementById('lOptDim').checked) { const p = pickDim(d); useDim = true; dimcmd = p.setcmd; dimReading = p.reading; }
       }
-      if (t === 'button') {
-        const checked = [...document.querySelectorAll('#cmdChoices input:checked')].map(i => i.value);
-        const custom  = f.cmds.value.split(',').map(s => s.trim()).filter(Boolean);
-        cmds = [...checked, ...custom];
-        if (!cmds.length) cmds = ['on'];
-      }
+      if (t === 'button') { buttons = collectCmdRows(); if (!buttons.length) buttons = [{ cmd: 'on' }]; }
 
       const cfg = {
-        type: t, device, setcmd, colorcmd, cmds, ctcmd, useRgb, useCt, ctMin, ctMax,
+        type: t, device, setcmd, colorcmd, buttons, ctcmd, useRgb, useCt, ctMin, ctMax,
+        useDim, dimcmd, dimReading,
+        hideHeader: !document.getElementById('tHeader').checked,
         reading: rd || 'state',
         label: f.label.value.trim(),
         unit:  f.unit.value.trim(),
@@ -433,6 +447,7 @@
     editingTileId = null;
     document.getElementById('dlgTitle').textContent = 'Kachel hinzufügen';
     document.getElementById('tileForm').reset();
+    document.getElementById('cmdRows').innerHTML = '';
     dlgSyncRows();
     el.dlg.returnValue = '';
     el.dlg.showModal();
@@ -452,15 +467,17 @@
     f.reading.value = t.reading || '';
     f.label.value   = t.label || '';
     f.unit.value    = t.unit || '';
+    document.getElementById('tHeader').checked = !t.hideHeader;
     if (t.type === 'button') {
-      const list = t.cmds || (t.cmd ? [t.cmd] : []);
-      const sets = deviceSets(t.device);
-      renderCmdChoices(t.device, list.filter(c => sets.includes(c)));
-      f.cmds.value = list.filter(c => !sets.includes(c)).join(', ');
+      document.getElementById('cmdRows').innerHTML = '';
+      renderCmdSetList(t.device);
+      const list = t.buttons || (t.cmds || []).map(c => ({ cmd: c }));
+      (list.length ? list : [{ cmd: '' }]).forEach(b => addCmdRow(b.cmd, b.label || ''));
     }
     if (t.type === 'light') {
       document.getElementById('lOptRgb').checked = t.useRgb !== false;
       document.getElementById('lOptCt').checked  = t.useCt  !== false;
+      document.getElementById('lOptDim').checked = !!t.useDim;
       document.getElementById('lRgbCmd').value = t.colorcmd || 'rgb';
       document.getElementById('lCtCmd').value  = t.ctcmd || 'ct';
       document.getElementById('lCtMin').value  = t.ctMin || 2000;

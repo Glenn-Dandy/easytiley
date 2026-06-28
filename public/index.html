@@ -62,9 +62,10 @@
       </label>
 
       <div class="row-extra" id="rowCmds">
-        <label>Set-Befehle (werden zu Buttons)</label>
-        <div id="cmdChoices" class="cmd-choices"></div>
-        <input name="cmds" id="tCmds" placeholder="eigene, kommagetrennt: pct 60, dimup">
+        <label>Buttons – Befehl + optionaler Text</label>
+        <div id="cmdRows"></div>
+        <datalist id="cmdSetList"></datalist>
+        <button type="button" id="cmdAdd" class="btn">+ Befehl</button>
       </div>
 
       <div class="row-extra" id="rowLight">
@@ -78,7 +79,10 @@
           <label>von K <input id="lCtMin" type="number" value="2000"></label>
           <label>bis K <input id="lCtMax" type="number" value="6500"></label>
         </div>
+        <label class="lopt"><input type="checkbox" id="lOptDim"> Helligkeit (Dimmen)</label>
       </div>
+
+      <label class="lopt" id="rowHeader"><input type="checkbox" id="tHeader" checked> Titel anzeigen</label>
 
       <menu>
         <button value="cancel" class="btn">Abbrechen</button>
