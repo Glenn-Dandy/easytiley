@@ -170,9 +170,11 @@
     });
 
     document.getElementById('tileForm').addEventListener('submit', e => {
-      // submit fires for both buttons; check which closed it
-      if (dlg.returnValue !== 'ok') return;
+      // submit fires for both buttons. returnValue isn't set yet here,
+      // so check the clicked button directly (Enter -> submitter null -> treat as OK).
+      if (e.submitter && e.submitter.value !== 'ok') return; // Abbrechen
       const f = e.target;
+      if (!f.device.value.trim() && f.type.value !== 'label') return; // kein Gerät -> nichts anlegen
       const tile = {
         id:     't' + Date.now() + Math.floor(performance.now()),
         type:   f.type.value,
