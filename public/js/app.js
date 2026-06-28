@@ -9,7 +9,7 @@
   const el = {};
   const DEFAULT_SIZE = {
     value:  { w: 2, h: 2 }, switch: { w: 2, h: 2 }, dimmer: { w: 3, h: 2 },
-    color:  { w: 2, h: 2 }, readingsgroup: { w: 6, h: 4 },
+    color:  { w: 2, h: 2 }, light: { w: 3, h: 3 }, readingsgroup: { w: 6, h: 4 },
     group:  { w: 4, h: 4 }, button: { w: 2, h: 2 }, label: { w: 3, h: 1 },
   };
 
@@ -349,10 +349,11 @@
       const d = deviceCache.find(x => x.name === device);
 
       let rd = f.reading.value.trim();
-      let setcmd, colorcmd, cmds;
+      let setcmd, colorcmd, cmds, ctcmd;
       if (t === 'switch') rd = d ? (d.onoff || 'state') : (rd || 'state'); // on/off-Reading automatisch
       if (t === 'dimmer') { const p = pickDim(d); setcmd = p.setcmd; rd = rd || p.reading; }
       if (t === 'color')  { colorcmd = pickColor(d); rd = rd || (d && d.readings.includes('rgb') ? 'rgb' : 'state'); }
+      if (t === 'light')  { rd = d ? (d.onoff || 'state') : 'state'; colorcmd = pickColor(d); ctcmd = 'ct'; }
       if (t === 'button') {
         const checked = [...document.querySelectorAll('#cmdChoices input:checked')].map(i => i.value);
         const custom  = f.cmds.value.split(',').map(s => s.trim()).filter(Boolean);
@@ -361,7 +362,7 @@
       }
 
       const cfg = {
-        type: t, device, setcmd, colorcmd, cmds,
+        type: t, device, setcmd, colorcmd, cmds, ctcmd,
         reading: rd || 'state',
         label: f.label.value.trim(),
         unit:  f.unit.value.trim(),

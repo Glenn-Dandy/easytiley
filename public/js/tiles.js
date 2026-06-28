@@ -1,7 +1,7 @@
 // Tile rendering + interaction binding.
 const Tiles = (() => {
 
-  const ICONS = { value: '🌡', switch: '💡', dimmer: '🔆', color: '🎨',
+  const ICONS = { value: '🌡', switch: '💡', dimmer: '🔆', color: '🎨', light: '💡',
                   readingsgroup: '📋', group: '🗂', button: '▶', label: '🏷' };
 
   // #rrggbb -> "H,S,V" (H 0-360, S/V 0-100) for devices that take `set x hsv`.
@@ -100,6 +100,24 @@ const Tiles = (() => {
         body.appendChild(inp);
         break;
       }
+      case 'light': {
+        body.classList.add('tile-light-body');
+        const ctMin = tile.ctMin || 2000, ctMax = tile.ctMax || 6500;
+        body.innerHTML =
+          `<div class="lrow"><span class="llbl">An / Aus</span><div class="switch"><span class="knob"></span></div></div>
+           <div class="lrow"><span class="llbl">Farbe</span><input type="color" class="lcolor" value="#ffffff"></div>
+           <div class="lrow"><span class="llbl">Weiß <small class="ctval"></small></span>
+             <input type="range" class="lct" min="${ctMin}" max="${ctMax}" step="50" value="${ctMin}"></div>`;
+        const sw = body.querySelector('.switch');
+        sw.addEventListener('click', () => onAction(tile, sw.classList.contains('on') ? 'off' : 'on'));
+        body.querySelector('.lcolor').addEventListener('change', e => onAction(tile, colorArg(tile, e.target.value)));
+        const ct = body.querySelector('.lct'), ctval = body.querySelector('.ctval');
+        const showct = () => ctval.textContent = ct.value + 'K';
+        ct.addEventListener('input', showct);
+        ct.addEventListener('change', () => onAction(tile, (tile.ctcmd || 'ct') + ' ' + ct.value));
+        showct();
+        break;
+      }
       case 'readingsgroup':
         body.innerHTML = `<div class="rg-wrap"><div class="rg-content rg-loading">lädt…</div></div>`;
         break;
@@ -141,6 +159,22 @@ const Tiles = (() => {
         const inp = el.querySelector('input[type=color]');
         const m = String(v ?? '').match(/^#?([0-9a-fA-F]{6})$/);
         if (inp && m && document.activeElement !== inp) inp.value = '#' + m[1];
+        break;
+      }
+      case 'light': {
+        const on = isOn(v);                          // tile.reading = power
+        el.querySelector('.switch')?.classList.toggle('on', on);
+        el.classList.toggle('lit', on);
+        const rgb = dev && dev.readings && dev.readings.rgb ? dev.readings.rgb.value : null;
+        const m = String(rgb ?? '').match(/^#?([0-9a-fA-F]{6})$/);
+        const ci = el.querySelector('.lcolor');
+        if (ci && m && document.activeElement !== ci) ci.value = '#' + m[1];
+        const ctr = dev && dev.readings && (dev.readings.ct || dev.readings.colortemperature);
+        const ce = el.querySelector('.lct');
+        if (ce && ctr && document.activeElement !== ce) {
+          const n = parseInt(String(ctr.value).replace(/[^\d]/g, ''), 10);
+          if (!isNaN(n)) { ce.value = n; const cv = el.querySelector('.ctval'); if (cv) cv.textContent = n + 'K'; }
+        }
         break;
       }
       case 'value': {

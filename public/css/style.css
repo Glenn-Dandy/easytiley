@@ -8,7 +8,7 @@ body.theme-aurora {
            radial-gradient(45vw 45vh at 80% 110%, rgba(168,85,247,.18), transparent 60%);
   --text: #eef2ff; --muted: #93a0c0;
   --card: rgba(255,255,255,.055); --card-blur: 14px; --stroke: rgba(255,255,255,.10);
-  --panel: rgba(255,255,255,.05); --panel-2: rgba(255,255,255,.07);
+  --panel: rgba(255,255,255,.05); --panel-2: rgba(255,255,255,.07); --field: #141a2b;
   --line: rgba(255,255,255,.10);
   --radius: 20px;
   --accent1: #5eead4; --accent2: #6366f1; --accent: #6366f1; --accent-fg: #06121f;
@@ -23,7 +23,7 @@ body.theme-clean {
   --bg: #eef1f6; --bgimg: none;
   --text: #1c2536; --muted: #8a93a6;
   --card: #ffffff; --card-blur: 0px; --stroke: #e9ecf3;
-  --panel: #ffffff; --panel-2: #f1f4fa;
+  --panel: #ffffff; --panel-2: #f1f4fa; --field: #f1f4fa;
   --line: #e6e9f0;
   --radius: 22px;
   --accent1: #34c77b; --accent2: #3b82f6; --accent: #3b82f6; --accent-fg: #ffffff;
@@ -153,6 +153,21 @@ body.editing .tile-del, body.editing .tile-edit { display: block; }
 .tile-color input[type=color] { margin-top: auto; width: 70px; height: 56px; padding: 0; border: none;
   border-radius: 16px; background: none; cursor: pointer; box-shadow: inset 0 0 0 1px var(--stroke); }
 
+/* light tile (on/off + RGB + CT in one) */
+.tile-light-body { align-items: stretch; justify-content: center; gap: 13px; }
+.lrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.llbl { color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.llbl .ctval { color: var(--text); font-weight: 700; }
+.tile-light-body .switch { margin-top: 0; align-self: auto; }
+.lcolor { width: 56px; height: 34px; padding: 0; border: none; border-radius: 10px; background: none;
+  cursor: pointer; box-shadow: inset 0 0 0 1px var(--stroke); }
+.lct { -webkit-appearance: none; flex: 1; max-width: 62%; height: 10px; border-radius: 8px; outline: none;
+  background: linear-gradient(90deg,#ff9d3c,#fff5e0,#cfe0ff); }
+.lct::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--accent); cursor: pointer; box-shadow: 0 2px 6px #0006; }
+.lct::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  border: 2px solid var(--accent); cursor: pointer; }
+
 /* readingsGroup -> themed table */
 .rg-wrap { flex: 1; overflow: auto; margin-top: 6px; width: 100%; }
 .rg-content { color: var(--text); font-size: 13px; }
@@ -199,9 +214,11 @@ dialog h3 { margin: 0 0 14px; font-size: 19px; }
 dialog label { display: block; margin: 12px 0; font-size: 13px; color: var(--muted); font-weight: 600; }
 dialog input, dialog select {
   width: 100%; margin-top: 5px; padding: 10px 12px;
-  background: var(--panel-2); color: var(--text);
+  background: var(--field); color: var(--text);
   border: 1px solid var(--stroke); border-radius: 11px; font-size: 14px;
 }
+/* native dropdown options render with their own bg -> force readable colors */
+dialog select option { background: var(--field); color: var(--text); }
 dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 18px 0 0; }
 
 .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
