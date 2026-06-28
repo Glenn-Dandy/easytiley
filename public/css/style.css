@@ -227,14 +227,27 @@ body.theme-clean  .tile-group { border: 1.5px dashed #d3dae8; }
 .grid-stack-nested > .grid-stack-item > .grid-stack-item-content { padding: 12px; border-radius: 16px; inset: 5px; }
 body.editing .grid-stack-nested { outline: 1px dashed var(--line); border-radius: 12px; }
 
-/* resize grip */
-body.editing .tile-head { cursor: move; }
+/* edit mode: clear drag bar (top) + big resize grip (bottom-right) */
+.tile-drag { display: none; }
+body.editing .tile-drag {
+  display: flex; align-items: center; justify-content: center;
+  position: absolute; top: 0; left: 0; right: 0; height: 28px;
+  cursor: grab; color: var(--muted); font-size: 17px; letter-spacing: 3px;
+  background: var(--panel-2); border-bottom: 1px solid var(--stroke);
+  border-radius: var(--radius) var(--radius) 0 0; z-index: 4; user-select: none; touch-action: none;
+}
+body.editing .tile-drag:active { cursor: grabbing; }
+body.editing .grid-stack-item-content { padding-top: 34px; }    /* room for the drag bar */
+body.editing .tile-del, body.editing .tile-edit { top: 5px; z-index: 6; }
+
 body.editing .grid-stack-item > .ui-resizable-se {
-  display: block; width: 18px; height: 18px; right: 2px; bottom: 2px; background: none; transform: none; opacity: 1;
+  display: block; width: 30px; height: 30px; right: 2px; bottom: 2px;
+  background: var(--accent); border-radius: 11px 4px 13px 4px; opacity: .92;
+  box-shadow: 0 2px 8px #0006; cursor: se-resize; z-index: 5; touch-action: none;
 }
 body.editing .grid-stack-item > .ui-resizable-se::after {
-  content: ''; position: absolute; right: 3px; bottom: 3px;
-  border-style: solid; border-width: 0 0 11px 11px; border-color: transparent transparent var(--accent) transparent;
+  content: '◢'; position: absolute; right: 4px; bottom: 3px;
+  color: var(--accent-fg); font-size: 13px; line-height: 1;
 }
 
 /* ---- Dialogs ---- */

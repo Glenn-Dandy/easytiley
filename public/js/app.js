@@ -33,7 +33,7 @@
       column: 12, cellHeight: 72, margin: 6, float: true,
       disableDrag: true, disableResize: true,
       acceptWidgets: true,                     // allow dragging tiles in/out of group boxes
-      handle: '.tile-head',                    // drag by the header, leaving the corner free to resize
+      handle: '.tile-drag',                    // drag via the edit-mode grip bar
       resizable: { handles: 'se, s, e, sw' },
     });
 
@@ -144,7 +144,7 @@
   // ---- widgets -------------------------------------------------------------
   const NESTED_OPTS = {                          // options for a group's sub-grid
     column: 6, cellHeight: 60, margin: 4, float: true,
-    acceptWidgets: true, handle: '.tile-head', resizable: { handles: 'se, s, e, sw' },
+    acceptWidgets: true, handle: '.tile-drag', resizable: { handles: 'se, s, e, sw' },
   };
 
   // run a callback for every grid on the page (main grid + all group sub-grids)

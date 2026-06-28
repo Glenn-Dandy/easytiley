@@ -87,7 +87,8 @@ const Tiles = (() => {
       `<div class="tile-head"><span class="tile-icon">${ICONS[tile.type] || '⬚'}</span>
        <span class="tile-label">${escapeHtml(label)}</span></div>`;
     el.innerHTML =
-      `<div class="tile-del" title="Entfernen">✕</div>
+      `<div class="tile-drag" title="Verschieben">⠿</div>
+       <div class="tile-del" title="Entfernen">✕</div>
        <div class="tile-edit" title="Bearbeiten">✎</div>
        ${head}
        <div class="tile-body"></div>`;
