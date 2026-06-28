@@ -20,9 +20,10 @@
     ['tabs','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
 
     grid = GridStack.init({
-      column: 12, cellHeight: 88, margin: 6, float: true,
+      column: 12, cellHeight: 72, margin: 6, float: true,
       disableDrag: true, disableResize: true,
-      draggable: { handle: '.grid-stack-item-content' },
+      handle: '.tile-head',                    // drag by the header, leaving the corner free to resize
+      resizable: { handles: 'se, s, e, sw' },
     });
 
     grid.el.addEventListener('click', onGridClick);
@@ -204,7 +205,10 @@
   async function save() {
     // Merge live geometry from gridstack with our tile config.
     const nodes = grid.save(false); // [{x,y,w,h,id}]
-    const layout = nodes.map(n => ({ ...tiles[n.id], x: n.x, y: n.y, w: n.w, h: n.h }));
+    const layout = nodes.map(n => {
+      const t = tiles[n.id] || {};
+      return { ...t, x: n.x ?? t.x ?? 0, y: n.y ?? t.y ?? 0, w: n.w ?? t.w ?? 2, h: n.h ?? t.h ?? 2 };
+    });
     try {
       await API.saveDashboard(currentDash.id, currentDash.name, layout);
       currentDash.layout = layout;
