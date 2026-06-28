@@ -256,7 +256,7 @@
     eachGrid(g => { g.enableMove(editMode); g.enableResize(editMode); }); // incl. group sub-grids
     document.body.classList.toggle('editing', editMode);
     el.editBtn.classList.toggle('active', editMode);
-    el.editBtn.textContent = editMode ? 'Fertig' : 'Bearbeiten';
+    el.editBtn.textContent = editMode ? 'Fertig' : '✎';
     el.addBtn.classList.toggle('hidden', !editMode);
     el.saveBtn.classList.toggle('hidden', !editMode);
     applyScale();                                 // edit = 1:1, view = zoom-to-fit
@@ -560,7 +560,7 @@
   // ---- helpers -------------------------------------------------------------
   function setStatus(state, msg) {
     el.status.className = 'status ' + (state || '');
-    el.status.textContent = state === 'err' ? ('Fehler: ' + (msg || '')) : 'verbunden';
+    el.status.textContent = state === 'err' ? 'Fehler' : '';   // dot only when ok
     el.status.title = msg || '';
   }
   function flash(btn, text) {
