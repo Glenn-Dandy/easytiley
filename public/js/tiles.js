@@ -59,7 +59,7 @@ const Tiles = (() => {
       case 'switch': {
         const sw = document.createElement('div');
         sw.className = 'switch';
-        sw.textContent = '⏻';
+        sw.innerHTML = '<span class="knob"></span>';
         sw.addEventListener('click', () => {
           const turnOn = !sw.classList.contains('on');
           onAction(tile, turnOn ? 'on' : 'off');
@@ -122,9 +122,12 @@ const Tiles = (() => {
   function apply(el, tile, dev) {
     const v = readingValue(tile, dev);
     switch (tile.type) {
-      case 'switch':
-        el.querySelector('.switch')?.classList.toggle('on', isOn(v));
+      case 'switch': {
+        const on = isOn(v);
+        el.querySelector('.switch')?.classList.toggle('on', on);
+        el.classList.toggle('lit', on);   // light up the whole card when on
         break;
+      }
       case 'dimmer': {
         const range = el.querySelector('input');
         const pct   = el.querySelector('.pct');

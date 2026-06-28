@@ -16,7 +16,17 @@
   // ---- init ----------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', init);
 
+  function applyTheme(name) {
+    name = (name === 'clean') ? 'clean' : 'aurora';
+    document.body.classList.remove('theme-aurora', 'theme-clean');
+    document.body.classList.add('theme-' + name);
+    localStorage.setItem('theme', name);
+    const sel = document.getElementById('sTheme');
+    if (sel) sel.value = name;
+  }
+
   async function init() {
+    applyTheme(localStorage.getItem('theme') || 'aurora');
     ['tabs','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
 
     grid = GridStack.init({
@@ -433,6 +443,7 @@
   // ---- settings ------------------------------------------------------------
   function setupSettings() {
     el.settingsDlg = document.getElementById('settingsDialog');
+    document.getElementById('sTheme').addEventListener('change', e => applyTheme(e.target.value)); // live
     document.getElementById('settingsForm').addEventListener('submit', async e => {
       const action = e.submitter && e.submitter.value;
       if (action === 'cancel') return;              // close normally
@@ -468,6 +479,7 @@
   }
 
   async function openSettings() {
+    document.getElementById('sTheme').value = localStorage.getItem('theme') || 'aurora';
     try { const s = await API.settings(); document.getElementById('sFhemUrl').value = s.fhemUrl || ''; }
     catch (e) { /* ignore */ }
     settingsResult('');
