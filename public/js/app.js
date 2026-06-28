@@ -159,6 +159,10 @@
     if (big) { // turn the inner .grid-stack into a real sub-grid and fill it
       const sub = GridStack.init({ ...NESTED_OPTS, disableDrag: !editMode, disableResize: !editMode },
                                  item.querySelector('.grid-stack'));
+      // Wire the parent<->child relationship so tiles can also be dragged OUT.
+      // GridStack.init() alone doesn't set this (only makeSubGrid / a drop does).
+      const gn = item.gridstackNode;
+      if (gn) { gn.subGrid = sub; sub.parentGridItem = gn; }
       for (const child of (tile.children || [])) addWidget(child, sub);
     }
   }
