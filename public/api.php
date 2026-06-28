@@ -52,6 +52,32 @@ function compact_device(array $r): array
     ];
 }
 
+/** Parse FHEM PossibleSets ("on:noArg off:noArg pct:slider,0,1,100 ...") into command names. */
+function parse_sets(string $possibleSets): array
+{
+    $out = [];
+    foreach (preg_split('/\s+/', trim($possibleSets)) as $tok) {
+        if ($tok === '') continue;
+        $out[] = explode(':', $tok)[0]; // drop the ":argHint" part
+    }
+    return $out;
+}
+
+/** Find the reading that actually reflects on/off (YeeLight: "power", not "state"="opened"). */
+function detect_onoff(array $rawReadings): ?string
+{
+    $found = [];
+    foreach ($rawReadings as $name => $rd) {
+        $v = strtolower((string)($rd['Value'] ?? ''));
+        if ($v === 'on' || $v === 'off') { $found[$name] = true; }
+    }
+    if (!$found) return null;
+    foreach (['power', 'POWER', 'onoff', 'relay', 'state'] as $pref) {
+        if (isset($found[$pref])) return $pref;
+    }
+    return array_key_first($found);
+}
+
 try {
     $fhem = new Fhem($FHEM_URL);
     $db   = new Db($DB_PATH);
@@ -76,12 +102,15 @@ try {
             try {
                 $data = $fhem->jsonlist2();
                 $list = array_map(function ($r) {
+                    $rd = $r['Readings'] ?? [];
                     return [
                         'name'     => $r['Name'] ?? '',
                         'type'     => $r['Internals']['TYPE'] ?? '',
                         'room'     => $r['Attributes']['room'] ?? '',
                         'alias'    => $r['Attributes']['alias'] ?? ($r['Name'] ?? ''),
-                        'readings' => array_keys($r['Readings'] ?? []),
+                        'readings' => array_keys($rd),
+                        'sets'     => parse_sets($r['PossibleSets'] ?? ''),
+                        'onoff'    => detect_onoff($rd),
                     ];
                 }, $data['Results'] ?? []);
                 $payload = json_encode(['devices' => $list, 'count' => count($list)],

@@ -156,11 +156,29 @@
     const type = document.getElementById('tType');
     const dev  = document.getElementById('tDevice');
 
+    const reading = document.getElementById('tReading');
+
+    // Reading is auto-derived for switches (and irrelevant for button/label),
+    // so only the value/dimmer types show the field.
     const syncRows = () => {
-      document.getElementById('rowUnit').style.display = type.value === 'value'  ? '' : 'none';
-      document.getElementById('rowCmd').style.display  = type.value === 'button' ? '' : 'none';
+      const t = type.value;
+      document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
+      document.getElementById('rowCmd').style.display     = t === 'button' ? '' : 'none';
+      document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
     };
-    type.addEventListener('change', syncRows);
+
+    // Fill the reading field with the sensible default for the chosen device+type.
+    const applyDefaults = () => {
+      const d = deviceCache.find(x => x.name === dev.value);
+      if (!d) return;
+      if (type.value === 'switch') {
+        reading.value = d.onoff || 'state';            // YeeLight -> "power"
+      } else if (type.value === 'dimmer') {
+        reading.value = pickDim(d).reading;
+      }
+    };
+
+    type.addEventListener('change', () => { syncRows(); applyDefaults(); });
 
     dev.addEventListener('change', () => {
       const d = deviceCache.find(x => x.name === dev.value);
@@ -168,6 +186,7 @@
         (d ? d.readings : []).map(r => `<option value="${esc(r)}">`).join('');
       if (d && !document.getElementById('tLabel').value)
         document.getElementById('tLabel').value = d.alias || d.name;
+      applyDefaults();
     });
 
     document.getElementById('tileForm').addEventListener('submit', e => {
@@ -175,16 +194,25 @@
       // so check the clicked button directly (Enter -> submitter null -> treat as OK).
       if (e.submitter && e.submitter.value !== 'ok') return; // Abbrechen
       const f = e.target;
-      if (!f.device.value.trim() && f.type.value !== 'label') return; // kein Gerät -> nichts anlegen
+      const device = f.device.value.trim();
+      const t = f.type.value;
+      if (!device && t !== 'label') return; // kein Gerät -> nichts anlegen
+      const d = deviceCache.find(x => x.name === device);
+
+      let rd = f.reading.value.trim();
+      let setcmd;
+      if (t === 'switch') rd = d ? (d.onoff || 'state') : (rd || 'state'); // on/off-Reading automatisch
+      if (t === 'dimmer') { const p = pickDim(d); setcmd = p.setcmd; rd = rd || p.reading; }
+
       const tile = {
         id:     't' + Date.now() + Math.floor(performance.now()),
-        type:   f.type.value,
-        device: f.device.value.trim(),
-        reading: f.reading.value.trim() || 'state',
+        type:   t,
+        device, setcmd,
+        reading: rd || 'state',
         label:  f.label.value.trim(),
         unit:   f.unit.value.trim(),
         cmd:    f.cmd.value.trim(),
-        x: 0, y: 0, ...DEFAULT_SIZE[f.type.value],
+        x: 0, y: 0, ...DEFAULT_SIZE[t],
       };
       tiles[tile.id] = tile;
       addWidget(tile);
@@ -193,11 +221,20 @@
     syncRows();
   }
 
+  // Pick the dim set-command + level reading a device actually supports
+  // (YeeLight uses "bright", others "pct"/"dim"/"level").
+  function pickDim(d) {
+    const sets = (d && d.sets) || [], rds = (d && d.readings) || [];
+    const setcmd  = ['pct', 'bright', 'dim', 'level', 'brightness'].find(s => sets.includes(s)) || 'pct';
+    const reading = ['pct', 'bright', 'brightness', 'level', 'dim'].find(r => rds.includes(r)) || setcmd;
+    return { setcmd, reading };
+  }
+
   function openAddDialog() {
     if (!deviceCache.length) loadDeviceCache(); // lazy: fills the picker when ready
     document.getElementById('tileForm').reset();
+    document.querySelectorAll('#tileForm .row-extra').forEach(r => r.style.display = 'none');
     document.getElementById('rowUnit').style.display = '';
-    document.getElementById('rowCmd').style.display = 'none';
     el.dlg.returnValue = '';
     el.dlg.showModal();
   }

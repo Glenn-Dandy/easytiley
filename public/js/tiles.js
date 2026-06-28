@@ -52,7 +52,7 @@ const Tiles = (() => {
         const range = body.querySelector('input');
         const pct   = body.querySelector('.pct');
         range.addEventListener('input', () => { pct.textContent = range.value + '%'; });
-        range.addEventListener('change', () => onAction(tile, 'pct ' + range.value));
+        range.addEventListener('change', () => onAction(tile, (tile.setcmd || 'pct') + ' ' + range.value));
         break;
       }
       case 'button': {
