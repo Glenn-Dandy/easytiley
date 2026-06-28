@@ -30,7 +30,7 @@
     ['tabs','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
 
     grid = GridStack.init({
-      column: 12, cellHeight: 76, margin: 6, float: true,
+      column: 12, cellHeight: 76, margin: 6, float: false,   // float off -> tiles rise to fill space above
       disableDrag: true, disableResize: true,
       acceptWidgets: true,                     // allow dragging tiles in/out of group boxes
       handle: '.tile-drag',                    // drag via the edit-mode grip bar
@@ -149,7 +149,7 @@
 
   // ---- widgets -------------------------------------------------------------
   const NESTED_OPTS = {                          // options for a group's sub-grid
-    column: 6, cellHeight: 'auto', margin: 4, float: true,
+    column: 6, cellHeight: 'auto', margin: 4, float: false,
     acceptWidgets: true, handle: '.tile-drag', resizable: { handles: 'se, s, e, sw' },
   };
 
@@ -171,6 +171,19 @@
     grid.el.style.transform = s === 1 ? '' : `scale(${s})`;
     const h = grid.el.offsetHeight;            // unscaled layout height
     grid.el.style.marginBottom = s < 1 ? `${-Math.round(h * (1 - s))}px` : '';
+    fitSubGrids();
+  }
+
+  // Group sub-grids: keep a constant tile (cell) size by adapting the column
+  // count to the group's width -> tiles don't shrink, and the grid grows wider
+  // (more columns) when there's room. ~64px cell.
+  function fitSubGrids() {
+    document.querySelectorAll('.grid-stack-nested').forEach(el => {
+      const sub = el.gridstack; if (!sub) return;
+      const w = el.clientWidth; if (w < 30) return;
+      const col = Math.max(2, Math.min(24, Math.round(w / 64)));
+      if (sub.getColumn() !== col) sub.column(col, 'none');
+    });
   }
 
   function addWidget(tile, targetGrid = grid) {
@@ -189,9 +202,6 @@
 
     if (big) { // turn the inner .grid-stack into a real sub-grid and fill it
       const nestedEl = item.querySelector('.grid-stack');
-      // Fixed width -> the inner tiles keep their size when the group is shrunk
-      // (the group then just scrolls), instead of shrinking with the container.
-      nestedEl.style.width = (NESTED_OPTS.column * 60) + 'px';
       const sub = GridStack.init({ ...NESTED_OPTS, disableDrag: !editMode, disableResize: !editMode }, nestedEl);
       // Wire the parent<->child relationship so tiles can also be dragged OUT.
       // GridStack.init() alone doesn't set this (only makeSubGrid / a drop does).
@@ -518,6 +528,34 @@
   function setupSettings() {
     el.settingsDlg = document.getElementById('settingsDialog');
     document.getElementById('sTheme').addEventListener('change', e => applyTheme(e.target.value)); // live
+
+    document.getElementById('btnExport').addEventListener('click', async () => {
+      try {
+        const data = await API.exportLayout();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+        a.download = 'fhem-dashboard-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click(); URL.revokeObjectURL(a.href);
+        settingsResult('Layout exportiert ✓', true);
+      } catch (err) { settingsResult('Export-Fehler: ' + err.message, false); }
+    });
+    const fileInput = document.getElementById('importFile');
+    document.getElementById('btnImport').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files[0]; fileInput.value = '';
+      if (!f) return;
+      try {
+        const data = JSON.parse(await f.text());
+        if (!data.dashboards) throw new Error('keine Dashboards in der Datei');
+        if (!confirm('Alle aktuellen Dashboards durch den Import ersetzen?')) return;
+        await API.importLayout(data);
+        el.settingsDlg.close();
+        currentDash = null;
+        deviceCache = [];
+        await loadDashboards();
+      } catch (err) { settingsResult('Import-Fehler: ' + err.message, false); }
+    });
+
     document.getElementById('settingsForm').addEventListener('submit', async e => {
       const action = e.submitter && e.submitter.value;
       if (action === 'cancel') return;              // close normally

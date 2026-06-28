@@ -101,6 +101,14 @@
         <input name="fhemUrl" id="sFhemUrl" placeholder="z.B. 192.168.10.2:8083 oder http://host:8083/fhem">
       </label>
       <p class="hint" id="sHint">Beispiel: <code>192.168.10.2:8083</code> – <code>/fhem</code> wird ergänzt.</p>
+
+      <label>Layout (alle Dashboards)</label>
+      <div class="row-actions">
+        <button type="button" id="btnExport" class="btn">⬇ Exportieren</button>
+        <button type="button" id="btnImport" class="btn">⬆ Importieren</button>
+        <input type="file" id="importFile" accept="application/json" hidden>
+      </div>
+
       <menu>
         <button value="cancel" class="btn">Schließen</button>
         <button value="test" id="sTest" class="btn">Testen</button>

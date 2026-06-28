@@ -256,6 +256,27 @@ try {
             }
             fail('unsupported method', 405);
 
+        // ---- Layout backup -------------------------------------------------
+        case 'export': // GET -> all dashboards with their layouts
+            $dash = [];
+            foreach ($db->listDashboards() as $d) {
+                $full = $db->getDashboard((int)$d['id']);
+                $dash[] = ['name' => $full['name'], 'layout' => json_decode($full['layout'], true) ?: []];
+            }
+            out(['version' => 1, 'dashboards' => $dash]);
+
+        case 'import': // POST {dashboards:[{name,layout}]} -> replaces all
+            if ($method !== 'POST') fail('POST required', 405);
+            $b = body_json();
+            $list = $b['dashboards'] ?? null;
+            if (!is_array($list) || !$list) fail('keine Dashboards im Import', 400);
+            foreach ($db->listDashboards() as $d) $db->deleteDashboard((int)$d['id']);
+            foreach ($list as $dash) {
+                $id = $db->createDashboard((string)($dash['name'] ?? 'Import'));
+                $db->saveLayout($id, json_encode($dash['layout'] ?? [], JSON_UNESCAPED_UNICODE));
+            }
+            out(['ok' => true, 'count' => count($list)]);
+
         case 'health':
             $token = $fhem->token();
             out(['ok' => true, 'fhem' => $FHEM_URL, 'csrf' => $token !== '']);

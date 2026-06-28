@@ -23,6 +23,8 @@ const API = {
   rawCmd(cmd)           { return this._send('cmd', 'POST', { cmd }); },
 
   settings()            { return this._get('settings'); },
+  exportLayout()        { return this._get('export'); },
+  importLayout(data)    { return this._send('import', 'POST', data); },
   saveSettings(fhemUrl, test) { return this._send('settings', 'POST', { fhemUrl, test: !!test }); },
 
   dashboards()          { return this._get('dashboards'); },
