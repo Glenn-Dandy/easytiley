@@ -10,7 +10,6 @@
 <body>
   <header class="topbar">
     <div class="brand">⌂ FHEM</div>
-    <select id="dashSelect" class="dash-select" title="Dashboard"></select>
     <div class="spacer"></div>
     <span id="status" class="status" title="Verbindung"></span>
     <button id="addBtn"  class="btn hidden">+ Kachel</button>
@@ -18,6 +17,8 @@
     <button id="settingsBtn" class="btn" title="Einstellungen">⚙</button>
     <button id="editBtn" class="btn btn-toggle">Bearbeiten</button>
   </header>
+
+  <nav id="tabs" class="tabs"></nav>
 
   <main>
     <div class="grid-stack"></div>
@@ -33,6 +34,8 @@
           <option value="value">Wert / Sensor</option>
           <option value="switch">Schalter (on/off)</option>
           <option value="dimmer">Dimmer (0–100%)</option>
+          <option value="color">Farbe (RGB/HSV)</option>
+          <option value="readingsgroup">readingsGroup</option>
           <option value="button">Button (Befehl)</option>
           <option value="label">Beschriftung</option>
         </select>

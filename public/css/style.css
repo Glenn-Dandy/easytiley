@@ -50,7 +50,38 @@ body {
 .btn-toggle.active { background: var(--accent); border-color: var(--accent); color: #06223a; }
 .hidden { display: none !important; }
 
+/* ---- Tabs (Räume) ---- */
+.tabs {
+  display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.tab {
+  display: flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer;
+  background: var(--panel-2); color: var(--muted);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px;
+}
+.tab.active { background: var(--accent); color: #06223a; border-color: var(--accent); font-weight: 600; }
+.tab .tab-x { display: none; font-weight: 700; }
+body.editing .tab.active .tab-x { display: inline; }
+.tab-add { cursor: pointer; background: transparent; color: var(--muted);
+  border: 1px dashed var(--line); border-radius: 8px; padding: 7px 12px; }
+
 main { padding: 12px; }
+
+/* color tile */
+.tile-color input[type=color] {
+  width: 64px; height: 64px; padding: 0; border: 2px solid var(--line);
+  border-radius: 12px; background: none; cursor: pointer;
+}
+
+/* readingsGroup (FHEM renders dark-on-light, so give it a light panel) */
+.rg-wrap { flex: 1; overflow: auto; margin-top: 4px; }
+.rg-content { background: #faf7ec; color: #161616; border-radius: 8px; padding: 6px 8px; font-size: 13px; }
+.rg-content table { border-collapse: collapse; }
+.rg-content td, .rg-content th { padding: 2px 7px; vertical-align: middle; }
+.rg-content a { color: #0a58ca; text-decoration: none; }
+.rg-content hr { border: none; border-top: 1px solid #ccc; margin: 3px 0; }
+.rg-empty, .rg-loading { color: var(--muted); padding: 10px; font-size: 13px; }
 
 /* ---- Grid / tiles ---- */
 .grid-stack { min-height: 200px; }

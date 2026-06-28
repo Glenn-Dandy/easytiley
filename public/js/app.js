@@ -9,6 +9,7 @@
   const el = {};
   const DEFAULT_SIZE = {
     value:  { w: 2, h: 2 }, switch: { w: 2, h: 2 }, dimmer: { w: 3, h: 2 },
+    color:  { w: 2, h: 2 }, readingsgroup: { w: 6, h: 4 },
     button: { w: 2, h: 2 }, label:  { w: 3, h: 1 },
   };
 
@@ -16,7 +17,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    ['dashSelect','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
+    ['tabs','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
 
     grid = GridStack.init({
       column: 12, cellHeight: 88, margin: 6, float: true,
@@ -28,7 +29,6 @@
     el.editBtn.addEventListener('click', toggleEdit);
     el.addBtn.addEventListener('click', openAddDialog);
     el.saveBtn.addEventListener('click', save);
-    el.dashSelect.addEventListener('change', onDashChange);
     el.settingsBtn.addEventListener('click', openSettings);
     setupDialog();
     setupSettings();
@@ -38,27 +38,58 @@
     await loadDashboards();
 
     Live.start(activeDeviceNames, applyLive, setStatus, 3000);
+    setInterval(refreshReadingsGroups, 30000); // readingsGroups change slowly
   }
 
-  // ---- dashboards ----------------------------------------------------------
+  // ---- dashboards / rooms as tabs -----------------------------------------
+  let dashboards = [];
+
   async function loadDashboards(selectId) {
-    const { dashboards } = await API.dashboards();
-    el.dashSelect.innerHTML =
-      dashboards.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('') +
-      `<option value="__new__">➕ Neues Dashboard…</option>`;
-    const id = selectId || (dashboards[0] && dashboards[0].id);
-    if (id) { el.dashSelect.value = id; await loadDashboard(id); }
+    dashboards = (await API.dashboards()).dashboards;
+    const id = selectId || (currentDash && currentDash.id) || (dashboards[0] && dashboards[0].id);
+    if (id) await loadDashboard(id); else renderTabs(null);
   }
 
-  async function onDashChange() {
-    if (el.dashSelect.value === '__new__') {
-      const name = prompt('Name des neuen Dashboards:');
-      if (!name) { el.dashSelect.value = currentDash?.id ?? ''; return; }
-      const { id } = await API.createDashboard(name);
-      await loadDashboards(id);
-      return;
-    }
-    await loadDashboard(parseInt(el.dashSelect.value, 10));
+  function renderTabs(activeId) {
+    el.tabs.innerHTML = '';
+    dashboards.forEach(d => {
+      const tab = document.createElement('div');
+      tab.className = 'tab' + (d.id === activeId ? ' active' : '');
+      tab.innerHTML = `<span class="tab-name">${esc(d.name)}</span><span class="tab-x" title="Raum löschen">✕</span>`;
+      tab.addEventListener('click', e => {
+        if (e.target.closest('.tab-x'))      return deleteTab(d.id);
+        if (editMode && d.id === activeId)   return renameTab(d.id);
+        loadDashboard(d.id);
+      });
+      el.tabs.appendChild(tab);
+    });
+    const add = document.createElement('div');
+    add.className = 'tab-add'; add.textContent = '＋'; add.title = 'Neuer Raum';
+    add.addEventListener('click', addTab);
+    el.tabs.appendChild(add);
+  }
+
+  async function addTab() {
+    const name = prompt('Name des neuen Raums/Tabs:');
+    if (!name) return;
+    const { id } = await API.createDashboard(name);
+    await loadDashboards(id);
+  }
+
+  async function renameTab(id) {
+    const d = dashboards.find(x => x.id === id);
+    const name = prompt('Raum umbenennen:', d ? d.name : '');
+    if (!name) return;
+    await API.saveDashboard(id, name, currentDash.layout);
+    await loadDashboards(id);
+  }
+
+  async function deleteTab(id) {
+    if (dashboards.length <= 1) { alert('Mindestens ein Raum muss bleiben.'); return; }
+    if (!confirm('Diesen Raum mit allen Kacheln löschen?')) return;
+    await API.deleteDashboard(id);
+    if (currentDash && currentDash.id === id) currentDash = null;
+    await loadDashboards();
   }
 
   async function loadDashboard(id) {
@@ -66,6 +97,23 @@
     tiles = {};
     grid.removeAll();
     for (const t of currentDash.layout) { tiles[t.id] = t; addWidget(t); }
+    renderTabs(id);
+    refreshReadingsGroups();
+  }
+
+  // readingsGroup tiles: pull FHEM's own rendered HTML and inject it.
+  async function refreshReadingsGroups() {
+    for (const t of Object.values(tiles)) {
+      if (t.type !== 'readingsgroup' || !t.device) continue;
+      const item = grid.el.querySelector(`.grid-stack-item[gs-id="${t.id}"]`);
+      const target = item && item.querySelector('.rg-content');
+      if (!target) continue;
+      try {
+        const html = await API.readingsGroup(t.device);
+        target.classList.remove('rg-loading');
+        target.innerHTML = html;
+      } catch (e) { target.classList.remove('rg-loading'); target.textContent = 'Fehler: ' + e.message; }
+    }
   }
 
   // ---- widgets -------------------------------------------------------------
@@ -124,7 +172,9 @@
   }
 
   function activeDeviceNames() {
-    return [...new Set(Object.values(tiles).map(t => t.device).filter(Boolean))];
+    return [...new Set(Object.values(tiles)
+      .filter(t => t.device && t.type !== 'readingsgroup')
+      .map(t => t.device))];
   }
 
   // ---- edit mode -----------------------------------------------------------
@@ -212,12 +262,13 @@
       const d = deviceCache.find(x => x.name === device);
 
       let rd = f.reading.value.trim();
-      let setcmd;
+      let setcmd, colorcmd;
       if (t === 'switch') rd = d ? (d.onoff || 'state') : (rd || 'state'); // on/off-Reading automatisch
       if (t === 'dimmer') { const p = pickDim(d); setcmd = p.setcmd; rd = rd || p.reading; }
+      if (t === 'color')  { colorcmd = pickColor(d); rd = rd || (d && d.readings.includes('rgb') ? 'rgb' : 'state'); }
 
       const cfg = {
-        type: t, device, setcmd,
+        type: t, device, setcmd, colorcmd,
         reading: rd || 'state',
         label: f.label.value.trim(),
         unit:  f.unit.value.trim(),
@@ -234,6 +285,7 @@
         addWidget(tile);
       }
       editingTileId = null;
+      refreshReadingsGroups();                      // fill any new readingsGroup tile
     });
     dlgSyncRows();
   }
@@ -245,6 +297,12 @@
     const setcmd  = ['pct', 'bright', 'dim', 'level', 'brightness'].find(s => sets.includes(s)) || 'pct';
     const reading = ['pct', 'bright', 'brightness', 'level', 'dim'].find(r => rds.includes(r)) || setcmd;
     return { setcmd, reading };
+  }
+
+  // Which colour set-command the device supports (rgb hex, hsv, or color); rgb default.
+  function pickColor(d) {
+    const sets = (d && d.sets) || [];
+    return ['rgb', 'hsv', 'color'].find(c => sets.includes(c)) || 'rgb';
   }
 
   function openAddDialog() {

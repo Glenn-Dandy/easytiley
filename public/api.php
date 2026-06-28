@@ -105,6 +105,24 @@ try {
             }
             out(['fhemUrl' => $fhemUrl, 'default' => $FHEM_URL]);
 
+        // ---- readingsGroup: let FHEM render it, embed the HTML --------------
+        case 'readingsgroup': // GET ?name=WetterInfo
+            $name = preg_replace('/[^A-Za-z0-9_.\-]/', '', (string)($_GET['name'] ?? ''));
+            if ($name === '') fail('name required', 400);
+            $html = $fhem->cmd("{readingsGroup_2html('$name')}");
+            // Rewrite /fhem/ asset URLs to absolute so the browser loads FHEM's icons.
+            $p = parse_url($fhemUrl);
+            $host = ($p['scheme'] ?? 'http') . '://' . ($p['host'] ?? '')
+                  . (isset($p['port']) ? ':' . $p['port'] : '');
+            $html = str_replace(
+                ['="/fhem/', "='/fhem/", 'url(/fhem/'],
+                ['="' . $host . '/fhem/', "='" . $host . '/fhem/', 'url(' . $host . '/fhem/'],
+                $html
+            );
+            header('Content-Type: text/html; charset=utf-8');
+            echo trim($html) === '' ? '<div class="rg-empty">– keine Daten –</div>' : $html;
+            exit;
+
         // ---- FHEM live data -------------------------------------------------
         case 'devices': // GET ?names=Lamp,Door   (omit names = all 294, heavy)
             $names = isset($_GET['names']) ? preg_replace('/[^A-Za-z0-9_.,\-]/', '', $_GET['names']) : null;

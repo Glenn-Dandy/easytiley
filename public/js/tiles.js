@@ -1,7 +1,30 @@
 // Tile rendering + interaction binding. FTUI-style look.
 const Tiles = (() => {
 
-  const ICONS = { value: '🌡', switch: '💡', dimmer: '🔆', button: '▶', label: '🏷' };
+  const ICONS = { value: '🌡', switch: '💡', dimmer: '🔆', color: '🎨',
+                  readingsgroup: '📋', button: '▶', label: '🏷' };
+
+  // #rrggbb -> "H,S,V" (H 0-360, S/V 0-100) for devices that take `set x hsv`.
+  function hexToHsv(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let h = 0;
+    if (d) {
+      if (mx === r) h = ((g - b) / d) % 6;
+      else if (mx === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h = Math.round(h * 60); if (h < 0) h += 360;
+    }
+    return `${h},${Math.round((mx ? d / mx : 0) * 100)},${Math.round(mx * 100)}`;
+  }
+
+  // Build the "set" argument for a colour change, honouring what the device supports.
+  function colorArg(tile, hex) {
+    const cmd = tile.colorcmd || 'rgb';
+    if (cmd === 'hsv') return 'hsv ' + hexToHsv(hex);
+    return cmd + ' ' + hex.slice(1).toUpperCase(); // rgb/color -> RRGGBB
+  }
 
   function readingValue(tile, dev) {
     if (!dev) return null;
@@ -64,6 +87,18 @@ const Tiles = (() => {
         body.appendChild(b);
         break;
       }
+      case 'color': {
+        body.className = 'tile-body tile-color';
+        const inp = document.createElement('input');
+        inp.type = 'color';
+        inp.value = '#ffffff';
+        inp.addEventListener('change', () => onAction(tile, colorArg(tile, inp.value)));
+        body.appendChild(inp);
+        break;
+      }
+      case 'readingsgroup':
+        body.innerHTML = `<div class="rg-wrap"><div class="rg-content rg-loading">lädt…</div></div>`;
+        break;
       case 'label':
         body.innerHTML = `<div class="tile-value">${escapeHtml(tile.label || '')}</div>`;
         break;
@@ -88,6 +123,12 @@ const Tiles = (() => {
           const n = parseInt(String(v).replace(/[^\d]/g, ''), 10);
           if (!isNaN(n)) { range.value = n; pct.textContent = n + '%'; }
         }
+        break;
+      }
+      case 'color': {
+        const inp = el.querySelector('input[type=color]');
+        const m = String(v ?? '').match(/^#?([0-9a-fA-F]{6})$/);
+        if (inp && m && document.activeElement !== inp) inp.value = '#' + m[1];
         break;
       }
       case 'value': {
