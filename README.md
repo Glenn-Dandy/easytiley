@@ -1,6 +1,6 @@
 # FHEM Frontend
 
-Web-Dashboard für FHEM mit editierbaren Gerätekacheln (FTUI-Optik).
+Web-Dashboard für FHEM mit editierbaren Gerätekacheln.
 Kacheln hinzufügen, verschieben, vergrößern und speichern — alles im Browser.
 
 ```
@@ -12,7 +12,7 @@ Browser ──HTTP──> 1 Docker-Container ──HTTP──> FHEMWEB (192.168.
 
 > nginx **und** php-fpm laufen zusammen in **einem** Image (via supervisord) — ein Container genügt.
 
-* **Frontend:** Vanilla JS + [Gridstack](https://gridstackjs.com) (Drag&Drop/Resize), FTUI-Stil.
+* **Frontend:** Vanilla JS + [Gridstack](https://gridstackjs.com) (Drag&Drop/Resize), eigene Kacheln + Themes.
 * **Backend:** PHP 8.3, spricht FHEMWEB via `jsonlist2` + `set` an (CSRF-Token automatisch).
 * **Live-Daten:** Polling der Dashboard-Geräte (alle 3 s). Erweiterbar auf SSE/longpoll.
 * **Speicher:** SQLite, ein Layout je Dashboard als JSON.
@@ -123,6 +123,5 @@ data/              fhem.db (SQLite, gitignored)
 ## Roadmap / mögliche Erweiterungen
 
 * SSE/longpoll statt Polling (Push-Updates direkt aus FHEM).
-* Mehr Kacheltypen (Charts, Thermostat, Kamera, RGB).
-* Echte FTUI-Widgets einbetten.
-* Icon-Auswahl je Kachel, Räume/Tabs.
+* Mehr Kacheltypen (Charts, Thermostat, Kamera).
+* Icon-Auswahl je Kachel.

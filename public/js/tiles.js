@@ -1,4 +1,4 @@
-// Tile rendering + interaction binding. FTUI-style look.
+// Tile rendering + interaction binding.
 const Tiles = (() => {
 
   const ICONS = { value: '🌡', switch: '💡', dimmer: '🔆', color: '🎨',
