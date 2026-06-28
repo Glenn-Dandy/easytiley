@@ -36,6 +36,10 @@
       handle: '.tile-drag',                    // drag via the edit-mode grip bar
       resizable: { handles: 'se, s, e, sw' },
     });
+    // Row height tracks column width (same proportions on laptop & tablet, so
+    // tiles don't clip content on narrow screens). 0.6 keeps a compact ratio.
+    syncCells();
+    window.addEventListener('resize', () => { clearTimeout(window._sc); window._sc = setTimeout(syncCells, 150); });
 
     grid.el.addEventListener('click', onGridClick);
     el.editBtn.addEventListener('click', toggleEdit);
@@ -111,6 +115,7 @@
     grid.removeAll();
     for (const t of currentDash.layout) addWidget(t);     // addWidget registers + recurses into groups
     renderTabs(id);
+    syncCells();                                          // proportional rows (incl. new sub-grids)
     refreshReadingsGroups();
   }
 
@@ -143,13 +148,19 @@
 
   // ---- widgets -------------------------------------------------------------
   const NESTED_OPTS = {                          // options for a group's sub-grid
-    column: 6, cellHeight: 60, margin: 4, float: true,
+    column: 6, cellHeight: 'auto', margin: 4, float: true,
     acceptWidgets: true, handle: '.tile-drag', resizable: { handles: 'se, s, e, sw' },
   };
 
   // run a callback for every grid on the page (main grid + all group sub-grids)
   function eachGrid(fn) {
     document.querySelectorAll('.grid-stack').forEach(g => g.gridstack && fn(g.gridstack));
+  }
+
+  // Keep row height proportional to column width on every grid -> consistent
+  // tile proportions across screen sizes (laptop/tablet).
+  function syncCells() {
+    eachGrid(g => { const cw = g.cellWidth(); if (cw > 0) g.cellHeight(Math.max(40, Math.round(cw * 0.6))); });
   }
 
   function addWidget(tile, targetGrid = grid) {
@@ -422,6 +433,7 @@
         addWidget(tile);
       }
       editingTileId = null;
+      syncCells();                                  // proportional rows (e.g. new group sub-grid)
       refreshReadingsGroups();                      // fill any new readingsGroup tile
     });
     dlgSyncRows();

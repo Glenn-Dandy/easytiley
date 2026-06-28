@@ -104,6 +104,12 @@ main { padding: 4px 16px 24px; }
 }
 body.editing .grid-stack-item-content { outline: 1px dashed var(--accent); }
 
+/* clear drop placeholder while dragging/resizing */
+.grid-stack-placeholder > .placeholder-content {
+  border: 2px dashed var(--accent); border-radius: var(--radius);
+  background: rgba(99, 102, 241, .12); inset: 6px;
+}
+
 .tile.lit { background: var(--lit-bg); border-color: var(--lit-border);
   box-shadow: 0 0 42px -10px var(--lit-glow), var(--shadow); }
 
