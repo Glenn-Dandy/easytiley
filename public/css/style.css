@@ -230,7 +230,7 @@ body.theme-aurora .tile-group { border-style: dashed; }
 body.theme-clean  .tile-group { border: 1.5px dashed #d3dae8; }
 .tile-group > .tile-head { font-size: 15px; font-weight: 700; color: var(--text); }
 .tile-group-body { display: block; padding: 0; margin-top: 10px; overflow: auto; flex: 1; }
-.grid-stack-nested { width: 100%; min-height: 50px; }
+.grid-stack-nested { min-height: 50px; }   /* width set inline (fixed) so inner tiles keep size */
 .grid-stack-nested > .grid-stack-item > .grid-stack-item-content { padding: 12px; border-radius: 16px; inset: 5px; }
 body.editing .grid-stack-nested { outline: 1px dashed var(--line); border-radius: 12px; }
 

@@ -188,8 +188,11 @@
     targetGrid.makeWidget(item);
 
     if (big) { // turn the inner .grid-stack into a real sub-grid and fill it
-      const sub = GridStack.init({ ...NESTED_OPTS, disableDrag: !editMode, disableResize: !editMode },
-                                 item.querySelector('.grid-stack'));
+      const nestedEl = item.querySelector('.grid-stack');
+      // Fixed width -> the inner tiles keep their size when the group is shrunk
+      // (the group then just scrolls), instead of shrinking with the container.
+      nestedEl.style.width = (NESTED_OPTS.column * 60) + 'px';
+      const sub = GridStack.init({ ...NESTED_OPTS, disableDrag: !editMode, disableResize: !editMode }, nestedEl);
       // Wire the parent<->child relationship so tiles can also be dragged OUT.
       // GridStack.init() alone doesn't set this (only makeSubGrid / a drop does).
       const gn = item.gridstackNode;
