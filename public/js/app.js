@@ -30,7 +30,8 @@
     el.dashSelect.addEventListener('change', onDashChange);
     setupDialog();
 
-    await loadDeviceCache();
+    // NOTE: the full device list (heavy on single-threaded FHEM) is loaded
+    // lazily on first "+ Kachel", not on every page load.
     await loadDashboards();
 
     Live.start(activeDeviceNames, applyLive, setStatus, 3000);
@@ -193,6 +194,7 @@
   }
 
   function openAddDialog() {
+    if (!deviceCache.length) loadDeviceCache(); // lazy: fills the picker when ready
     document.getElementById('tileForm').reset();
     document.getElementById('rowUnit').style.display = '';
     document.getElementById('rowCmd').style.display = 'none';

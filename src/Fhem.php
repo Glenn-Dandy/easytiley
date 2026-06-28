@@ -16,13 +16,37 @@ class Fhem
         $this->base = rtrim($baseUrl, '/');
     }
 
-    /** Perform a GET. Returns [httpCode, body, responseHeaders[]]. */
+    /**
+     * Perform a GET. Returns [httpCode, body, responseHeaders[]].
+     * Prefers curl: PHP's stream wrapper hangs ~15-60s on FHEMWEB's keep-alive
+     * sockets (waits for close instead of honoring Content-Length). curl doesn't.
+     */
     private function http(string $url): array
     {
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HEADER         => true,
+                CURLOPT_TIMEOUT        => 15,
+                CURLOPT_CONNECTTIMEOUT => 5,
+            ]);
+            $resp  = curl_exec($ch);
+            $code  = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $hsize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+            curl_close($ch);
+            if ($resp === false) { return [0, '', []]; }
+            $headers = preg_split('/\r\n/', trim(substr($resp, 0, $hsize))) ?: [];
+            return [$code, substr($resp, $hsize), $headers];
+        }
+
+        // Fallback (e.g. CLI without curl): bound the keep-alive hang with Connection: close.
         $ctx = stream_context_create(['http' => [
-            'method'        => 'GET',
-            'timeout'       => 15,
-            'ignore_errors' => true, // still return body on 4xx/5xx
+            'method'           => 'GET',
+            'timeout'          => 15,
+            'ignore_errors'    => true,
+            'protocol_version' => 1.1,
+            'header'           => "Connection: close\r\n",
         ]]);
         $body = @file_get_contents($url, false, $ctx);
         $headers = $http_response_header ?? [];

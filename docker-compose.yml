@@ -3,6 +3,7 @@ services:
     build: ./docker/php
     volumes:
       - ./:/var/www
+      - ./docker/php/www-pool.conf:/usr/local/etc/php-fpm.d/zzz-pool.conf:ro
     environment:
       - FHEM_URL=${FHEM_URL:-http://192.168.10.2:8083/fhem}
       - DB_PATH=/var/www/data/fhem.db

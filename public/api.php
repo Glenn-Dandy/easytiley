@@ -66,17 +66,34 @@ try {
             out(['devices' => $list, 'count' => count($list)]);
 
         case 'devicelist': // GET -> lightweight {name,type,room,readings[]} for the editor picker
-            $data = $fhem->jsonlist2();
-            $list = array_map(function ($r) {
-                return [
-                    'name'     => $r['Name'] ?? '',
-                    'type'     => $r['Internals']['TYPE'] ?? '',
-                    'room'     => $r['Attributes']['room'] ?? '',
-                    'alias'    => $r['Attributes']['alias'] ?? ($r['Name'] ?? ''),
-                    'readings' => array_keys($r['Readings'] ?? []),
-                ];
-            }, $data['Results'] ?? []);
-            out(['devices' => $list, 'count' => count($list)]);
+            // Cached briefly: the full jsonlist2 is ~1.7 MB and would otherwise
+            // be re-fetched on every page load / tab.
+            $cacheFile = dirname($DB_PATH) . '/devicelist.cache.json';
+            if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 300) {
+                echo file_get_contents($cacheFile); // fresh (< 5 min)
+                exit;
+            }
+            try {
+                $data = $fhem->jsonlist2();
+                $list = array_map(function ($r) {
+                    return [
+                        'name'     => $r['Name'] ?? '',
+                        'type'     => $r['Internals']['TYPE'] ?? '',
+                        'room'     => $r['Attributes']['room'] ?? '',
+                        'alias'    => $r['Attributes']['alias'] ?? ($r['Name'] ?? ''),
+                        'readings' => array_keys($r['Readings'] ?? []),
+                    ];
+                }, $data['Results'] ?? []);
+                $payload = json_encode(['devices' => $list, 'count' => count($list)],
+                                       JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                @file_put_contents($cacheFile, $payload);
+                echo $payload;
+            } catch (Throwable $e) {
+                // FHEM busy/slow -> serve stale cache rather than hang the UI
+                if (is_file($cacheFile)) { echo file_get_contents($cacheFile); }
+                else { fail('devicelist unavailable: ' . $e->getMessage(), 504); }
+            }
+            exit;
 
         case 'cmd': // POST {device, args}  OR  {cmd}
             if ($method !== 'POST') fail('POST required', 405);
