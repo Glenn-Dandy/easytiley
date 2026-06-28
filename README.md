@@ -20,6 +20,7 @@ Voraussetzung: Docker + Docker Compose (siehe unten).
 
 ```bash
 cp .env.example .env          # FHEM_URL / Port ggf. anpassen
+chmod 777 data                # php-fpm (uid 82 im Container) muss in data/ schreiben
 docker compose up -d --build
 # -> http://localhost:8080
 ```
