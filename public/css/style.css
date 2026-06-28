@@ -91,8 +91,10 @@ main { padding: 12px; }
 /* group / room box (nested grid) */
 .tile-group { background: var(--panel-2); border-color: var(--accent); }
 .tile-group > .tile-head { font-size: 15px; font-weight: 600; color: var(--text); }
-.tile-group-body { padding: 0; margin-top: 6px; overflow: auto; flex: 1; }
-.grid-stack-nested { min-height: 50px; height: 100%; }
+/* display:block so the sub-grid stretches to full width (the default .tile-body
+   centers with flex, which collapses an absolutely-positioned grid to width 0) */
+.tile-group-body { display: block; padding: 0; margin-top: 6px; overflow: auto; flex: 1; }
+.grid-stack-nested { width: 100%; min-height: 50px; }
 .grid-stack-nested > .grid-stack-item > .grid-stack-item-content { padding: 8px; border-radius: 10px; }
 body.editing .grid-stack-nested { outline: 1px dashed var(--line); border-radius: 8px; }
 
