@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>FHEM Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">⌂ FHEM</div>
+    <select id="dashSelect" class="dash-select" title="Dashboard"></select>
+    <div class="spacer"></div>
+    <span id="status" class="status" title="Verbindung"></span>
+    <button id="addBtn"  class="btn hidden">+ Kachel</button>
+    <button id="saveBtn" class="btn hidden">Speichern</button>
+    <button id="editBtn" class="btn btn-toggle">Bearbeiten</button>
+  </header>
+
+  <main>
+    <div class="grid-stack"></div>
+  </main>
+
+  <!-- Add/Edit tile dialog -->
+  <dialog id="tileDialog">
+    <form method="dialog" id="tileForm">
+      <h3 id="dlgTitle">Kachel hinzufügen</h3>
+
+      <label>Typ
+        <select name="type" id="tType">
+          <option value="value">Wert / Sensor</option>
+          <option value="switch">Schalter (on/off)</option>
+          <option value="dimmer">Dimmer (0–100%)</option>
+          <option value="button">Button (Befehl)</option>
+          <option value="label">Beschriftung</option>
+        </select>
+      </label>
+
+      <label>Gerät
+        <input list="deviceOptions" name="device" id="tDevice" placeholder="Gerät suchen…" autocomplete="off">
+        <datalist id="deviceOptions"></datalist>
+      </label>
+
+      <label>Reading
+        <input list="readingOptions" name="reading" id="tReading" placeholder="z.B. state, temperature">
+        <datalist id="readingOptions"></datalist>
+      </label>
+
+      <label>Beschriftung
+        <input name="label" id="tLabel" placeholder="Anzeigename">
+      </label>
+
+      <label class="row-extra" id="rowUnit">Einheit
+        <input name="unit" id="tUnit" placeholder="°C, %, …">
+      </label>
+
+      <label class="row-extra" id="rowCmd">Befehl (set …)
+        <input name="cmd" id="tCmd" placeholder="z.B. on  /  pct 60">
+      </label>
+
+      <menu>
+        <button value="cancel" class="btn">Abbrechen</button>
+        <button value="ok" id="tOk" class="btn btn-primary">Übernehmen</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/tiles.js"></script>
+  <script src="js/live.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+/.env
+/data/*.db
+/data/*.db-*
+!/data/.gitkeep
+.DS_Store
