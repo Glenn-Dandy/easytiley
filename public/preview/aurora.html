@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview · Aurora</title>
+<style>
+:root{
+  --accent1:#5eead4; --accent2:#6366f1; --text:#eef2ff; --muted:#93a0c0;
+  --card:rgba(255,255,255,.055); --stroke:rgba(255,255,255,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--text);font:15px/1.45 "Inter",system-ui,-apple-system,sans-serif;
+  background:#0b1020;
+  background-image:radial-gradient(60vw 50vh at 12% -8%,rgba(99,102,241,.35),transparent 60%),
+                   radial-gradient(50vw 40vh at 100% 0%,rgba(94,234,212,.22),transparent 55%),
+                   radial-gradient(45vw 45vh at 80% 110%,rgba(168,85,247,.20),transparent 60%);
+  -webkit-font-smoothing:antialiased;}
+.bar{display:flex;align-items:center;gap:14px;padding:16px 24px}
+.brand{font-weight:800;letter-spacing:.3px;font-size:18px;
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.spacer{flex:1}
+.chip{padding:8px 14px;border:1px solid var(--stroke);border-radius:12px;background:var(--card);color:var(--muted);font-size:13px;backdrop-filter:blur(8px)}
+.tabs{display:flex;gap:10px;padding:4px 24px 18px}
+.tab{padding:9px 18px;border-radius:14px;border:1px solid var(--stroke);background:var(--card);color:var(--muted);font-weight:600;font-size:14px;backdrop-filter:blur(8px)}
+.tab.on{color:#06121f;border:none;background:linear-gradient(90deg,var(--accent1),var(--accent2));box-shadow:0 8px 24px -8px var(--accent2)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:0 24px 28px;max-width:1100px}
+.card{background:var(--card);border:1px solid var(--stroke);border-radius:22px;padding:18px;backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px -16px #000;position:relative;overflow:hidden;min-height:140px;display:flex;flex-direction:column}
+.head{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:13px;font-weight:600}
+.ico{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.07);font-size:16px}
+.val{margin-top:auto;font-size:34px;font-weight:800;letter-spacing:-.5px}
+.val small{font-size:15px;color:var(--muted);font-weight:600}
+.sub{color:var(--muted);font-size:12px;margin-top:2px}
+.col2{grid-column:span 2}.col2r{grid-row:span 2}
+/* switch */
+.toggle{margin-top:auto;display:flex;align-items:center;justify-content:space-between}
+.knob{width:62px;height:34px;border-radius:20px;background:rgba(255,255,255,.12);position:relative;transition:.2s}
+.knob::after{content:"";position:absolute;top:3px;left:3px;width:28px;height:28px;border-radius:50%;background:#fff;transition:.2s}
+.on .knob{background:linear-gradient(90deg,var(--accent1),var(--accent2))}
+.on .knob::after{left:31px}
+.card.lit{border-color:rgba(94,234,212,.5);box-shadow:0 0 40px -10px rgba(94,234,212,.45)}
+.bulb{font-size:26px}
+/* dimmer */
+.track{margin-top:auto;height:10px;border-radius:8px;background:rgba(255,255,255,.10);position:relative}
+.fill{position:absolute;inset:0 38% 0 0;border-radius:8px;background:linear-gradient(90deg,var(--accent1),var(--accent2))}
+.dot{position:absolute;top:50%;left:62%;width:20px;height:20px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 4px 10px #0008}
+/* buttons */
+.btns{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:9px 14px;border-radius:12px;border:1px solid var(--stroke);background:rgba(255,255,255,.06);color:var(--text);font-weight:600;font-size:14px}
+.btn.primary{border:none;background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#06121f}
+/* group */
+.group{grid-column:span 2;grid-row:span 2;background:rgba(255,255,255,.03);border-style:dashed}
+.nest{margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+.nest .mini{background:var(--card);border:1px solid var(--stroke);border-radius:16px;padding:14px;display:flex;flex-direction:column}
+.mini .val{font-size:24px}
+/* color */
+.swatch{margin-top:auto;height:54px;border-radius:14px;background:conic-gradient(from .25turn,#ff5d5d,#ffd25d,#5dff9e,#5dd2ff,#a25dff,#ff5d5d);box-shadow:inset 0 0 0 1px var(--stroke)}
+.wic{font-size:30px}
+</style></head><body>
+<div class="bar"><div class="brand">⌂ FHEM</div><div class="spacer"></div>
+  <div class="chip">● verbunden</div><div class="chip">＋ Kachel</div><div class="chip">⚙</div><div class="chip">Bearbeiten</div></div>
+<div class="tabs"><div class="tab on">Wohnzimmer</div><div class="tab">Schlafzimmer</div><div class="tab">Wetter</div><div class="tab">＋</div></div>
+<div class="grid">
+  <div class="card"><div class="head"><div class="ico">🌡️</div>Wohnzimmer</div><div class="val">21.4<small>°C</small></div><div class="sub">Luftfeuchte 48 %</div></div>
+  <div class="card lit on"><div class="head"><div class="ico">💡</div>Stehlampe</div><div class="bulb">💡</div><div class="toggle"><span class="sub">AN</span><div class="knob"></div></div></div>
+  <div class="card on"><div class="head"><div class="ico">🔌</div>TV</div><div class="bulb" style="opacity:.4">📺</div><div class="toggle"><span class="sub">AN</span><div class="knob"></div></div></div>
+  <div class="card"><div class="head"><div class="ico">🚪</div>Haustür</div><div class="val" style="font-size:22px">Geschlossen</div><div class="sub">vor 2 Std</div></div>
+
+  <div class="card col2"><div class="head"><div class="ico">🔆</div>Deckenlicht · Dimmer</div><div style="font-size:30px;font-weight:800;margin:6px 0">62 %</div><div class="track"><div class="fill"></div><div class="dot"></div></div></div>
+  <div class="card"><div class="head"><div class="ico">🎨</div>RGB Lampe</div><div class="swatch"></div></div>
+  <div class="card"><div class="head"><div class="ico">▶️</div>Szenen</div><div class="btns"><div class="btn primary">on</div><div class="btn">off</div><div class="btn">toggle</div></div></div>
+
+  <div class="card group"><div class="head"><div class="ico">🗂️</div>Küche</div>
+    <div class="nest">
+      <div class="mini"><div class="head"><div class="ico">💡</div>Licht</div><div class="toggle"><span class="sub">AUS</span><div class="knob"></div></div></div>
+      <div class="mini"><div class="head"><div class="ico">🌡️</div>Temp</div><div class="val">23.0<small>°C</small></div></div>
+      <div class="mini"><div class="head"><div class="ico">💧</div>Feuchte</div><div class="val">51<small>%</small></div></div>
+      <div class="mini"><div class="head"><div class="ico">🔌</div>Kaffee</div><div class="toggle"><span class="sub">AUS</span><div class="knob"></div></div></div>
+    </div>
+  </div>
+  <div class="card"><div class="head"><div class="ico">☀️</div>Wetter</div><div class="wic">⛅</div><div class="val" style="font-size:26px">24°</div><div class="sub">Wolkig · 10 km/h</div></div>
+  <div class="card"><div class="head"><div class="ico">⚡</div>Verbrauch</div><div class="val">432<small>W</small></div><div class="sub">heute 3.1 kWh</div></div>
+</div>
+</body></html>

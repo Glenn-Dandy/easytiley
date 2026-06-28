@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview · Clean</title>
+<style>
+:root{--bg:#eef1f6;--card:#fff;--text:#1c2536;--muted:#8a93a6;--line:#e6e9f0;
+  --blue:#3b82f6;--amber:#f7b733;--green:#34c77b;--violet:#8b5cf6;}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+  font:15px/1.45 "Inter",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.bar{display:flex;align-items:center;gap:14px;padding:18px 26px}
+.brand{font-weight:800;font-size:19px}
+.spacer{flex:1}
+.chip{padding:9px 15px;border-radius:13px;background:var(--card);color:var(--muted);font-size:13px;font-weight:600;box-shadow:0 2px 8px #0b163712}
+.chip.dark{background:var(--text);color:#fff}
+.tabs{display:flex;gap:10px;padding:2px 26px 20px}
+.tab{padding:10px 20px;border-radius:14px;background:var(--card);color:var(--muted);font-weight:700;font-size:14px;box-shadow:0 2px 8px #0b163710}
+.tab.on{background:var(--text);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:0 26px 30px;max-width:1100px}
+.card{background:var(--card);border-radius:24px;padding:20px;min-height:148px;display:flex;flex-direction:column;
+  box-shadow:0 6px 20px #0b163712;transition:.2s}
+.head{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700;color:var(--muted)}
+.ico{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-size:19px;background:#f1f4fa}
+.val{margin-top:auto;font-size:36px;font-weight:800;letter-spacing:-.6px}
+.val small{font-size:16px;color:var(--muted);font-weight:700}
+.sub{color:var(--muted);font-size:12.5px;font-weight:600;margin-top:3px}
+.col2{grid-column:span 2}
+.toggle{margin-top:auto;display:flex;align-items:center;justify-content:space-between}
+.knob{width:60px;height:33px;border-radius:20px;background:#dfe4ee;position:relative;transition:.2s}
+.knob::after{content:"";position:absolute;top:3px;left:3px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:.2s}
+/* lit card: tints amber like HomeKit */
+.card.lit{background:linear-gradient(160deg,#fff6e0,#ffe9b8);box-shadow:0 10px 26px #f7b73340}
+.card.lit .ico{background:#fff;color:#e89c00}
+.card.lit .knob{background:var(--amber)}.card.lit .knob::after{left:30px}
+.card.lit .head{color:#9a7320}
+.bulb{font-size:30px;margin:6px 0}
+/* dimmer */
+.track{margin-top:auto;height:12px;border-radius:9px;background:#eaeef6;position:relative}
+.fill{position:absolute;inset:0 38% 0 0;border-radius:9px;background:var(--blue)}
+.dot{position:absolute;top:50%;left:62%;width:22px;height:22px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 2px 6px #0003}
+.btns{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:10px 15px;border-radius:13px;background:#f1f4fa;color:var(--text);font-weight:700;font-size:14px}
+.btn.primary{background:var(--blue);color:#fff}
+.group{grid-column:span 2;grid-row:span 2;background:#f6f8fc;border:1.5px dashed #d3dae8}
+.nest{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+.nest .mini{background:var(--card);border-radius:18px;padding:15px;display:flex;flex-direction:column;box-shadow:0 3px 10px #0b16370e}
+.mini .val{font-size:25px}
+.swatch{margin-top:auto;height:56px;border-radius:16px;background:conic-gradient(from .25turn,#ff6b6b,#ffd166,#06d6a0,#4cc9f0,#b298ff,#ff6b6b)}
+.pill{align-self:flex-start;margin-top:8px;padding:5px 11px;border-radius:20px;background:#eafaf1;color:#0a8a4e;font-size:12px;font-weight:700}
+</style></head><body>
+<div class="bar"><div class="brand">⌂ FHEM</div><div class="spacer"></div>
+  <div class="chip">● verbunden</div><div class="chip">＋ Kachel</div><div class="chip">⚙</div><div class="chip dark">Bearbeiten</div></div>
+<div class="tabs"><div class="tab on">Wohnzimmer</div><div class="tab">Schlafzimmer</div><div class="tab">Wetter</div><div class="tab">＋</div></div>
+<div class="grid">
+  <div class="card"><div class="head"><div class="ico">🌡️</div>Wohnzimmer</div><div class="val">21.4<small>°C</small></div><div class="sub">Luftfeuchte 48 %</div></div>
+  <div class="card lit"><div class="head"><div class="ico">💡</div>Stehlampe</div><div class="bulb">💡</div><div class="toggle"><span class="sub" style="color:#9a7320">AN</span><div class="knob"></div></div></div>
+  <div class="card"><div class="head"><div class="ico">📺</div>TV</div><div class="bulb" style="opacity:.35">📺</div><div class="toggle"><span class="sub">AUS</span><div class="knob"></div></div></div>
+  <div class="card"><div class="head"><div class="ico">🚪</div>Haustür</div><div class="val" style="font-size:23px">Geschlossen</div><span class="pill">sicher</span></div>
+
+  <div class="card col2"><div class="head"><div class="ico">🔆</div>Deckenlicht · Dimmer</div><div style="font-size:32px;font-weight:800;margin:8px 0">62 %</div><div class="track"><div class="fill"></div><div class="dot"></div></div></div>
+  <div class="card"><div class="head"><div class="ico">🎨</div>RGB Lampe</div><div class="swatch"></div></div>
+  <div class="card"><div class="head"><div class="ico">▶️</div>Szenen</div><div class="btns"><div class="btn primary">on</div><div class="btn">off</div><div class="btn">toggle</div></div></div>
+
+  <div class="card group"><div class="head"><div class="ico">🗂️</div>Küche</div>
+    <div class="nest">
+      <div class="mini"><div class="head"><div class="ico">💡</div>Licht</div><div class="toggle"><span class="sub">AUS</span><div class="knob"></div></div></div>
+      <div class="mini"><div class="head"><div class="ico">🌡️</div>Temp</div><div class="val">23.0<small>°C</small></div></div>
+      <div class="mini"><div class="head"><div class="ico">💧</div>Feuchte</div><div class="val">51<small>%</small></div></div>
+      <div class="mini"><div class="head"><div class="ico">☕</div>Kaffee</div><div class="toggle"><span class="sub">AUS</span><div class="knob"></div></div></div>
+    </div>
+  </div>
+  <div class="card"><div class="head"><div class="ico">⛅</div>Wetter</div><div class="bulb">⛅</div><div class="val" style="font-size:28px">24°</div><div class="sub">Wolkig · 10 km/h</div></div>
+  <div class="card"><div class="head"><div class="ico">⚡</div>Verbrauch</div><div class="val">432<small>W</small></div><div class="sub">heute 3.1 kWh</div></div>
+</div>
+</body></html>
