@@ -74,10 +74,6 @@ const Tiles = (() => {
     if (r === 'state') return dev.state;
     return null;
   }
-  function readingTime(tile, dev) {
-    const r = tile.reading || 'state';
-    return dev && dev.readings && dev.readings[r] ? dev.readings[r].time : '';
-  }
   const isOn = v => ['on', '1', 'true', 'open', 'yes', 'ja'].includes(String(v ?? '').toLowerCase());
 
   // Build the inner content element of a grid item (called once).
@@ -181,8 +177,7 @@ const Tiles = (() => {
         body.innerHTML = `<div class="tile-value">${escapeHtml(tile.label || '')}</div>`;
         break;
       default: // value
-        body.innerHTML = `<div><span class="tile-value">–</span><span class="tile-unit">${escapeHtml(tile.unit || '')}</span></div>
-                          <div class="tile-time"></div>`;
+        body.innerHTML = `<div><span class="tile-value">–</span><span class="tile-unit">${escapeHtml(tile.unit || '')}</span></div>`;
     }
     return el;
   }
@@ -233,10 +228,9 @@ const Tiles = (() => {
       case 'value': {
         const valEl = el.querySelector('.tile-value');
         if (valEl) valEl.textContent = v != null ? v : '–';
-        const t = el.querySelector('.tile-time');
-        if (t) t.textContent = readingTime(tile, dev) || '';
         break;
       }
+
     }
   }
 
