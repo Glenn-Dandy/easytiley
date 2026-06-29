@@ -119,12 +119,13 @@ body.editing .grid-stack-item-content { outline: 1px dashed var(--accent); }
 .tile.on .chip { background: color-mix(in srgb, var(--on) 26%, transparent); color: var(--on); box-shadow: 0 0 22px -6px var(--on); }
 .tile.on > .row > .tx > .t-state { color: var(--on); }
 
-.tile-del, .tile-edit { position: absolute; top: 7px; width: 24px; height: 24px; border-radius: 50%;
+.tile-del, .tile-edit, .tile-link { position: absolute; top: 7px; width: 24px; height: 24px; border-radius: 50%;
   display: none; place-items: center; cursor: pointer; font-size: 13px; font-weight: 700; z-index: 6;
   background: var(--panel-2); border: 1px solid var(--stroke); box-shadow: 0 2px 6px #0004; }
 .tile-del  { right: 8px; color: var(--bad); }
 .tile-edit { right: 38px; color: var(--accent); }
-body.editing .tile-del, body.editing .tile-edit { display: grid; }
+.tile-link { left: 8px; font-size: 12px; }
+body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { display: grid; }
 
 /* compact card row: chip + name/state + optional control */
 .tile:not(.tile-rich) { justify-content: center; }
@@ -209,6 +210,41 @@ body.editing .tile-del, body.editing .tile-edit { display: grid; }
 .rg-table svg, .rg-table svg path, .rg-table svg * { fill: var(--text); }
 .rg-empty, .rg-loading { color: var(--muted); padding: 10px; font-size: 13px; }
 
+/* merged tile: one seamless card holding N child tiles in a flex row/column */
+.tile-merge { padding: 0 !important; gap: 0 !important; display: flex; overflow: hidden; }
+.tile-merge.merge-row { flex-direction: row; }
+.tile-merge.merge-col { flex-direction: column; }
+.merge-cell { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; position: relative; }
+.merge-row > .merge-cell + .merge-cell { border-left: 1px solid var(--stroke); }
+.merge-col > .merge-cell + .merge-cell { border-top: 1px solid var(--stroke); }
+.merge-cell > .tile {
+  position: static; inset: 0; flex: 1 1 auto; min-width: 0; width: 100%;
+  background: transparent !important; border: none !important; box-shadow: none !important;
+  border-radius: 0 !important; padding: 12px;
+}
+.merge-cell > .tile.on { background: var(--lit-bg) !important; }   /* keep the on-tint per child */
+/* child badges inside a merge: keep edit (✎), hide per-child delete + link */
+.tile-merge .merge-cell .tile-del,
+.tile-merge .merge-cell .tile-link { display: none !important; }
+.tile-merge .merge-cell .tile-edit { top: 6px; right: 6px; }
+/* merge container controls (split apart / add another tile; no delete while
+   merged — splitting first frees the corner so ✕ never overlaps a cell's ✎) */
+.merge-split, .merge-link { position: absolute; top: 7px; width: 24px; height: 24px; border-radius: 50%;
+  display: none; place-items: center; cursor: pointer; font-size: 13px; font-weight: 700; z-index: 7;
+  background: var(--panel-2); border: 1px solid var(--stroke); box-shadow: 0 2px 6px #0004; }
+.merge-split { right: 38px; color: var(--accent); }
+.merge-link  { left: 8px; font-size: 12px; }
+body.editing .tile-merge > .merge-split,
+body.editing .tile-merge > .merge-link { display: grid; }
+
+/* linking: the picked source glows; every other tile invites a tap */
+.grid-stack-item.link-source > .grid-stack-item-content {
+  outline: 2px solid var(--accent); outline-offset: -2px;
+  box-shadow: 0 0 0 4px var(--lit-glow), var(--shadow);
+}
+body.linking .grid-stack-item:not(.link-source) > .grid-stack-item-content { cursor: copy; }
+body.linking .grid-stack-item:not(.link-source):hover > .grid-stack-item-content { outline: 2px dashed var(--accent); outline-offset: -2px; }
+
 /* group / room box (nested grid) */
 .tile-group { background: var(--panel-2); }
 .tile-group > .ghead .t-name { font-size: 15px; }
@@ -216,22 +252,19 @@ body.editing .tile-del, body.editing .tile-edit { display: grid; }
 .grid-stack-nested > .grid-stack-item > .grid-stack-item-content { padding: 12px; border-radius: 16px; inset: 5px; }
 body.editing .grid-stack-nested { outline: 1px dashed var(--line); border-radius: 12px; }
 
-/* edit mode: the whole card is the drag handle — no bar covering content,
-   just a grab cursor as the hint; action badges + resize grip sit on top. */
-body.editing .grid-stack-item-content { cursor: grab; touch-action: none; }
+/* edit mode: the whole card is the drag handle (grab cursor); resize via a
+   small grip in the bottom-right corner (+ bottom/right edges). */
+body.editing .grid-stack-item-content { cursor: grab; }
 body.editing .grid-stack-item-content:active { cursor: grabbing; }
-/* inner interactive bits inherit the grab hint (they're inert while editing) */
-body.editing .row, body.editing .toggle, body.editing .scene,
-body.editing .ctrls, body.editing .chip { cursor: grab; }
 
 body.editing .grid-stack-item > .ui-resizable-se {
-  display: block; width: 30px; height: 30px; right: 2px; bottom: 2px;
-  background: var(--accent); border-radius: 11px 4px 13px 4px; opacity: .92;
-  box-shadow: 0 2px 8px #0006; cursor: se-resize; z-index: 5; touch-action: none;
+  display: block; width: 15px; height: 15px; right: 3px; bottom: 3px;
+  background: var(--accent); border-radius: 7px 2px 7px 2px; opacity: .9;
+  box-shadow: 0 2px 6px #0006; cursor: se-resize; z-index: 5; touch-action: none;
 }
 body.editing .grid-stack-item > .ui-resizable-se::after {
-  content: '◢'; position: absolute; right: 4px; bottom: 3px;
-  color: var(--accent-fg); font-size: 13px; line-height: 1;
+  content: '◢'; position: absolute; right: 2px; bottom: 1px;
+  color: var(--accent-fg); font-size: 8px; line-height: 1;
 }
 
 /* ---- Dialogs ---- */

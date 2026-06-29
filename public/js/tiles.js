@@ -96,7 +96,8 @@ const Tiles = (() => {
   // In edit mode the whole card is the drag handle (see app.js / CSS); these are
   // just the per-tile action badges layered on top.
   const EDIT = `<div class="tile-del" title="Entfernen">✕</div>
-                <div class="tile-edit" title="Bearbeiten">✎</div>`;
+                <div class="tile-edit" title="Bearbeiten">✎</div>
+                <div class="tile-link" title="Mit Nachbar verbinden">🔗</div>`;
 
   function build(tile, onAction) {
     const el = document.createElement('div');
@@ -152,6 +153,21 @@ const Tiles = (() => {
       case 'group': {
         el.classList.add('tile-group', 'tile-rich');
         el.innerHTML = EDIT + header(tile).replace('class="row"', 'class="row ghead"') + '<div class="grid-stack grid-stack-nested"></div>';
+        break;
+      }
+      case 'merge': {
+        // Seamless single card holding N child tiles in a flex row/column.
+        // Children render with their normal tile markup (interactions intact),
+        // but the merge styling strips their individual card chrome.
+        el.classList.add('tile-rich', 'tile-merge', 'merge-' + (tile.dir || 'row'));
+        el.innerHTML = `<div class="merge-split" title="Auflösen (dann einzeln löschbar)">⧉</div>
+                        <div class="merge-link" title="Weitere Kachel anbinden">🔗</div>`;
+        (tile.children || []).forEach(c => {
+          const cell = document.createElement('div');
+          cell.className = 'merge-cell';
+          cell.appendChild(build(c, onAction));      // recursive: child tile content
+          el.appendChild(cell);
+        });
         break;
       }
       case 'label':

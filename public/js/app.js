@@ -79,17 +79,22 @@
       column: COLS, cellHeight: 38, margin: 4, float: false,  // float off -> tiles rise to fill space above
       disableDrag: true, disableResize: true,
       acceptWidgets: true,                     // allow dragging tiles in/out of group boxes
-      // no `handle` -> whole card is the drag handle in edit mode (default)
-      resizable: { handles: 'se, s, e, sw' },
+      // whole card is the drag handle (default); resize via bottom-right corner
+      // + bottom/right edges (no bottom-left).
+      resizable: { handles: 'se, s, e' },
     });
     // Don't let a tap on the edit/delete badges start a tile drag.
+    // Don't let a press on the action badges start a tile drag (the rest of the
+    // card is the drag handle).
     ['mousedown', 'touchstart'].forEach(ev => document.addEventListener(ev, e => {
-      if (e.target.closest('.tile-del, .tile-edit')) e.stopPropagation();
+      if (e.target.closest('.tile-del, .tile-edit, .tile-link, .merge-split, .merge-link')) e.stopPropagation();
     }, true));
     // The grid is built at a fixed design width and zoom-scaled to fit, so a
     // layout looks identical on laptop and tablet (just proportionally smaller).
     applyScale();
     grid.on('change added removed resizestop dragstop', applyScale);
+    grid.on('dragstart', cancelLink);            // dragging is for repositioning, not linking
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') cancelLink(); });
     window.addEventListener('resize', () => { clearTimeout(window._sc); window._sc = setTimeout(applyScale, 120); });
 
     grid.el.addEventListener('click', onGridClick);
@@ -200,7 +205,7 @@
   // ---- widgets -------------------------------------------------------------
   const NESTED_OPTS = {                          // options for a group's sub-grid
     column: 6, cellHeight: 'auto', margin: 4, float: false,
-    acceptWidgets: true, resizable: { handles: 'se, s, e, sw' },  // whole card drags
+    acceptWidgets: true, resizable: { handles: 'se, s, e' },
   };
 
   // run a callback for every grid on the page (main grid + all group sub-grids)
@@ -238,6 +243,7 @@
 
   function addWidget(tile, targetGrid = grid) {
     tiles[tile.id] = tile;
+    if (tile.type === 'merge') (tile.children || []).forEach(c => tiles[c.id] = c); // children live in the same map
     const big = tile.type === 'group';
     const item = document.createElement('div');
     item.className = 'grid-stack-item';
@@ -262,28 +268,139 @@
   }
 
   function removeTile(item, id) {
-    if (tiles[id] && tiles[id].type === 'group') {            // drop children configs too
+    const t = tiles[id];
+    if (t && t.type === 'group') {                           // drop children configs too
       item.querySelectorAll('.grid-stack-item').forEach(ci => delete tiles[ci.getAttribute('gs-id')]);
     }
-    const owner = (item.gridstackNode && item.gridstackNode.grid) || grid;
-    owner.removeWidget(item);
+    if (t && t.type === 'merge') (t.children || []).forEach(c => delete tiles[c.id]);
+    if (item) { const owner = (item.gridstackNode && item.gridstackNode.grid) || grid; owner.removeWidget(item); }
     delete tiles[id];
+  }
+
+  // The merge tile that contains a given child id (or null).
+  function findMergeOf(id) {
+    return Object.values(tiles).find(t => t && t.type === 'merge' && (t.children || []).some(c => c.id === id));
   }
 
   function onGridClick(e) {
     if (!editMode) return;
     const item = e.target.closest('.grid-stack-item');
-    if (!item) return;
+    if (!item) { if (linkSource) cancelLink(); return; }   // tap empty space cancels linking
     const id = item.getAttribute('gs-id');
+    // 🔗 badge: pick this tile as the link source (or unpick)
+    if (e.target.closest('.tile-link') || e.target.closest('.merge-link')) { toggleLink(id); return; }
+    // while a source is picked, a tap on any other tile is the merge partner
+    if (linkSource) { performLink(id); return; }
+    // merge container controls (no delete on a merged card — split it first)
+    if (e.target.closest('.merge-split')) { dissolveMerge(id); return; }
+    // a child's edit badge inside a merged card
+    const cell = e.target.closest('.merge-cell');
+    if (cell) {
+      if (e.target.closest('.tile-edit')) openEditDialog(cell.querySelector('.tile').dataset.tileId);
+      return;
+    }
     if (e.target.closest('.tile-del'))       removeTile(item, id);
     else if (e.target.closest('.tile-edit')) openEditDialog(id);
   }
 
-  // Replace a tile's content in place, keeping its grid position/size.
+  // Replace a tile's content in place, keeping its grid position/size. Editing a
+  // merge child rebuilds the whole merge card (children aren't grid items).
   function rebuildTileContent(id) {
+    const parent = findMergeOf(id);
+    if (parent) {
+      const i = parent.children.findIndex(c => c.id === id);
+      if (i >= 0) parent.children[i] = tiles[id];            // keep the merge's array in sync with edits
+      return rebuildTileContent(parent.id);
+    }
     const item = grid.el.querySelector(`.grid-stack-item[gs-id="${id}"]`);
     if (!item) return;
     item.replaceChild(Tiles.build(tiles[id], onAction), item.querySelector('.grid-stack-item-content'));
+  }
+
+  // Split a merged card back into standalone tiles at its old spot.
+  function dissolveMerge(id) {
+    const m = tiles[id];
+    if (!m || m.type !== 'merge') return;
+    const item = grid.el.querySelector(`.grid-stack-item[gs-id="${id}"]`);
+    const n = (item && item.gridstackNode) || {};
+    const x0 = n.x ?? m.x ?? 0, y0 = n.y ?? m.y ?? 0;
+    const kids = (m.children || []).map(c => ({ ...c }));
+    removeTile(item, id);
+    let x = x0;
+    kids.forEach(c => { const w = c.w || 4; addWidget({ ...c, x: Math.min(x, COLS - w), y: y0, w, h: c.h || 4 }); x += w; });
+    afterMerge();
+  }
+
+  function afterMerge() {
+    applyScale();
+    setTimeout(() => Live.start(activeDeviceNames, applyLive, setStatus, 3000), 200);
+  }
+
+  // ---- merge by linking: tap 🔗 on a tile, then tap a neighbour. No drag, so
+  // it never interferes with repositioning. Direction is inferred from the two
+  // tiles' relative grid positions.
+  let linkSource = null;
+
+  function setLinkUI() {
+    document.body.classList.toggle('linking', !!linkSource);
+    grid.el.querySelectorAll('.grid-stack-item.link-source').forEach(i => i.classList.remove('link-source'));
+    if (linkSource) {
+      const it = grid.el.querySelector(`.grid-stack-item[gs-id="${linkSource}"]`);
+      if (it) it.classList.add('link-source');
+    }
+  }
+  function cancelLink() { linkSource = null; setLinkUI(); }
+  function toggleLink(id) {
+    const t = tiles[id];
+    if (!t || t.type === 'group') return;                 // room-groups don't merge
+    linkSource = (linkSource === id) ? null : id;
+    setLinkUI();
+  }
+  const oppositeSide = s => ({ left: 'right', right: 'left', top: 'bottom', bottom: 'top' }[s]);
+
+  // Tapped tile `bId` is the partner for the linked source.
+  function performLink(bId) {
+    const aId = linkSource; cancelLink();
+    if (!aId || aId === bId) return;
+    const a = tiles[aId], b = tiles[bId];
+    if (!a || !b || a.type === 'group' || b.type === 'group') return;
+    const ai = grid.el.querySelector(`.grid-stack-item[gs-id="${aId}"]`);
+    const bi = grid.el.querySelector(`.grid-stack-item[gs-id="${bId}"]`);
+    const an = (ai && ai.gridstackNode) || a, bn = (bi && bi.gridstackNode) || b;
+    const dx = (an.x + (an.w || 1) / 2) - (bn.x + (bn.w || 1) / 2);
+    const dy = (an.y + (an.h || 1) / 2) - (bn.y + (bn.h || 1) / 2);
+    const side = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'bottom' : 'top');
+    if (b.type === 'merge')      createMerge(b, a, side, bi);                 // attach A onto existing card B
+    else if (a.type === 'merge') createMerge(a, b, oppositeSide(side), ai);  // attach B onto existing card A
+    else                         createMerge(b, a, side, bi);                // new card: A attaches to B
+  }
+
+  const stripGeo = t => { const o = { ...t }; delete o.x; delete o.y; return o; };
+
+  function createMerge(tgt, src, side, targetItem) {
+    const horiz = side === 'left' || side === 'right';
+    const before = side === 'left' || side === 'top';
+    const srcItem = grid.el.querySelector(`.grid-stack-item[gs-id="${src.id}"]`);
+    if (tgt.type === 'merge') {                          // drop into an existing card
+      const child = stripGeo(src);
+      before ? tgt.children.unshift(child) : tgt.children.push(child);
+      tiles[child.id] = child;
+      removeTile(srcItem, src.id);
+      rebuildTileContent(tgt.id);
+      return afterMerge();
+    }
+    const n = targetItem.gridstackNode || {};
+    const merge = {
+      id: 'm' + Date.now() + Math.floor(performance.now()), type: 'merge', dir: horiz ? 'row' : 'col',
+      children: before ? [stripGeo(src), stripGeo(tgt)] : [stripGeo(tgt), stripGeo(src)],
+      x: n.x ?? tgt.x ?? 0, y: n.y ?? tgt.y ?? 0,
+      w: Math.min(horiz ? (tgt.w || 4) + (src.w || 4) : Math.max(tgt.w || 4, src.w || 4), COLS),
+      h: horiz ? Math.max(tgt.h || 4, src.h || 4) : (tgt.h || 4) + (src.h || 4),
+    };
+    removeTile(srcItem, src.id);
+    removeTile(grid.el.querySelector(`.grid-stack-item[gs-id="${tgt.id}"]`), tgt.id);
+    addWidget(merge);
+    afterMerge();
   }
 
   // A tile interaction was triggered -> send to FHEM, refresh soon after.
@@ -302,7 +419,16 @@
     grid.el.querySelectorAll('.grid-stack-item').forEach(item => {
       const id = item.getAttribute('gs-id');
       const tile = tiles[id];
-      if (!tile || !tile.device) return;
+      if (!tile) return;
+      if (tile.type === 'merge') {                 // update each child cell
+        (tile.children || []).forEach(c => {
+          if (!c.device) return;
+          const cont = item.querySelector(`.merge-cell .tile[data-tile-id="${c.id}"]`);
+          if (cont) Tiles.apply(cont, c, map[c.device]);
+        });
+        return;
+      }
+      if (!tile.device) return;
       Tiles.apply(item.querySelector('.grid-stack-item-content'), tile, map[tile.device]);
     });
   }
@@ -344,6 +470,11 @@
       if (t.type === 'group') {
         const inner = item.querySelector('.grid-stack');
         o.children = inner ? serializeGrid(inner) : (t.children || []);
+        delete o.device;
+      }
+      if (t.type === 'merge') {                  // children are flex cells, not grid items
+        o.children = (t.children || []).map(c => ({ ...c }));
+        o.dir = t.dir || 'row';
         delete o.device;
       }
       return o;
