@@ -93,8 +93,9 @@ const Tiles = (() => {
         ${ctrl || ''}</div>`;
   }
 
-  const EDIT = `<div class="tile-drag" title="Verschieben">⠿</div>
-                <div class="tile-del" title="Entfernen">✕</div>
+  // In edit mode the whole card is the drag handle (see app.js / CSS); these are
+  // just the per-tile action badges layered on top.
+  const EDIT = `<div class="tile-del" title="Entfernen">✕</div>
                 <div class="tile-edit" title="Bearbeiten">✎</div>`;
 
   function build(tile, onAction) {

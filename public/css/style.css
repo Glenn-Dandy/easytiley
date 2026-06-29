@@ -119,10 +119,12 @@ body.editing .grid-stack-item-content { outline: 1px dashed var(--accent); }
 .tile.on .chip { background: color-mix(in srgb, var(--on) 26%, transparent); color: var(--on); box-shadow: 0 0 22px -6px var(--on); }
 .tile.on > .row > .tx > .t-state { color: var(--on); }
 
-.tile-del, .tile-edit { position: absolute; top: 9px; cursor: pointer; font-weight: 700; display: none; z-index: 6; }
-.tile-del  { right: 11px; color: var(--bad); }
-.tile-edit { right: 34px; color: var(--accent); }
-body.editing .tile-del, body.editing .tile-edit { display: block; }
+.tile-del, .tile-edit { position: absolute; top: 7px; width: 24px; height: 24px; border-radius: 50%;
+  display: none; place-items: center; cursor: pointer; font-size: 13px; font-weight: 700; z-index: 6;
+  background: var(--panel-2); border: 1px solid var(--stroke); box-shadow: 0 2px 6px #0004; }
+.tile-del  { right: 8px; color: var(--bad); }
+.tile-edit { right: 38px; color: var(--accent); }
+body.editing .tile-del, body.editing .tile-edit { display: grid; }
 
 /* compact card row: chip + name/state + optional control */
 .tile:not(.tile-rich) { justify-content: center; }
@@ -214,18 +216,13 @@ body.editing .tile-del, body.editing .tile-edit { display: block; }
 .grid-stack-nested > .grid-stack-item > .grid-stack-item-content { padding: 12px; border-radius: 16px; inset: 5px; }
 body.editing .grid-stack-nested { outline: 1px dashed var(--line); border-radius: 12px; }
 
-/* edit mode: clear drag bar (top) + big resize grip (bottom-right) */
-.tile-drag { display: none; }
-body.editing .tile-drag {
-  display: flex; align-items: center; justify-content: center;
-  position: absolute; top: 0; left: 0; right: 0; height: 28px;
-  cursor: grab; color: var(--muted); font-size: 17px; letter-spacing: 3px;
-  background: var(--panel-2); border-bottom: 1px solid var(--stroke);
-  border-radius: var(--radius) var(--radius) 0 0; z-index: 4; user-select: none; touch-action: none;
-}
-body.editing .tile-drag:active { cursor: grabbing; }
-body.editing .grid-stack-item-content { padding-top: 34px; }    /* room for the drag bar */
-body.editing .tile-del, body.editing .tile-edit { top: 5px; z-index: 6; }
+/* edit mode: the whole card is the drag handle — no bar covering content,
+   just a grab cursor as the hint; action badges + resize grip sit on top. */
+body.editing .grid-stack-item-content { cursor: grab; touch-action: none; }
+body.editing .grid-stack-item-content:active { cursor: grabbing; }
+/* inner interactive bits inherit the grab hint (they're inert while editing) */
+body.editing .row, body.editing .toggle, body.editing .scene,
+body.editing .ctrls, body.editing .chip { cursor: grab; }
 
 body.editing .grid-stack-item > .ui-resizable-se {
   display: block; width: 30px; height: 30px; right: 2px; bottom: 2px;
@@ -241,7 +238,8 @@ body.editing .grid-stack-item > .ui-resizable-se::after {
 dialog {
   background: var(--panel); color: var(--text);
   border: 1px solid var(--stroke); border-radius: var(--radius);
-  width: min(440px, 94vw); padding: 22px; box-shadow: 0 30px 80px -30px #000;
+  width: min(560px, 94vw); padding: 22px; box-shadow: 0 30px 80px -30px #000;
+  overflow: visible;                 /* let the autocomplete dropdown escape */
   -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
 }
 body.theme-clean dialog { background: #fff; }
@@ -256,6 +254,21 @@ dialog input, dialog select {
 /* native dropdown options render with their own bg -> force readable colors */
 dialog select option { background: var(--field); color: var(--text); }
 dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 18px 0 0; }
+
+/* custom autocomplete dropdown (device / reading pickers) */
+.ac-wrap { position: relative; }
+.ac-menu {
+  position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; z-index: 40;
+  background: var(--field); border: 1px solid var(--stroke); border-radius: 12px;
+  box-shadow: 0 20px 44px -18px #000; max-height: 280px; overflow: auto; display: none;
+}
+body.theme-clean .ac-menu { background: #fff; }
+.ac-menu.open { display: block; }
+.ac-item { display: flex; align-items: baseline; gap: 10px; padding: 9px 13px; cursor: pointer; font-size: 14px; }
+.ac-item:hover, .ac-item.active { background: var(--panel-2); }
+.ac-v { color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-s { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; flex: 0 0 auto; }
+.ac-empty { padding: 11px 13px; color: var(--muted); font-size: 13px; }
 
 .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
 .hint code, dialog code { background: var(--panel-2); padding: 1px 5px; border-radius: 5px; }

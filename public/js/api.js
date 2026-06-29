@@ -26,6 +26,7 @@ const API = {
   exportLayout()        { return this._get('export'); },
   importLayout(data)    { return this._send('import', 'POST', data); },
   saveSettings(fhemUrl, test) { return this._send('settings', 'POST', { fhemUrl, test: !!test }); },
+  setGridGen(gen)       { return this._send('settings', 'POST', { gridGen: gen }); },
 
   dashboards()          { return this._get('dashboards'); },
   dashboard(id)         { return this._get('dashboard?id=' + id); },

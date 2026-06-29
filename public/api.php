@@ -148,6 +148,12 @@ try {
         case 'settings':
             if ($method === 'POST') {
                 $b   = body_json();
+                // Grid generation marker (one-time layout migration flag). Global,
+                // so a second device doesn't re-run a migration already applied.
+                if (isset($b['gridGen'])) {
+                    $db->setSetting('grid_gen', (string)(int)$b['gridGen']);
+                    out(['ok' => true, 'gridGen' => (int)$b['gridGen']]);
+                }
                 $url = trim((string)($b['fhemUrl'] ?? ''));
                 if ($url === '') fail('fhemUrl required', 400);
                 if (!preg_match('#^https?://#i', $url)) $url = 'http://' . $url;
@@ -160,7 +166,7 @@ try {
                 if ($save) $db->setSetting('fhem_url', $url);
                 out(['ok' => true, 'reachable' => $reachable, 'saved' => $save, 'fhemUrl' => $url]);
             }
-            out(['fhemUrl' => $fhemUrl, 'default' => $FHEM_URL]);
+            out(['fhemUrl' => $fhemUrl, 'default' => $FHEM_URL, 'gridGen' => (int)($db->getSetting('grid_gen') ?: 1)]);
 
         // ---- readingsGroup: parse FHEM's rendering into our own table -------
         case 'readingsgroup': // GET ?name=WetterInfo -> { rows:[{sep,cells[]}] }

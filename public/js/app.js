@@ -7,10 +7,13 @@
 
   const $  = sel => document.querySelector(sel);
   const el = {};
+  // 24-column grid (finer snap than the old 12). Sizes are in those finer units.
+  const GRID_GEN = 2;                 // bump when the column resolution changes
+  const COLS = 24;
   const DEFAULT_SIZE = {
-    value:  { w: 2, h: 2 }, switch: { w: 2, h: 2 }, dimmer: { w: 3, h: 2 },
-    color:  { w: 2, h: 2 }, light: { w: 3, h: 3 }, readingsgroup: { w: 6, h: 4 },
-    group:  { w: 4, h: 4 }, button: { w: 2, h: 2 }, label: { w: 3, h: 1 },
+    value:  { w: 4, h: 4 }, switch: { w: 4, h: 4 }, dimmer: { w: 6, h: 4 },
+    color:  { w: 4, h: 4 }, light: { w: 6, h: 6 }, readingsgroup: { w: 24, h: 8 },
+    group:  { w: 8, h: 8 }, button: { w: 4, h: 4 }, label: { w: 6, h: 2 },
   };
 
   // ---- init ----------------------------------------------------------------
@@ -25,17 +28,64 @@
     if (sel) sel.value = name;
   }
 
+  // GridStack ships column CSS only for gs-2..gs-12. Generate the rules for the
+  // finer counts we use (main grid = COLS, group sub-grids up to COLS).
+  function injectColumnCss(maxCol) {
+    const r = v => Math.round(v * 1000) / 1000;
+    let css = '';
+    for (let n = 13; n <= maxCol; n++) {
+      const p = 100 / n;
+      css += `.gs-${n}>.grid-stack-item{width:${r(p)}%}`;
+      for (let i = 1; i < n; i++) css += `.gs-${n}>.grid-stack-item[gs-x="${i}"]{left:${r(p * i)}%}`;
+      for (let w = 2; w <= n; w++) css += `.gs-${n}>.grid-stack-item[gs-w="${w}"]{width:${r(p * w)}%}`;
+    }
+    const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+  }
+
+  // Double a saved layout's top-level coordinates (12-col -> 24-col). Group
+  // children are left as-is: a group's box doubles in main-grid units but keeps
+  // the same pixel size, and its sub-grid auto-fits columns by width, so the
+  // children stay exactly where they were.
+  function scaleLayout(list) {
+    for (const t of list) {
+      t.x = (t.x || 0) * 2; t.y = (t.y || 0) * 2;
+      t.w = (t.w || 2) * 2; t.h = (t.h || 2) * 2;
+    }
+  }
+
+  // Migrate every dashboard once when the grid resolution changes. The marker is
+  // stored server-side (global setting), so other devices skip an already-done run.
+  async function migrateGrid() {
+    try {
+      const s = await API.settings();
+      if ((s.gridGen || 1) >= GRID_GEN) return;
+      const { dashboards: list } = await API.dashboards();
+      for (const d of list) {
+        const full = await API.dashboard(d.id);
+        scaleLayout(full.layout);
+        await API.saveDashboard(d.id, d.name, full.layout);
+      }
+      await API.setGridGen(GRID_GEN);
+    } catch (e) { /* leave layouts untouched on any error */ }
+  }
+
   async function init() {
     applyTheme(localStorage.getItem('theme') || 'aurora');
+    injectColumnCss(COLS);                     // GridStack only ships CSS up to gs-12
     ['tabs','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
+    await migrateGrid();                       // one-time ×2 layout rescale to the finer grid
 
     grid = GridStack.init({
-      column: 12, cellHeight: 76, margin: 6, float: false,   // float off -> tiles rise to fill space above
+      column: COLS, cellHeight: 38, margin: 4, float: false,  // float off -> tiles rise to fill space above
       disableDrag: true, disableResize: true,
       acceptWidgets: true,                     // allow dragging tiles in/out of group boxes
-      handle: '.tile-drag',                    // drag via the edit-mode grip bar
+      // no `handle` -> whole card is the drag handle in edit mode (default)
       resizable: { handles: 'se, s, e, sw' },
     });
+    // Don't let a tap on the edit/delete badges start a tile drag.
+    ['mousedown', 'touchstart'].forEach(ev => document.addEventListener(ev, e => {
+      if (e.target.closest('.tile-del, .tile-edit')) e.stopPropagation();
+    }, true));
     // The grid is built at a fixed design width and zoom-scaled to fit, so a
     // layout looks identical on laptop and tablet (just proportionally smaller).
     applyScale();
@@ -150,7 +200,7 @@
   // ---- widgets -------------------------------------------------------------
   const NESTED_OPTS = {                          // options for a group's sub-grid
     column: 6, cellHeight: 'auto', margin: 4, float: false,
-    acceptWidgets: true, handle: '.tile-drag', resizable: { handles: 'se, s, e, sw' },
+    acceptWidgets: true, resizable: { handles: 'se, s, e, sw' },  // whole card drags
   };
 
   // run a callback for every grid on the page (main grid + all group sub-grids)
@@ -181,7 +231,7 @@
     document.querySelectorAll('.grid-stack-nested').forEach(el => {
       const sub = el.gridstack; if (!sub) return;
       const w = el.clientWidth; if (w < 30) return;
-      const col = Math.max(2, Math.min(24, Math.round(w / 64)));
+      const col = Math.max(2, Math.min(COLS, Math.round(w / 64)));
       if (sub.getColumn() !== col) sub.column(col, 'none');
     });
   }
@@ -194,8 +244,8 @@
     item.setAttribute('gs-id', tile.id);
     item.setAttribute('gs-x', tile.x ?? 0);
     item.setAttribute('gs-y', tile.y ?? 0);
-    item.setAttribute('gs-w', tile.w ?? (big ? 4 : 2));
-    item.setAttribute('gs-h', tile.h ?? (big ? 4 : 2));
+    item.setAttribute('gs-w', tile.w ?? (big ? 8 : 4));
+    item.setAttribute('gs-h', tile.h ?? (big ? 8 : 4));
     item.appendChild(Tiles.build(tile, onAction));
     targetGrid.el.appendChild(item);
     targetGrid.makeWidget(item);
@@ -316,9 +366,52 @@
     try {
       const { devices } = await API.deviceList();
       deviceCache = devices;
-      document.getElementById('deviceOptions').innerHTML =
-        devices.map(d => `<option value="${esc(d.name)}">${esc(d.alias || d.name)} · ${esc(d.type)}</option>`).join('');
     } catch (err) { setStatus('err', err.message); }
+  }
+
+  // Custom autocomplete dropdown (replaces the cramped native <datalist>):
+  // wider, live-filtering, keyboard-navigable. `getItems` returns the current
+  // candidate list lazily -> reading options always reflect the chosen device.
+  function attachAutocomplete(input, getItems) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ac-wrap';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const menu = document.createElement('div');
+    menu.className = 'ac-menu';
+    wrap.appendChild(menu);
+
+    let items = [], active = -1;
+    const render = () => {
+      const f = input.value.trim().toLowerCase();
+      const all = getItems() || [];
+      items = f ? all.filter(i => (i.value + ' ' + (i.sub || '')).toLowerCase().includes(f)) : all;
+      if (active >= items.length) active = items.length - 1;
+      menu.innerHTML = items.length
+        ? items.map((i, idx) => `<div class="ac-item${idx === active ? ' active' : ''}" data-i="${idx}">
+             <span class="ac-v">${esc(i.value)}</span>${i.sub ? `<span class="ac-s">${esc(i.sub)}</span>` : ''}</div>`).join('')
+        : '<div class="ac-empty">keine Treffer</div>';
+    };
+    const open  = () => { render(); menu.classList.add('open'); };
+    const close = () => { menu.classList.remove('open'); active = -1; };
+    const choose = idx => {
+      if (!items[idx]) return;
+      input.value = items[idx].value;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      close();
+    };
+
+    input.addEventListener('focus', open);
+    input.addEventListener('input', () => { active = -1; open(); });
+    input.addEventListener('keydown', e => {
+      if (!menu.classList.contains('open')) { if (e.key === 'ArrowDown') open(); return; }
+      if (e.key === 'ArrowDown')      { active = Math.min(active + 1, items.length - 1); render(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp')   { active = Math.max(active - 1, 0); render(); e.preventDefault(); }
+      else if (e.key === 'Enter')     { if (active >= 0) { choose(active); e.preventDefault(); } }
+      else if (e.key === 'Escape')    { close(); }
+    });
+    menu.addEventListener('mousedown', e => { const it = e.target.closest('.ac-item'); if (it) { e.preventDefault(); choose(+it.dataset.i); } });
+    document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
   }
 
   // Reading is auto-derived for switches; only value/dimmer show the field.
@@ -344,10 +437,7 @@
   }
 
   function fillReadings(deviceName) {
-    const d = deviceCache.find(x => x.name === deviceName);
-    document.getElementById('readingOptions').innerHTML =
-      (d ? d.readings : []).map(r => `<option value="${esc(r)}">`).join('');
-    return d;
+    return deviceCache.find(x => x.name === deviceName);
   }
 
   const deviceSets = name => { const d = deviceCache.find(x => x.name === name); return (d && d.sets) || []; };
@@ -378,6 +468,16 @@
     const type = document.getElementById('tType');
     const dev  = document.getElementById('tDevice');
     const reading = document.getElementById('tReading');
+
+    // Wider, live-filtering pickers for device + reading.
+    attachAutocomplete(dev, () => deviceCache.map(d => ({
+      value: d.name,
+      sub: (d.alias && d.alias !== d.name ? d.alias + ' · ' : '') + (d.type || ''),
+    })));
+    attachAutocomplete(reading, () => {
+      const d = deviceCache.find(x => x.name === dev.value);
+      return (d ? d.readings : []).map(r => ({ value: r }));
+    });
 
     // Fill the reading field with the sensible default for the chosen device+type.
     const applyDefaults = () => {
