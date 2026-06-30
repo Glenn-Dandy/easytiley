@@ -162,9 +162,13 @@ const Tiles = (() => {
         el.classList.add('tile-rich', 'tile-merge', 'merge-' + (tile.dir || 'row'));
         el.innerHTML = `<div class="merge-split" title="Auflösen (dann einzeln löschbar)">⧉</div>
                         <div class="merge-link" title="Weitere Kachel anbinden">🔗</div>`;
+        const horiz = (tile.dir || 'row') === 'row';
         (tile.children || []).forEach(c => {
           const cell = document.createElement('div');
           cell.className = 'merge-cell';
+          // Keep each child's original relative size: weight the flex grow by the
+          // child's extent along the merge axis (width for rows, height for cols).
+          cell.style.flexGrow = String(Math.max(1, (horiz ? c.w : c.h) || 1));
           cell.appendChild(build(c, onAction));      // recursive: child tile content
           el.appendChild(cell);
         });

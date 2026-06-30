@@ -214,7 +214,7 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .tile-merge { padding: 0 !important; gap: 0 !important; display: flex; overflow: hidden; }
 .tile-merge.merge-row { flex-direction: row; }
 .tile-merge.merge-col { flex-direction: column; }
-.merge-cell { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; position: relative; }
+.merge-cell { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; position: relative; } /* flex-grow set inline per child to keep original size ratios */
 .merge-row > .merge-cell + .merge-cell { border-left: 1px solid var(--stroke); }
 .merge-col > .merge-cell + .merge-cell { border-top: 1px solid var(--stroke); }
 .merge-cell > .tile {
@@ -227,6 +227,9 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .tile-merge .merge-cell .tile-del,
 .tile-merge .merge-cell .tile-link { display: none !important; }
 .tile-merge .merge-cell .tile-edit { top: 6px; right: 6px; }
+/* a nested merge (a stack used as a cell) hides its own split/link controls */
+.merge-cell .tile-merge > .merge-split,
+.merge-cell .tile-merge > .merge-link { display: none !important; }
 /* merge container controls (split apart / add another tile; no delete while
    merged — splitting first frees the corner so ✕ never overlaps a cell's ✎) */
 .merge-split, .merge-link { position: absolute; top: 7px; width: 24px; height: 24px; border-radius: 50%;
@@ -244,6 +247,20 @@ body.editing .tile-merge > .merge-link { display: grid; }
 }
 body.linking .grid-stack-item:not(.link-source) > .grid-stack-item-content { cursor: copy; }
 body.linking .grid-stack-item:not(.link-source):hover > .grid-stack-item-content { outline: 2px dashed var(--accent); outline-offset: -2px; }
+
+/* dock zones: tap one of a candidate's 4 edges to merge the source onto that side.
+   Hover highlights on desktop; the tap itself chooses on touch (no hover needed). */
+.link-edges { position: absolute; inset: 0; z-index: 8; }
+.link-edge { position: absolute; box-sizing: border-box; transition: background .08s; }
+.le-top    { top: 0; left: 0; right: 0; height: 34%; }
+.le-bottom { bottom: 0; left: 0; right: 0; height: 34%; }
+.le-left   { top: 34%; bottom: 34%; left: 0; width: 42%; }
+.le-right  { top: 34%; bottom: 34%; right: 0; width: 42%; }
+.link-edge:hover, .link-edge:active { background: var(--lit-glow); cursor: copy; }
+.le-top:hover,    .le-top:active    { box-shadow: inset 0  5px 0 var(--accent); }
+.le-bottom:hover, .le-bottom:active { box-shadow: inset 0 -5px 0 var(--accent); }
+.le-left:hover,   .le-left:active   { box-shadow: inset  5px 0 0 var(--accent); }
+.le-right:hover,  .le-right:active  { box-shadow: inset -5px 0 0 var(--accent); }
 
 /* group / room box (nested grid) */
 .tile-group { background: var(--panel-2); }
