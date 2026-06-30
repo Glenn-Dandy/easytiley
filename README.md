@@ -44,6 +44,18 @@ Optional als Start-Default vorab per Env: `FHEM_URL=http://<ip>:8083/fhem`.
 Der Container muss das FHEM im Netz erreichen (gleiches LAN/Routing). Die
 Dashboards in `data/fhem.db` überleben Updates/Rebuilds.
 
+## Aktualisieren
+
+Im geklonten Ordner (`cd fhem-frontend`):
+
+```bash
+git pull                      # neuen Code holen
+docker compose up -d --build  # Image neu bauen + Container ersetzen
+```
+
+Deine Dashboards in `data/fhem.db` bleiben erhalten. Altes Image aufräumen:
+`docker image prune -f`.
+
 ## Bedienung
 
 1. **⚙ Einstellungen** → FHEM-Adresse eintragen, **Testen**, **Speichern**.
