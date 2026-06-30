@@ -173,12 +173,22 @@ try {
             $name = preg_replace('/[^A-Za-z0-9_.\-]/', '', (string)($_GET['name'] ?? ''));
             if ($name === '') fail('name required', 400);
             $html = $fhem->cmd("{readingsGroup_2html('$name')}");
-            // Rewrite /fhem/ asset URLs to absolute so the browser loads FHEM's icons.
-            $p = parse_url($fhemUrl);
-            $host = ($p['scheme'] ?? 'http') . '://' . ($p['host'] ?? '')
-                  . (isset($p['port']) ? ':' . $p['port'] : '');
-            $html = str_replace(['="/fhem/', "='/fhem/"], ['="' . $host . '/fhem/', "='" . $host . '/fhem/'], $html);
+            // Route /fhem/ icon URLs through our own proxy so every device loads them
+            // from the app (identical everywhere; only the container must reach FHEM).
+            $html = str_replace(['="/fhem/', "='/fhem/"], ['="/api/fhemasset?path=/fhem/', "='/api/fhemasset?path=/fhem/"], $html);
             out(['rows' => rg_parse($html)]);
+
+        // ---- icon proxy: fetch a FHEM asset and serve it from the app -------
+        case 'fhemasset': // GET ?path=/fhem/images/.../sunny.svg
+            $assetPath = (string)($_GET['path'] ?? '');
+            if (!preg_match('#^/fhem/[A-Za-z0-9/_.\-]+$#', $assetPath) || strpos($assetPath, '..') !== false)
+                fail('bad path', 400);                     // FHEM assets only, no path traversal
+            [$code, $body, $ct] = $fhem->asset($fhem->host() . $assetPath);
+            if ($code < 200 || $code >= 300 || $body === '') fail('asset unavailable', 502);
+            header('Content-Type: ' . ($ct ?: 'application/octet-stream'));
+            header('Cache-Control: public, max-age=604800'); // icons are static
+            echo $body;
+            exit;
 
         // ---- FHEM live data -------------------------------------------------
         case 'devices': // GET ?names=Lamp,Door   (omit names = all 294, heavy)

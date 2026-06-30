@@ -57,6 +57,24 @@ class Fhem
         return [$code, $body === false ? '' : $body, $headers];
     }
 
+    /** Base host (scheme://host[:port]) without the /fhem path — for asset URLs. */
+    public function host(): string
+    {
+        $p = parse_url($this->base);
+        return ($p['scheme'] ?? 'http') . '://' . ($p['host'] ?? '') . (isset($p['port']) ? ':' . $p['port'] : '');
+    }
+
+    /** Fetch a raw asset (icon image/svg) by absolute URL. Returns [code, body, contentType]. */
+    public function asset(string $url): array
+    {
+        [$code, $body, $headers] = $this->http($url);
+        $ct = '';
+        foreach ($headers as $h) {
+            if (preg_match('#^Content-Type:\s*(.+)$#i', trim($h), $m)) { $ct = trim($m[1]); break; }
+        }
+        return [$code, $body, $ct];
+    }
+
     /** Fetch (and cache) the CSRF token from FHEMWEB. */
     public function token(bool $force = false): string
     {

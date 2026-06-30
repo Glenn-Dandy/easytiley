@@ -132,6 +132,15 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .row { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .chip { width: 44px; height: 44px; min-width: 44px; border-radius: 13px; display: grid; place-items: center;
   font-size: 21px; background: var(--panel-2); color: var(--muted); }
+.chip svg { width: 24px; height: 24px; display: block; }
+/* clock tile: content centered and filling the tile (small edge gap), font scales
+   with the tile size via cqmin so it stays as large as fits in either dimension. */
+.tile-clock { container-type: size; padding: 5px !important; gap: 0 !important; }
+.clk-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%; text-align: center; line-height: 1; min-height: 0; }
+/* min(cqw,cqh): grow until limited by width (wide text) or height (line stack) */
+.clk-time { font-size: min(34cqw, 60cqh); font-weight: 800; letter-spacing: .5px; white-space: nowrap; }
+.clk-date { font-size: min(15cqw, 24cqh); color: var(--muted); margin-top: .3em; white-space: nowrap; }
 .chip.c-temp { color: #ff8a5b; } .chip.c-hum { color: #4cc9f0; } .chip.c-pow { color: #b388ff; }
 .tx { min-width: 0; flex: 1; }
 .t-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

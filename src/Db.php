@@ -30,11 +30,12 @@ class Db
                 value TEXT
             )'
         );
-        // Seed a default dashboard on first run.
+        // Seed a default dashboard on first run, with a clock tile top-left.
         $n = (int)$this->pdo->query('SELECT COUNT(*) FROM dashboards')->fetchColumn();
         if ($n === 0) {
-            $this->pdo->prepare('INSERT INTO dashboards (name, layout, updated) VALUES (?, "[]", ?)')
-                      ->execute(['Start', date('c')]);
+            $seed = '[{"id":"clk-default","type":"clock","x":0,"y":0,"w":3,"h":3}]';
+            $this->pdo->prepare('INSERT INTO dashboards (name, layout, updated) VALUES (?, ?, ?)')
+                      ->execute(['Start', $seed, date('c')]);
         }
     }
 

@@ -1,8 +1,23 @@
 // Tile rendering + interaction binding. Compact "card" style (icon chip + name + state).
 const Tiles = (() => {
 
-  const ICONS = { value: '🌡', switch: '💡', dimmer: '🔆', color: '🎨', light: '💡',
-                  readingsgroup: '📋', group: '🗂', button: '▶', label: '🏷' };
+  // Inline SVG icons (stroke = currentColor, so they follow the chip's theme colour
+  // and render pixel-identically on every device — unlike emoji, which vary per OS).
+  const svg = (inner, fill) =>
+    `<svg viewBox="0 0 24 24" fill="${fill || 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+  const ICONS = {
+    value:        svg('<path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"/>'),               // thermometer
+    switch:       svg('<path d="M12 4v8"/><path d="M7 7.5a7 7 0 1 0 10 0"/>'),                     // power
+    dimmer:       svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/>'), // brightness
+    color:        svg('<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>'),             // droplet
+    light:        svg('<path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2 1 2.1h5c.1-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'), // bulb
+    readingsgroup:svg('<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>'),       // list
+    group:        svg('<path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'), // folder
+    button:       svg('<path d="M8 5v14l11-7z"/>', 'currentColor'),                                // play
+    label:        svg('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/>'), // tag
+    clock:        svg('<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>'),                 // clock
+  };
+  const ICON_DEFAULT = svg('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 
   // #rrggbb -> "H,S,V" for `set x hsv`.
   function hexToHsv(hex) {
@@ -85,7 +100,7 @@ const Tiles = (() => {
     return '';
   }
   function header(tile, ctrl) {
-    const icon = ICONS[tile.type] || '⬚';
+    const icon = ICONS[tile.type] || ICON_DEFAULT;
     const name = esc(tile.label || tile.device || '');
     return `<div class="row">
         <div class="chip${chipClass(tile)}">${icon}</div>
@@ -172,6 +187,15 @@ const Tiles = (() => {
           cell.appendChild(build(c, onAction));      // recursive: child tile content
           el.appendChild(cell);
         });
+        break;
+      }
+      case 'clock': {     // local date/time, no FHEM; filled by the app's ticker.
+        // Centered + size-responsive (font scales with the tile via cqmin units).
+        el.classList.add('tile-rich', 'tile-clock');
+        el.innerHTML = EDIT + `<div class="clk-wrap">
+            <div class="clk-time">--:--</div>
+            <div class="clk-date">–</div>
+          </div>`;
         break;
       }
       case 'label':

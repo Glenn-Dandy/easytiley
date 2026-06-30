@@ -14,6 +14,7 @@
     value:  { w: 4, h: 4 }, switch: { w: 4, h: 4 }, dimmer: { w: 6, h: 4 },
     color:  { w: 4, h: 4 }, light: { w: 6, h: 6 }, readingsgroup: { w: 24, h: 8 },
     group:  { w: 8, h: 8 }, button: { w: 4, h: 4 }, label: { w: 6, h: 2 },
+    clock:  { w: 3, h: 3 },   // also the min size (see addWidget)
   };
 
   // ---- init ----------------------------------------------------------------
@@ -113,6 +114,8 @@
 
     Live.start(activeDeviceNames, applyLive, setStatus, 3000);
     setInterval(refreshReadingsGroups, 30000); // readingsGroups change slowly
+    updateClocks();
+    setInterval(updateClocks, 1000);            // local clock tiles (no FHEM)
   }
 
   // ---- dashboards / rooms as tabs -----------------------------------------
@@ -176,6 +179,7 @@
     applyScale();                                         // re-fit zoom after layout change
     requestAnimationFrame(syncAllGroups);                 // match group sub-grid columns once laid out
     refreshReadingsGroups();
+    updateClocks();
   }
 
   // Align every group's sub-grid cell width with the main grid (run after layout).
@@ -187,8 +191,9 @@
   async function refreshReadingsGroups() {
     for (const t of Object.values(tiles)) {
       if (t.type !== 'readingsgroup' || !t.device) continue;
-      const item = grid.el.querySelector(`.grid-stack-item[gs-id="${t.id}"]`);
-      const target = item && item.querySelector('.rg-content');
+      // works for a standalone tile and for a readingsGroup merged into a card
+      // (a merge child is not a grid item, so look it up by its tile id instead)
+      const target = grid.el.querySelector(`.tile[data-tile-id="${t.id}"] .rg-content`);
       if (!target) continue;
       try {
         const { rows } = await API.readingsGroup(t.device);
@@ -299,6 +304,10 @@
     else { item.setAttribute('gs-x', tile.x ?? 0); item.setAttribute('gs-y', tile.y ?? 0); }
     item.setAttribute('gs-w', tile.w ?? (big ? 8 : 4));
     item.setAttribute('gs-h', tile.h ?? (big ? 8 : 4));
+    if (tile.type === 'clock') {                 // clock: don't shrink below its default size
+      item.setAttribute('gs-min-w', DEFAULT_SIZE.clock.w);
+      item.setAttribute('gs-min-h', DEFAULT_SIZE.clock.h);
+    }
     item.appendChild(Tiles.build(tile, onAction));
     targetGrid.el.appendChild(item);
     targetGrid.makeWidget(item);
@@ -533,6 +542,20 @@
     });
   }
 
+  // Local date/time tiles — pure client-side, no FHEM.
+  // Line 1: HH:mm   Line 2: "Mo., 30. Jun." (Wochentag., TT. Monat.)
+  const WDAYS  = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const MONTHS = ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+  function updateClocks() {
+    const n = new Date(), p = x => String(x).padStart(2, '0');
+    const time = p(n.getHours()) + ':' + p(n.getMinutes());
+    const date = `${WDAYS[n.getDay()]}., ${p(n.getDate())}. ${MONTHS[n.getMonth()]}.`;
+    document.querySelectorAll('.tile-clock').forEach(el => {
+      const t = el.querySelector('.clk-time'); if (t) t.textContent = time;
+      const d = el.querySelector('.clk-date'); if (d) d.textContent = date;
+    });
+  }
+
   function activeDeviceNames() {
     return [...new Set(Object.values(tiles)
       .filter(t => t.device && t.type !== 'readingsgroup')
@@ -650,7 +673,7 @@
   // Reading is auto-derived for switches; only value/dimmer show the field.
   function dlgSyncRows() {
     const t = document.getElementById('tType').value;
-    document.getElementById('rowDevice').style.display  = t === 'group' ? 'none' : '';
+    document.getElementById('rowDevice').style.display  = (t === 'group' || t === 'clock') ? 'none' : '';
     document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
     document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
     document.getElementById('rowLight').style.display   = t === 'light'  ? '' : 'none';
@@ -743,7 +766,7 @@
       const f = e.target;
       const device = f.device.value.trim();
       const t = f.type.value;
-      if (!device && t !== 'label' && t !== 'group') return; // kein Gerät -> nichts anlegen
+      if (!device && t !== 'label' && t !== 'group' && t !== 'clock') return; // kein Gerät -> nichts anlegen
       const d = deviceCache.find(x => x.name === device);
 
       let rd = f.reading.value.trim();
@@ -792,6 +815,7 @@
       editingTileId = null;
       applyScale();                                 // re-fit zoom after adding a tile
       refreshReadingsGroups();                      // fill any new readingsGroup tile
+      updateClocks();                               // fill a new clock tile right away
     });
     dlgSyncRows();
   }
