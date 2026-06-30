@@ -233,6 +233,12 @@ dialog textarea { width: 100%; margin-top: 5px; padding: 10px 12px; resize: vert
 .tile-note.no-head .row { display: none; }
 .tile-note.no-head .note-body { display: flex; flex-direction: column; justify-content: center; }
 
+/* standalone text label: left-aligned bold text at device-name size, icon optional */
+.tile-label .row { gap: 9px; }
+.tile-label .chip { width: 27px; height: 27px; min-width: 27px; border-radius: 8px; background: transparent; color: var(--accent); }
+.tile-label .chip svg { width: 18px; height: 18px; }
+.tile-label .lbl-text { font-size: 14px; font-weight: 800; color: var(--text); line-height: 1.3; word-break: break-word; }
+
 /* reusable colour control (slim: one row, presets pop up on hover) */
 .colorctl { position: relative; width: 100%; }
 .cc-top { display: flex; align-items: center; gap: 10px; }
@@ -371,6 +377,7 @@ dialog input, dialog select {
 }
 /* native dropdown options render with their own bg -> force readable colors */
 dialog select option { background: var(--field); color: var(--text); }
+dialog select optgroup { background: var(--field); color: var(--muted); font-weight: 700; }
 dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 18px 0 0; }
 
 /* custom autocomplete dropdown (device / reading pickers) */

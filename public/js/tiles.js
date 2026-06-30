@@ -316,9 +316,12 @@ const Tiles = (() => {
         el.querySelector('.note-body').textContent = tile.text || '';   // textContent: safe + keeps newlines
         break;
       }
-      case 'label':
-        el.innerHTML = EDIT + header(tile);
+      case 'label': {   // standalone bold text label (no device); icon optional
+        el.classList.add('tile-label');
+        const chip = tile.icon ? `<div class="chip">${iconHtml(tile.icon)}</div>` : '';
+        el.innerHTML = EDIT + `<div class="row">${chip}<div class="lbl-text">${esc(tile.label || '')}</div></div>`;
         break;
+      }
       default: // value / sensor
         el.innerHTML = EDIT + header(tile);
     }

@@ -340,7 +340,14 @@
   }
 
   function onGridClick(e) {
-    if (!editMode) return;
+    if (!editMode) {
+      // notes are edited in normal mode: tap the card to open the dialog
+      if (e.target.closest('.tile-note')) {
+        const it = e.target.closest('.grid-stack-item');
+        if (it) openEditDialog(it.getAttribute('gs-id'));
+      }
+      return;
+    }
     const item = e.target.closest('.grid-stack-item');
     if (!item) { if (linkSource) cancelLink(); return; }   // tap empty space cancels linking
     const id = item.getAttribute('gs-id');
@@ -674,7 +681,7 @@
   // Reading is auto-derived for switches; only value/dimmer show the field.
   function dlgSyncRows() {
     const t = document.getElementById('tType').value;
-    document.getElementById('rowDevice').style.display  = (t === 'group' || t === 'clock' || t === 'note') ? 'none' : '';
+    document.getElementById('rowDevice').style.display  = (t === 'group' || t === 'clock' || t === 'note' || t === 'label') ? 'none' : '';
     document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
     document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
     document.getElementById('rowLight').style.display   = t === 'light'  ? '' : 'none';
@@ -885,6 +892,7 @@
       applyScale();                                 // re-fit zoom after adding a tile
       refreshReadingsGroups();                      // fill any new readingsGroup tile
       updateClocks();                               // fill a new clock tile right away
+      if (!editMode) save();                        // normal-mode edit (note) -> persist now (no Save button visible)
     });
     dlgSyncRows();
   }

@@ -30,14 +30,19 @@
 
       <label>Typ
         <select name="type" id="tType">
-          <option value="value">Wert / Sensor</option>
-          <option value="switch">Schalter (on/off)</option>
-          <option value="light">Licht (an/aus + RGB + CT)</option>
-          <option value="readingsgroup">readingsGroup</option>
-          <option value="group">Gruppe / Raum-Box</option>
-          <option value="button">Button(s) / Set-Befehle</option>
-          <option value="clock">Uhrzeit / Datum</option>
-          <option value="note">Notiz</option>
+          <optgroup label="FHEM-Gerät">
+            <option value="value">Wert / Sensor</option>
+            <option value="switch">Schalter (on/off)</option>
+            <option value="light">Licht (an/aus + RGB + CT)</option>
+            <option value="readingsgroup">readingsGroup</option>
+            <option value="button">Button(s) / Set-Befehle</option>
+          </optgroup>
+          <optgroup label="Ohne FHEM">
+            <option value="group">Gruppe / Raum-Box</option>
+            <option value="clock">Uhrzeit / Datum</option>
+            <option value="note">Notiz</option>
+            <option value="label">Beschriftung / Text</option>
+          </optgroup>
         </select>
       </label>
 
