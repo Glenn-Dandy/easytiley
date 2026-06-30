@@ -176,8 +176,50 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 /* button lit when its target reading matches (e.g. active mode/presence) */
 .scene.active { background: color-mix(in srgb, var(--accent) 22%, var(--card));
   border-color: var(--accent); color: var(--text); box-shadow: 0 0 16px -5px var(--accent); }
-/* buttons start right under the icon with only a small gap */
-.tile-button { gap: 6px; }
+/* button tile: slim title line (small accent icon + name), buttons are the main
+   content — full width, 2 per row, equal size. Normal-case name (not uppercase). */
+.tile-button { gap: 10px; }
+.tile-button .row { gap: 9px; }
+.tile-button .chip { width: 27px; height: 27px; min-width: 27px; border-radius: 8px;
+  background: transparent; color: var(--accent); }
+.tile-button .chip svg { width: 18px; height: 18px; }
+.tile-button .t-name { font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--muted); }
+.tile-button .scenes { gap: 7px; }
+.tile-button .scene { flex: 1 1 calc(50% - 4px); text-align: center; padding: 12px 10px; border-radius: 11px; }
+/* title hidden -> center the buttons in the tile */
+.tile-button.no-head .row { display: none; }
+.tile-button.no-head { justify-content: center; }
+/* icon-mode buttons (and the single "wechselnder" toggle) */
+.tile-button .scene-icon { flex: 1 1 calc(50% - 4px); display: grid; place-items: center; padding: 12px; }
+.tile-button .scene-icon svg { width: 26px; height: 26px; }
+.tile-button .scenes-toggle { justify-content: center; }
+.tile-button .scenes-toggle .toggle-btn { flex: 0 1 auto; min-width: 64px; }
+
+/* ---- manual icon picker (dialog) ---- */
+.icon-pick-btn { display: inline-grid; place-items: center; min-width: 46px; height: 40px; padding: 0 11px;
+  background: var(--btn-bg); color: var(--text); border: 1px solid var(--stroke); border-radius: 10px;
+  cursor: pointer; font-size: 13px; font-weight: 600; }
+.icon-pick-btn svg { width: 22px; height: 22px; }
+.icon-pick-btn:hover { border-color: var(--accent); }
+#rowIcon { display: flex; align-items: center; gap: 12px; }
+#rowIcon > label { margin: 0; }
+.cmd-row .cmd-ic { flex: 0 0 auto; width: 46px; padding: 0; }
+.icon-picker { position: fixed; z-index: 50; display: grid; grid-template-columns: repeat(6, 38px); gap: 6px;
+  padding: 10px; max-height: 320px; overflow: auto; background: var(--card);
+  border: 1px solid var(--stroke); border-radius: 12px; box-shadow: 0 12px 40px #0008; }
+.ip-cell { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; background: var(--btn-bg);
+  color: var(--text); border: 1px solid transparent; border-radius: 9px; cursor: pointer; }
+.ip-cell svg { width: 22px; height: 22px; }
+.ip-cell:hover { border-color: var(--accent); }
+.ip-cell.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
+.ip-auto { font-size: 11px; font-weight: 700; color: var(--muted); }
+
+/* label field + "reset to alias" button */
+.label-row { display: flex; gap: 8px; align-items: stretch; }
+.label-row input { flex: 1; min-width: 0; }
+.lbl-reset { flex: 0 0 auto; margin-top: 5px; width: 44px; padding: 0; background: var(--btn-bg);
+  color: var(--text); border: 1px solid var(--stroke); border-radius: 11px; cursor: pointer; font-size: 18px; line-height: 1; }
+.lbl-reset:hover { border-color: var(--accent); color: var(--accent); }
 
 /* reusable colour control (slim: one row, presets pop up on hover) */
 .colorctl { position: relative; width: 100%; }

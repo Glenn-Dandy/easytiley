@@ -13,11 +13,83 @@ const Tiles = (() => {
     light:        svg('<path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2 1 2.1h5c.1-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'), // bulb
     readingsgroup:svg('<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>'),       // list
     group:        svg('<path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'), // folder
-    button:       svg('<path d="M8 5v14l11-7z"/>', 'currentColor'),                                // play
+    button:       svg('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'), // 2x2 action grid
     label:        svg('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/>'), // tag
     clock:        svg('<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>'),                 // clock
   };
   const ICON_DEFAULT = svg('<rect x="4" y="4" width="16" height="16" rx="3"/>');
+
+  // Pickable icon library (manual per-tile / per-button choice). Each entry:
+  // [key, label, inner-svg]. Stroke = currentColor like the type icons above.
+  const _icons = [
+    ['light',     'Licht',          '<path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2 1 2.1h5c.1-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'],
+    ['lamp',      'Lampe',          '<path d="M8 3h8l2 7H6z"/><path d="M12 10v8"/><path d="M8 21h8"/>'],
+    ['ceiling',   'Deckenlampe',    '<path d="M12 3v3"/><path d="M7 13a5 5 0 0 1 10 0z"/><path d="M9 17h6M10 20h4"/>'],
+    ['plug',      'Steckdose',      '<path d="M9 2v6M15 2v6"/><path d="M7 8h10v3a5 5 0 0 1-10 0z"/><path d="M12 16v6"/>'],
+    ['power',     'Schalter',       '<path d="M12 4v8"/><path d="M7 7.5a7 7 0 1 0 10 0"/>'],
+    ['thermo',    'Thermometer',    '<path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"/>'],
+    ['humidity',  'Luftfeuchte',    '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/>'],
+    ['energy',    'Energie',        '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'],
+    ['door',      'Tür',            '<path d="M6 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17"/><path d="M4 21h16"/><circle cx="14" cy="12" r="1" fill="currentColor" stroke="none"/>'],
+    ['garage',    'Garagentor',     '<path d="M3 21V10l9-5 9 5v11"/><path d="M6 21v-7h12v7"/><path d="M6 17h12"/>'],
+    ['window',    'Fenster',        '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/>'],
+    ['lock',      'Schloss zu',     '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'],
+    ['lockopen',  'Schloss auf',    '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>'],
+    ['shutter',   'Rollladen',      '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 8h16M4 12h16M4 16h16"/>'],
+    ['blinds',    'Jalousie',       '<path d="M4 4h16M5 4v13M19 4v13M5 17h14"/><path d="M5 9h14M5 13h14"/>'],
+    ['curtain',   'Vorhang',        '<path d="M3 3h18"/><path d="M5 3c0 8-1 12-2 18M9 3c0 8 0 14 0 18M15 3c0 8 0 14 0 18M19 3c1 8 2 12 2 18"/>'],
+    ['fan',       'Ventilator',     '<circle cx="12" cy="12" r="1.6"/><path d="M12 11c-1-3 0-6-1-8-3 1-3 5-1 8M13 12c3-1 6 0 8-1-1-3-5-3-8-1M12 13c1 3 0 6 1 8 3-1 3-5 1-8M11 12c-3 1-6 0-8 1 1 3 5 3 8 1"/>'],
+    ['heating',   'Heizung',        '<path d="M4 8h16M4 17h16"/><path d="M7 8v9M11 8v9M15 8v9M19 8v9"/>'],
+    ['thermostat','Thermostat',     '<circle cx="12" cy="12" r="9"/><path d="M12 12l3-3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>'],
+    ['ac',        'Klima',          '<rect x="3" y="5" width="18" height="8" rx="2"/><path d="M6 9h12"/><path d="M7 16c0 1.5 1 2 2 1M12 16c0 1.5 1 2 2 1M17 16c0 1.5-1 2-2 3"/>'],
+    ['boiler',    'Warmwasser',     '<rect x="7" y="3" width="10" height="18" rx="3"/><circle cx="12" cy="14" r="2.5"/><path d="M10 7h4"/>'],
+    ['tv',        'TV',             '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>'],
+    ['speaker',   'Lautsprecher',   '<rect x="6" y="3" width="12" height="18" rx="2"/><circle cx="12" cy="14" r="3"/><circle cx="12" cy="6.5" r="1" fill="currentColor" stroke="none"/>'],
+    ['music',     'Musik',          '<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>'],
+    ['radio',     'Radio',          '<rect x="3" y="8" width="18" height="11" rx="2"/><path d="M7 8l10-4"/><circle cx="8" cy="13.5" r="2.5"/><path d="M15 12h3M15 15h3"/>'],
+    ['camera',    'Kamera',         '<path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.5"/>'],
+    ['motion',    'Bewegung',       '<circle cx="13" cy="4" r="2"/><path d="M9 9l4-1 3 2M13 8v6l-3 6M13 14l3 5"/>'],
+    ['smoke',     'Rauchmelder',    '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/>'],
+    ['leak',      'Wasser-Leck',    '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M12 9v4M12 16h.01"/>'],
+    ['droplet',   'Tropfen',        '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>'],
+    ['flame',     'Flamme',         '<path d="M12 3c1 4 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3 1-5-1-8z"/>'],
+    ['sun',       'Sonne',          '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>'],
+    ['moon',      'Mond',           '<path d="M21 12.8A8 8 0 1 1 11.2 3 6 6 0 0 0 21 12.8z"/>'],
+    ['cloud',     'Wolke',          '<path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.3A3.5 3.5 0 0 1 18 18z"/>'],
+    ['rain',      'Regen',          '<path d="M7 14a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.3A3.5 3.5 0 0 1 17 14"/><path d="M8 18l-1 2M12 18l-1 2M16 18l-1 2"/>'],
+    ['snow',      'Schnee',         '<path d="M12 2v20M4.5 7l15 10M19.5 7l-15 10"/><path d="M9 4l3 2 3-2M9 20l3-2 3 2"/>'],
+    ['wind',      'Wind',           '<path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h9a2.5 2.5 0 1 1-2.5 2.5"/>'],
+    ['coffee',    'Kaffee',         '<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 9h2a2 2 0 0 1 0 4h-2"/><path d="M8 2v2M12 2v2"/>'],
+    ['bed',       'Bett',           '<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6"/><path d="M3 14h18M3 18v2M21 18v2"/><path d="M7 10V8h4v2"/>'],
+    ['sofa',      'Sofa',           '<path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M3 13a2 2 0 0 1 4 0v3h10v-3a2 2 0 0 1 4 0v5H3z"/><path d="M6 20v1M18 20v1"/>'],
+    ['stove',     'Herd / Küche',   '<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="8.5" r="1.5"/><circle cx="8.5" cy="15" r="1.5"/><circle cx="15.5" cy="15" r="1.5"/>'],
+    ['shower',    'Bad / Dusche',   '<path d="M4 12V6a2 2 0 0 1 4 0"/><path d="M2 12h12"/><path d="M6 16v.5M9 16v.5M12 16v.5M5 19v.5M8 19v.5M11 19v.5"/>'],
+    ['car',       'Auto',           '<path d="M5 16l1.5-5a2 2 0 0 1 2-1.4h7a2 2 0 0 1 2 1.4L20 16"/><path d="M3 16h18v3h-2v-1H5v1H3z"/><circle cx="7.5" cy="16.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.5" cy="16.5" r="1.3" fill="currentColor" stroke="none"/>'],
+    ['charger',   'Ladestation',    '<rect x="5" y="4" width="9" height="16" rx="2"/><path d="M11 8l-2 4h3l-2 4"/><path d="M14 9h3a2 2 0 0 1 2 2v3a1.5 1.5 0 0 0 3 0V9"/>'],
+    ['battery',   'Batterie',       '<rect x="3" y="8" width="16" height="8" rx="2"/><path d="M21 11v2"/><path d="M6 11v2"/>'],
+    ['solar',     'Solar',          '<path d="M4 16l2-9h12l2 9z"/><path d="M3 16h18M8 7l-1 9M16 7l1 9M5.5 11.5h13"/><path d="M12 4V2"/>'],
+    ['wifi',      'WLAN',           '<path d="M2 8.5a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/>'],
+    ['clock',     'Uhr',            '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>'],
+    ['calendar',  'Kalender',       '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/>'],
+    ['bell',      'Glocke',         '<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/>'],
+    ['armed',     'Alarm scharf',   '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'],
+    ['disarmed',  'Alarm unscharf', '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/>'],
+    ['present',   'Anwesend',       '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>'],
+    ['absent',    'Abwesend',       '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/><path d="M3 3l18 18"/>'],
+    ['home',      'Haus',           '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>'],
+    ['gear',      'Zahnrad',        '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>'],
+    ['plant',     'Pflanze',        '<path d="M12 21V11"/><path d="M12 11c0-4 3-7 8-7 0 5-3 8-8 8z"/><path d="M12 14c0-3-2-5-6-5 0 4 2 6 6 6z"/>'],
+    ['vacuum',    'Saugroboter',    '<circle cx="12" cy="12" r="9"/><path d="M3 9h18"/><circle cx="9" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="14" cy="6.5" r="1" fill="currentColor" stroke="none"/>'],
+    ['key',       'Schlüssel',      '<circle cx="8" cy="8" r="4"/><path d="M11 11l9 9M17 17l2-2M15 19l2-2"/>'],
+  ];
+  const ICON_LIB = {};
+  const ICON_LIST = _icons.map(([key, label, inner]) => { ICON_LIB[key] = svg(inner); return { key, label, svg: ICON_LIB[key] }; });
+  // Resolve a tile's chip icon: manual choice -> type default -> generic box.
+  function iconFor(tile) {
+    if (tile.icon && ICON_LIB[tile.icon]) return ICON_LIB[tile.icon];
+    return ICONS[tile.type] || ICON_DEFAULT;
+  }
+  const iconHtml = key => (key && ICON_LIB[key]) || ICON_DEFAULT;
 
   // #rrggbb -> "H,S,V" for `set x hsv`.
   function hexToHsv(hex) {
@@ -110,7 +182,7 @@ const Tiles = (() => {
     return '';
   }
   function header(tile, ctrl) {
-    const icon = ICONS[tile.type] || ICON_DEFAULT;
+    const icon = iconFor(tile);
     const name = esc(tile.label || tile.device || '');
     return `<div class="row">
         <div class="chip${chipClass(tile)}">${icon}</div>
@@ -162,18 +234,40 @@ const Tiles = (() => {
         const list = (tile.buttons && tile.buttons.length) ? tile.buttons
                    : (tile.cmds && tile.cmds.length) ? tile.cmds.map(c => ({ cmd: c }))
                    : (tile.cmd ? [{ cmd: tile.cmd }] : [{ cmd: 'on' }]);
-        el.innerHTML = EDIT + header(tile) + '<div class="scenes"></div>';
+        const mode = tile.btnDisplay || 'text';     // 'text' | 'icons' | 'toggle'
+        el.innerHTML = EDIT + header(tile) + `<div class="scenes scenes-${mode}"></div>`;
         const sc = el.querySelector('.scenes');
-        for (const b of list) {
-          const x = document.createElement('button'); x.className = 'scene'; x.textContent = b.label || b.cmd;
-          const m = btnMatch(tile, b);
-          x.dataset.rd = m.rd; x.dataset.val = m.val;
+        if (mode === 'toggle') {
+          // One button cycling through all commands; shows the active state's icon.
+          const states = list.map(b => Object.assign(btnMatch(tile, b), { cmd: b.cmd, icon: b.icon }));
+          const x = document.createElement('button');
+          x.className = 'scene scene-icon toggle-btn';
+          x.dataset.states = JSON.stringify(states);
+          x.dataset.cur = '0';
+          x.title = 'Umschalten';
+          x.innerHTML = iconHtml(states[0] && states[0].icon);
           x.addEventListener('click', () => {
-            onAction(tile, b.cmd);
-            // optimistic: light the clicked button now, clear siblings on the same reading
-            sc.querySelectorAll('.scene').forEach(o => { if (o.dataset.rd === x.dataset.rd) o.classList.toggle('active', o === x); });
+            const st = JSON.parse(x.dataset.states);
+            const next = (parseInt(x.dataset.cur || '0', 10) + 1) % st.length;
+            onAction(tile, st[next].cmd);
+            x.dataset.cur = String(next);            // optimistic until next poll confirms
+            x.innerHTML = iconHtml(st[next].icon);
           });
           sc.appendChild(x);
+        } else {
+          for (const b of list) {
+            const x = document.createElement('button');
+            x.className = 'scene' + (mode === 'icons' ? ' scene-icon' : '');
+            if (mode === 'icons') x.innerHTML = iconHtml(b.icon); else x.textContent = b.label || b.cmd;
+            const m = btnMatch(tile, b);
+            x.dataset.rd = m.rd; x.dataset.val = m.val;
+            x.addEventListener('click', () => {
+              onAction(tile, b.cmd);
+              // optimistic: light the clicked button now, clear siblings on the same reading
+              sc.querySelectorAll('.scene').forEach(o => { if (o.dataset.rd === x.dataset.rd) o.classList.toggle('active', o === x); });
+            });
+            sc.appendChild(x);
+          }
         }
         break;
       }
@@ -264,17 +358,28 @@ const Tiles = (() => {
       case 'color':  if (v != null) paintColor(el, v); break;
       case 'value':  if (state) state.textContent = v != null ? (v + (tile.unit ? ' ' + tile.unit : '')) : '–'; break;
       case 'button': {
-        // Light each button whose target reading currently equals its value.
-        el.querySelectorAll('.scenes .scene').forEach(btn => {
-          const cur = devReading(dev, btn.dataset.rd);
-          const on = cur != null && String(cur).trim().toLowerCase() === String(btn.dataset.val).trim().toLowerCase();
-          btn.classList.toggle('active', on);
-        });
+        const eq = (a, b) => a != null && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+        const tog = el.querySelector('.toggle-btn');
+        if (tog) {
+          // Show the icon of whichever state currently matches; glow when matched.
+          const st = JSON.parse(tog.dataset.states || '[]');
+          let idx = st.findIndex(s => eq(devReading(dev, s.rd), s.val));
+          const matched = idx >= 0;
+          if (!matched) idx = 0;
+          tog.dataset.cur = String(idx);
+          tog.innerHTML = iconHtml(st[idx] && st[idx].icon);
+          tog.classList.toggle('active', matched);
+        } else {
+          // Light each button whose target reading currently equals its value.
+          el.querySelectorAll('.scenes .scene').forEach(btn => {
+            btn.classList.toggle('active', eq(devReading(dev, btn.dataset.rd), btn.dataset.val));
+          });
+        }
         break;
       }
       // group / readingsgroup / label: no device state line
     }
   }
 
-  return { build, apply };
+  return { build, apply, iconList: () => ICON_LIST, iconSvg: iconHtml };
 })();

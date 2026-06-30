@@ -49,15 +49,30 @@
       </label>
 
       <label>Beschriftung
-        <input name="label" id="tLabel" placeholder="Anzeigename">
+        <span class="label-row">
+          <input name="label" id="tLabel" placeholder="Anzeigename">
+          <button type="button" id="tLabelReset" class="lbl-reset" title="Auf Geräte-Alias zurücksetzen">↺</button>
+        </span>
       </label>
+
+      <div class="row-extra" id="rowIcon">
+        <label>Icon</label>
+        <button type="button" id="tIconField" class="icon-pick-btn" data-icon="">Standard</button>
+      </div>
 
       <label class="row-extra" id="rowUnit">Einheit
         <input name="unit" id="tUnit" placeholder="°C, %, …">
       </label>
 
       <div class="row-extra" id="rowCmds">
-        <label>Buttons – Befehl + optionaler Text</label>
+        <label>Anzeige
+          <select id="btnDisplay">
+            <option value="text">Text</option>
+            <option value="icons">Icons</option>
+            <option value="toggle">1 Icon wechselnd</option>
+          </select>
+        </label>
+        <label>Buttons – Befehl + Text/Icon</label>
         <div id="cmdRows"></div>
         <datalist id="cmdSetList"></datalist>
         <button type="button" id="cmdAdd" class="btn">+ Befehl</button>

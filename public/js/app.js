@@ -678,6 +678,7 @@
     document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
     document.getElementById('rowLight').style.display   = t === 'light'  ? '' : 'none';
     document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
+    document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
   }
 
   // Sensible defaults for the light-tile option block (RGB cmd from device, CT 2000-6500K).
@@ -698,24 +699,79 @@
 
   const deviceSets = name => { const d = deviceCache.find(x => x.name === name); return (d && d.sets) || []; };
 
+  // ---- icon picker ---------------------------------------------------------
+  // A shared popover grid of all library icons. Lives INSIDE the modal dialog so
+  // it renders in the dialog's top layer (a body child would hide behind the modal).
+  let iconPickerEl = null, iconPickerCb = null;
+  function ensureIconPicker() {
+    if (iconPickerEl) return iconPickerEl;
+    const pop = document.createElement('div');
+    pop.className = 'icon-picker';
+    pop.style.display = 'none';
+    pop.innerHTML = '<button type="button" class="ip-cell ip-auto" data-key="" title="Standard (automatisch)">Auto</button>'
+      + Tiles.iconList().map(i => `<button type="button" class="ip-cell" data-key="${i.key}" title="${esc(i.label)}">${i.svg}</button>`).join('');
+    pop.addEventListener('click', e => {
+      const c = e.target.closest('.ip-cell'); if (!c) return;
+      if (iconPickerCb) iconPickerCb(c.dataset.key);
+      hideIconPicker();
+    });
+    (document.getElementById('tileDialog') || document.body).appendChild(pop);
+    iconPickerEl = pop;
+    return pop;
+  }
+  function hideIconPicker() { if (iconPickerEl) iconPickerEl.style.display = 'none'; iconPickerCb = null; }
+  function openIconPicker(anchor, current, cb) {
+    const pop = ensureIconPicker();
+    iconPickerCb = cb;
+    pop.querySelectorAll('.ip-cell').forEach(c => c.classList.toggle('sel', c.dataset.key === (current || '')));
+    pop.style.display = 'grid';
+    // The dialog's backdrop-filter makes it the containing block for our fixed
+    // popover, so subtract the dialog's padding-box origin to convert viewport
+    // coords -> dialog-relative coords (else the popover lands far off).
+    const host = pop.offsetParent || document.getElementById('tileDialog') || document.body;
+    const hr = host.getBoundingClientRect();
+    const ox = hr.left + (host.clientLeft || 0), oy = hr.top + (host.clientTop || 0);
+    const r = anchor.getBoundingClientRect();
+    const vx = Math.max(8, Math.min(r.left,      window.innerWidth  - pop.offsetWidth  - 8));
+    const vy = Math.max(8, Math.min(r.bottom + 6, window.innerHeight - pop.offsetHeight - 8));
+    pop.style.left = (vx - ox) + 'px';
+    pop.style.top  = (vy - oy) + 'px';
+  }
+  document.addEventListener('mousedown', e => {
+    if (iconPickerEl && iconPickerEl.style.display !== 'none'
+        && !iconPickerEl.contains(e.target) && !e.target.closest('.icon-pick-btn')) hideIconPicker();
+  });
+  // Show the chosen icon (or a placeholder) on an icon-pick button + store its key.
+  function setIconBtn(btn, key) {
+    btn.dataset.icon = key || '';
+    btn.innerHTML = key ? Tiles.iconSvg(key) : (btn.dataset.ph || 'Standard');
+  }
+  function attachIconField(btn) {
+    btn.addEventListener('click', () => openIconPicker(btn, btn.dataset.icon, key => setIconBtn(btn, key)));
+  }
+
   // Button tile editor: each button is a row of [command + optional label].
   function renderCmdSetList(deviceName) {            // autocomplete for the command field
     document.getElementById('cmdSetList').innerHTML =
       deviceSets(deviceName).map(s => `<option value="${esc(s)}">`).join('');
   }
-  function addCmdRow(cmd = '', label = '') {
+  function addCmdRow(cmd = '', label = '', icon = '') {
     const row = document.createElement('div');
     row.className = 'cmd-row';
     row.innerHTML =
       `<input class="cmd-c" list="cmdSetList" placeholder="Befehl, z.B. on" value="${esc(cmd)}">
        <input class="cmd-l" placeholder="Text (optional)" value="${esc(label)}">
+       <button type="button" class="cmd-ic icon-pick-btn" data-ph="Icon"></button>
        <button type="button" class="cmd-rm" title="Entfernen">✕</button>`;
+    const ic = row.querySelector('.cmd-ic');
+    setIconBtn(ic, icon); attachIconField(ic);
     row.querySelector('.cmd-rm').addEventListener('click', () => row.remove());
     document.getElementById('cmdRows').appendChild(row);
   }
   function collectCmdRows() {
     return [...document.querySelectorAll('#cmdRows .cmd-row')]
-      .map(r => ({ cmd: r.querySelector('.cmd-c').value.trim(), label: r.querySelector('.cmd-l').value.trim() }))
+      .map(r => ({ cmd: r.querySelector('.cmd-c').value.trim(), label: r.querySelector('.cmd-l').value.trim(),
+                   icon: r.querySelector('.cmd-ic').dataset.icon || '' }))
       .filter(b => b.cmd);
   }
 
@@ -744,16 +800,21 @@
     };
 
     document.getElementById('cmdAdd').addEventListener('click', () => addCmdRow());
+    attachIconField(document.getElementById('tIconField'));
 
     type.addEventListener('change', () => {
       dlgSyncRows(); applyDefaults();
       if (type.value === 'button') { renderCmdSetList(dev.value); if (!document.querySelector('#cmdRows .cmd-row')) addCmdRow(); }
       if (type.value === 'light')  initLightOpts();
     });
+    document.getElementById('tLabelReset').addEventListener('click', () => {
+      const d = deviceCache.find(x => x.name === dev.value);
+      if (d) document.getElementById('tLabel').value = d.alias || d.name;
+    });
+
     dev.addEventListener('change', () => {
       const d = fillReadings(dev.value);
-      if (d && !document.getElementById('tLabel').value)
-        document.getElementById('tLabel').value = d.alias || d.name;
+      if (d) document.getElementById('tLabel').value = d.alias || d.name; // Geräte-Alias übernehmen
       applyDefaults();
       if (type.value === 'button') renderCmdSetList(dev.value);
       if (type.value === 'light')  document.getElementById('lRgbCmd').value = pickColor(d);
@@ -784,11 +845,16 @@
         ctMax    = parseInt(document.getElementById('lCtMax').value, 10) || 6500;
         if (document.getElementById('lOptDim').checked) { const p = pickDim(d); useDim = true; dimcmd = p.setcmd; dimReading = p.reading; }
       }
-      if (t === 'button') { buttons = collectCmdRows(); if (!buttons.length) buttons = [{ cmd: 'on' }]; }
+      let btnDisplay;
+      if (t === 'button') {
+        buttons = collectCmdRows(); if (!buttons.length) buttons = [{ cmd: 'on' }];
+        btnDisplay = document.getElementById('btnDisplay').value;
+      }
 
       const cfg = {
-        type: t, device, setcmd, colorcmd, buttons, ctcmd, useRgb, useCt, ctMin, ctMax,
+        type: t, device, setcmd, colorcmd, buttons, btnDisplay, ctcmd, useRgb, useCt, ctMin, ctMax,
         useDim, dimcmd, dimReading,
+        icon: document.getElementById('tIconField').dataset.icon || '',
         hideHeader: !document.getElementById('tHeader').checked,
         reading: rd || 'state',
         label: f.label.value.trim(),
@@ -841,6 +907,8 @@
     document.getElementById('dlgTitle').textContent = 'Kachel hinzufügen';
     document.getElementById('tileForm').reset();
     document.getElementById('cmdRows').innerHTML = '';
+    setIconBtn(document.getElementById('tIconField'), '');
+    document.getElementById('btnDisplay').value = 'text';
     dlgSyncRows();
     el.dlg.returnValue = '';
     el.dlg.showModal();
@@ -861,11 +929,13 @@
     f.label.value   = t.label || '';
     f.unit.value    = t.unit || '';
     document.getElementById('tHeader').checked = !t.hideHeader;
+    setIconBtn(document.getElementById('tIconField'), t.icon || '');
     if (t.type === 'button') {
+      document.getElementById('btnDisplay').value = t.btnDisplay || 'text';
       document.getElementById('cmdRows').innerHTML = '';
       renderCmdSetList(t.device);
       const list = t.buttons || (t.cmds || []).map(c => ({ cmd: c }));
-      (list.length ? list : [{ cmd: '' }]).forEach(b => addCmdRow(b.cmd, b.label || ''));
+      (list.length ? list : [{ cmd: '' }]).forEach(b => addCmdRow(b.cmd, b.label || '', b.icon || ''));
     }
     if (t.type === 'light') {
       document.getElementById('lOptRgb').checked = t.useRgb !== false;
