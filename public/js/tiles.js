@@ -16,6 +16,7 @@ const Tiles = (() => {
     button:       svg('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'), // 2x2 action grid
     label:        svg('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/>'), // tag
     clock:        svg('<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>'),                 // clock
+    note:         svg('<path d="M4 4h16v11l-5 5H4z"/><path d="M20 14h-6v6"/><path d="M8 9h8M8 13h5"/>'), // note
   };
   const ICON_DEFAULT = svg('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 
@@ -307,6 +308,12 @@ const Tiles = (() => {
             <div class="clk-time">--:--</div>
             <div class="clk-date">–</div>
           </div>`;
+        break;
+      }
+      case 'note': {     // local free-text note, no FHEM; text stored in the layout
+        el.classList.add('tile-rich', 'tile-note');
+        el.innerHTML = EDIT + header(tile) + '<div class="note-body"></div>';
+        el.querySelector('.note-body').textContent = tile.text || '';   // textContent: safe + keeps newlines
         break;
       }
       case 'label':

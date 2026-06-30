@@ -15,6 +15,7 @@
     color:  { w: 4, h: 4 }, light: { w: 6, h: 6 }, readingsgroup: { w: 24, h: 8 },
     group:  { w: 8, h: 8 }, button: { w: 4, h: 4 }, label: { w: 6, h: 2 },
     clock:  { w: 3, h: 3 },   // also the min size (see addWidget)
+    note:   { w: 6, h: 5 },
   };
 
   // ---- init ----------------------------------------------------------------
@@ -673,10 +674,11 @@
   // Reading is auto-derived for switches; only value/dimmer show the field.
   function dlgSyncRows() {
     const t = document.getElementById('tType').value;
-    document.getElementById('rowDevice').style.display  = (t === 'group' || t === 'clock') ? 'none' : '';
+    document.getElementById('rowDevice').style.display  = (t === 'group' || t === 'clock' || t === 'note') ? 'none' : '';
     document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
     document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
     document.getElementById('rowLight').style.display   = t === 'light'  ? '' : 'none';
+    document.getElementById('rowNote').style.display    = t === 'note'   ? '' : 'none';
     document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
     document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
   }
@@ -827,7 +829,7 @@
       const f = e.target;
       const device = f.device.value.trim();
       const t = f.type.value;
-      if (!device && t !== 'label' && t !== 'group' && t !== 'clock') return; // kein Gerät -> nichts anlegen
+      if (!device && t !== 'label' && t !== 'group' && t !== 'clock' && t !== 'note') return; // kein Gerät -> nichts anlegen
       const d = deviceCache.find(x => x.name === device);
 
       let rd = f.reading.value.trim();
@@ -859,6 +861,7 @@
         reading: rd || 'state',
         label: f.label.value.trim(),
         unit:  f.unit.value.trim(),
+        text:  t === 'note' ? document.getElementById('tNote').value : undefined,
       };
 
       if (editingTileId) {                          // --- update existing tile ---
@@ -929,6 +932,7 @@
     f.label.value   = t.label || '';
     f.unit.value    = t.unit || '';
     document.getElementById('tHeader').checked = !t.hideHeader;
+    document.getElementById('tNote').value = t.text || '';
     setIconBtn(document.getElementById('tIconField'), t.icon || '');
     if (t.type === 'button') {
       document.getElementById('btnDisplay').value = t.btnDisplay || 'text';

@@ -220,6 +220,18 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .lbl-reset { flex: 0 0 auto; margin-top: 5px; width: 44px; padding: 0; background: var(--btn-bg);
   color: var(--text); border: 1px solid var(--stroke); border-radius: 11px; cursor: pointer; font-size: 18px; line-height: 1; }
 .lbl-reset:hover { border-color: var(--accent); color: var(--accent); }
+dialog textarea { width: 100%; margin-top: 5px; padding: 10px 12px; resize: vertical; min-height: 96px;
+  background: var(--field); color: var(--text); border: 1px solid var(--stroke); border-radius: 11px;
+  font: 14px/1.45 inherit; }
+
+/* note tile: slim title + free-text body (newlines kept, scrolls when long) */
+.tile-note .chip { width: 27px; height: 27px; min-width: 27px; border-radius: 8px; background: transparent; color: var(--accent); }
+.tile-note .chip svg { width: 18px; height: 18px; }
+.tile-note .t-name { font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--muted); }
+.tile-note .note-body { flex: 1; min-height: 0; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  font-size: 14px; line-height: 1.45; color: var(--text); }
+.tile-note.no-head .row { display: none; }
+.tile-note.no-head .note-body { display: flex; flex-direction: column; justify-content: center; }
 
 /* reusable colour control (slim: one row, presets pop up on hover) */
 .colorctl { position: relative; width: 100%; }
