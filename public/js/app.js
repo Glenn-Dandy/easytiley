@@ -94,7 +94,7 @@
     applyScale();
     grid.on('change added removed resizestop dragstop', applyScale);
     grid.on('dragstop resizestop dropped removed added', () => collapseTop()); // gently pull off the empty top margin
-    wireDropScaling(grid);                        // keep a tile's proportions when dropped across grids
+    grid.on('resizestop', (e, el) => syncGroupColumns(el)); // group box resized -> match its sub-grid columns to the new width
     grid.on('dragstart', cancelLink);            // dragging is for repositioning, not linking
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cancelLink(); });
     window.addEventListener('resize', () => { clearTimeout(window._sc); window._sc = setTimeout(applyScale, 120); });
@@ -174,7 +174,13 @@
     for (const t of currentDash.layout) addWidget(t);     // addWidget registers + recurses into groups
     renderTabs(id);
     applyScale();                                         // re-fit zoom after layout change
+    requestAnimationFrame(syncAllGroups);                 // match group sub-grid columns once laid out
     refreshReadingsGroups();
+  }
+
+  // Align every group's sub-grid cell width with the main grid (run after layout).
+  function syncAllGroups() {
+    grid.el.querySelectorAll('.grid-stack-item').forEach(it => syncGroupColumns(it));
   }
 
   // readingsGroup tiles: pull FHEM's own rendered HTML and inject it.
@@ -205,10 +211,25 @@
   }
 
   // ---- widgets -------------------------------------------------------------
+  // A group's sub-grid mirrors the main grid: same cell height, and as many columns
+  // as the group is wide in main-grid cells. That makes the group a true window into
+  // the same coordinate system, so a tile keeps its size and proportions 1:1 when
+  // dragged in or out — no per-grid rescaling needed.
   const NESTED_OPTS = {                          // options for a group's sub-grid
-    column: 6, cellHeight: 'auto', margin: 4, float: false,
+    cellHeight: 38, margin: 4, float: false,     // column is set per group from its width
     acceptWidgets: true, resizable: { handles: 'se, s, e' },
   };
+  // Match a group's sub-grid column count to its pixel width so the sub-grid's cell
+  // width equals the main grid's — then a tile keeps its exact size when dragged in
+  // or out, and the box "grows by columns" rather than stretching its cells.
+  function syncGroupColumns(el) {
+    const sub = el && el.gridstackNode && el.gridstackNode.subGrid;
+    if (!sub || !sub.el || !sub.el.clientWidth || !grid.el.clientWidth) return;
+    // Use unscaled clientWidth on both sides (CSS-transform zoom would skew
+    // getBoundingClientRect / cellWidth()). cols so the sub cell width ≈ main's.
+    const cols = Math.max(2, Math.round(sub.el.clientWidth * grid.getColumn() / grid.el.clientWidth));
+    if (sub.getColumn() !== cols) sub.column(cols, 'none');
+  }
 
   // run a callback for every grid on the page (main grid + all group sub-grids)
   function eachGrid(fn) {
@@ -254,35 +275,6 @@
     if (t) delete tiles[t.id];
   }
 
-  // Target-grid w/h that preserve a tile's *pixel* proportions when it crosses from
-  // one grid to another (different column count + cell height would distort it).
-  function crossGridDims(prev, dst) {
-    const src = prev && prev.grid;
-    if (!src || !dst || src === dst) return null;
-    const srcCW = src.cellWidth() || 1, srcCH = src.getCellHeight(true) || 1;
-    const dstCW = dst.cellWidth() || 1, dstCH = dst.getCellHeight(true) || 1;
-    return {
-      w: Math.max(1, Math.min(dst.getColumn(), Math.round((prev.w || 1) * srcCW / dstCW))),
-      h: Math.max(1, Math.round((prev.h || 1) * srcCH / dstCH)),
-    };
-  }
-
-  // Keep proportions when a tile is dragged across grids: pre-size the placeholder
-  // on entry (dropover) and lock the final size on release (dropped).
-  function wireDropScaling(g) {
-    g.on('dropover', (ev, prev, node) => {
-      const d = crossGridDims(prev, g);
-      if (d && node) { node.w = d.w; node.h = d.h; }          // shrink the drag placeholder live
-    });
-    g.on('dropped', (ev, prev, node) => {
-      if (!node || !node.el || !node.grid) return;
-      const d = crossGridDims(prev, node.grid);
-      if (!d) return;
-      node.grid.update(node.el, d);
-      const id = node.el.getAttribute('gs-id');
-      if (tiles[id]) { tiles[id].w = d.w; tiles[id].h = d.h; } // keep config in sync for save
-    });
-  }
 
   // Remove only the empty band above *all* tiles (the shared top margin) without
   // touching internal gaps — the "free grid, but no dead space up top" behaviour.
@@ -294,22 +286,6 @@
     grid.batchUpdate();
     nodes.forEach(n => grid.update(n.el, { y: (n.y || 0) - minY }));
     grid.commit();
-  }
-
-  // Grow/shrink a group's box in the main grid so its sub-grid's rows fit (cells are
-  // square via cellHeight:'auto', so content height = rows × cell width). Without
-  // this, a tile dropped into the group spills past the box and is clipped.
-  function fitGroupHeight(sub) {
-    if (!editMode) return;                                    // saved layout already fits; only adjust on edits
-    const node = sub.parentGridItem;
-    if (!node || !node.el) return;
-    const rows = sub.engine.nodes.reduce((m, n) => Math.max(m, (n.y || 0) + (n.h || 1)), 0);
-    const cw = sub.cellWidth() || 38, m = 4;
-    const head = node.el.querySelector('.ghead');
-    const neededPx = (head ? head.offsetHeight : 0) + rows * cw + (rows + 1) * m + 8;
-    const mainCell = grid.getCellHeight(true) || 38;
-    const h = Math.max(2, Math.ceil(neededPx / (mainCell + m)));
-    if (h !== node.h) grid.update(node.el, { h });
   }
 
   function addWidget(tile, targetGrid = grid) {
@@ -329,13 +305,11 @@
 
     if (big) { // turn the inner .grid-stack into a real sub-grid and fill it
       const nestedEl = item.querySelector('.grid-stack');
-      const sub = GridStack.init({ ...NESTED_OPTS, disableDrag: !editMode, disableResize: !editMode }, nestedEl);
+      const sub = GridStack.init({ ...NESTED_OPTS, column: Math.max(2, Math.round(tile.w || 6)), disableDrag: !editMode, disableResize: !editMode }, nestedEl);
       // Wire the parent<->child relationship so tiles can also be dragged OUT.
       // GridStack.init() alone doesn't set this (only makeSubGrid / a drop does).
       const gn = item.gridstackNode;
       if (gn) { gn.subGrid = sub; sub.parentGridItem = gn; }
-      wireDropScaling(sub);                        // proportional resize on drop in/out of this group
-      sub.on('change added removed', () => fitGroupHeight(sub)); // grow the box so children never clip
       for (const child of (tile.children || [])) addWidget(child, sub);
     }
   }
@@ -575,6 +549,7 @@
     el.addBtn.classList.toggle('hidden', !editMode);
     el.saveBtn.classList.toggle('hidden', !editMode);
     applyScale();                                 // edit = 1:1, view = zoom-to-fit
+    requestAnimationFrame(syncAllGroups);         // cell width may shift between fit/1:1
   }
 
   // Serialize one grid's direct items into tile configs (recurses into groups).

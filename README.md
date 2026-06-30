@@ -1,7 +1,7 @@
 # FHEM Frontend
 
 Web-Dashboard für FHEM mit editierbaren Gerätekacheln.
-Kacheln hinzufügen, verschieben, vergrößern und speichern — alles im Browser.
+Kacheln hinzufügen, frei platzieren, vergrößern, verschmelzen und speichern — alles im Browser.
 
 ```
 Browser ──HTTP──> 1 Docker-Container ──HTTP──> FHEMWEB (192.168.10.2:8083)
@@ -17,45 +17,9 @@ Browser ──HTTP──> 1 Docker-Container ──HTTP──> FHEMWEB (192.168.
 * **Live-Daten:** Polling der Dashboard-Geräte (alle 3 s). Erweiterbar auf SSE/longpoll.
 * **Speicher:** SQLite, ein Layout je Dashboard als JSON.
 
-## Start
+## Voraussetzung
 
-Voraussetzung: Docker + Docker Compose.
-
-```bash
-mkdir -p data && chmod 777 data   # php-fpm (uid 82) muss in data/ schreiben
-docker compose up -d --build
-# -> http://localhost:8080
-```
-
-FHEM-Adresse danach **im Browser unter ⚙ Einstellungen** setzen (kein Rebuild nötig).
-Optional vorab per Env: `FHEM_URL=http://<ip>:8083/fhem docker compose up -d`.
-
-## Woanders installieren
-
-Auf dem Zielrechner Docker installieren, dann **eine** der beiden Varianten:
-
-**A) Per Git (empfohlen):**
-```bash
-git clone <repo-url> fhem-frontend && cd fhem-frontend
-mkdir -p data && chmod 777 data
-docker compose up -d --build          # baut das Image lokal
-# -> http://<ziel-ip>:8080 , FHEM-Adresse unter ⚙ eintragen
-```
-
-**B) Ohne Git – Image exportieren/importieren:**
-```bash
-# auf dieser Box:
-docker save fhem-frontend:latest | gzip > fhem-frontend.tar.gz
-# Datei auf den Zielrechner kopieren (scp/USB), dort:
-docker load < fhem-frontend.tar.gz
-docker run -d --name fhem -p 8080:80 -v fhem-data:/var/www/data --restart unless-stopped fhem-frontend:latest
-```
-
-Hinweise: Der Container muss das FHEM im Netz erreichen (gleiches LAN/Routing).
-Die Dashboards liegen in `data/fhem.db` (Variante A) bzw. im Volume `fhem-data`
-(Variante B) und überleben Updates/Rebuilds. Port ändern via `HTTP_PORT` in `.env`.
-
-### Docker installieren (Ubuntu, einmalig, braucht sudo)
+Docker + Docker Compose. Falls noch nicht vorhanden (Ubuntu, einmalig, braucht sudo):
 
 ```bash
 sudo apt-get update
@@ -63,25 +27,40 @@ sudo apt-get install -y docker.io docker-compose-v2
 sudo usermod -aG docker "$USER"   # danach einmal ab- und neu anmelden
 ```
 
+## Installieren & Starten
+
+```bash
+git clone <repo-url> fhem-frontend && cd fhem-frontend
+mkdir -p data && chmod 777 data      # php-fpm (uid 82) muss in data/ schreiben
+docker compose up -d --build         # baut das Image lokal und startet den Container
+# -> http://localhost:8080
+```
+
+Danach die **FHEM-Adresse im Browser unter ⚙ Einstellungen** setzen (IP:Port oder
+volle URL), **Testen**, **Speichern** — kein Rebuild nötig. Die Adresse liegt in
+SQLite, dieselbe Instanz läuft also ohne Codeänderung gegen jedes FHEM.
+
+Optional als Start-Default vorab per Env: `FHEM_URL=http://<ip>:8083/fhem`.
+Der Container muss das FHEM im Netz erreichen (gleiches LAN/Routing). Die
+Dashboards in `data/fhem.db` überleben Updates/Rebuilds.
+
 ## Bedienung
 
-1. **⚙ Einstellungen** → FHEM-Adresse (IP:Port oder volle URL) eintragen,
-   **Testen**, **Speichern**. Wird in SQLite abgelegt → dieselbe Instanz läuft
-   ohne Codeänderung gegen jedes FHEM.
-2. **Bearbeiten** klicken → Editiermodus (Kacheln ziehen/skalieren).
-3. **+ Kachel** → Typ + Gerät wählen (Reading wird für Schalter/Dimmer automatisch erkannt).
-4. **✎** auf einer Kachel → bestehende Kachel komplett bearbeiten; **✕** → entfernen.
-5. **Speichern** → Layout landet in SQLite.
-6. **Fertig** → normaler Anzeige-/Bedienmodus mit Live-Werten.
+1. **⚙ Einstellungen** → FHEM-Adresse eintragen, **Testen**, **Speichern**.
+2. **Bearbeiten** → Editiermodus: Kacheln frei ziehen, an der rechten/unteren
+   Kante skalieren.
+3. **+ Kachel** → Typ + Gerät wählen (Reading wird für Schalter/Licht automatisch erkannt).
+4. **✎** auf einer Kachel → bearbeiten; **✕** → entfernen.
+5. **🔗** → Kachel mit einer Nachbar-Kachel **verschmelzen**: danach eine der
+   4 Andock-Kanten der Zielkachel antippen. Verbundene Karten lassen sich auch
+   über-/nebeneinander stapeln; **⧉** löst sie wieder auf.
+6. **Speichern** → Layout landet in SQLite. **Fertig** → Anzeige-/Bedienmodus mit Live-Werten.
 
-### Auf einer anderen FHEM-Instanz betreiben
+Kacheltypen: `Wert / Sensor`, `Schalter (on/off)`, `Licht (an/aus + RGB + CT)`,
+`readingsGroup`, `Gruppe / Raum-Box`, `Button(s) / Set-Befehle`.
 
-Image/Container starten und unter **⚙ Einstellungen** die FHEM-Adresse setzen.
-`FHEM_URL` in `.env` ist nur noch der **Start-Default** (greift, solange in den
-Einstellungen nichts gespeichert wurde).
-
-Kacheltypen: `Wert/Sensor`, `Schalter (on/off)`, `Dimmer (0–100 %)`,
-`Farbe (RGB/HSV)`, `readingsGroup`, `Button (set-Befehl)`, `Beschriftung`.
+**Freies Raster:** Kacheln liegen, wo du sie hinsetzt. Nur leerer Platz **über
+allen** Kacheln wird automatisch entfernt — innere Lücken bleiben.
 
 **Räume als Tabs:** Jeder Tab oben ist ein Raum/Dashboard. **＋** legt einen an;
 im Editiermodus benennt ein Klick auf den aktiven Tab ihn um, **✕** löscht ihn.
@@ -90,8 +69,8 @@ im Editiermodus benennt ein Klick auf den aktiven Tab ihn um, **✕** löscht ih
 rendert intern, das Backend parst Werte + Icons heraus (DOMDocument) und das
 Frontend zeichnet eine **eigene Tabelle im Dark-Theme** (Aktualisierung alle 30 s).
 
-**Farbe-Kachel:** Farbwähler; der passende Befehl wird automatisch gewählt –
-`rgb` (Hex) bzw. `hsv`, je nachdem was das Gerät kann (auch fremde Lampen).
+**Gruppe / Raum-Box:** ein verschachteltes Raster; Kacheln per Drag hinein- oder
+herausziehen (Größe wird proportional ans Ziel-Raster angepasst).
 
 ## API (PHP, unter `/api/`)
 
