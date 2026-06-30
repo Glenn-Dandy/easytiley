@@ -82,12 +82,22 @@ const Tiles = (() => {
     return w;
   }
 
-  function readingValue(tile, dev) {
+  function devReading(dev, name) {
     if (!dev) return null;
-    const r = tile.reading || 'state';
-    if (dev.readings && dev.readings[r] != null) return dev.readings[r].value;
-    if (r === 'state') return dev.state;
+    if (dev.readings && dev.readings[name] != null) return dev.readings[name].value;
+    if (name === 'state') return dev.state;
     return null;
+  }
+  function readingValue(tile, dev) {
+    return devReading(dev, tile.reading || 'state');
+  }
+  // Derive which reading/value lights a button up. "cmd arg" -> reading=cmd, value=arg
+  // (e.g. "mode schlafen" -> reading "mode" == "schlafen"); "cmd" alone -> the tile's
+  // reading (default state) == cmd (e.g. "present" -> state == "present").
+  function btnMatch(tile, b) {
+    const toks = String(b.cmd || '').trim().split(/\s+/);
+    if (toks.length >= 2) return { rd: toks[0], val: toks.slice(1).join(' ') };
+    return { rd: tile.reading || 'state', val: toks[0] || '' };
   }
   const isOn = v => ['on', '1', 'true', 'open', 'yes', 'ja'].includes(String(v ?? '').toLowerCase());
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -156,7 +166,14 @@ const Tiles = (() => {
         const sc = el.querySelector('.scenes');
         for (const b of list) {
           const x = document.createElement('button'); x.className = 'scene'; x.textContent = b.label || b.cmd;
-          x.addEventListener('click', () => onAction(tile, b.cmd)); sc.appendChild(x);
+          const m = btnMatch(tile, b);
+          x.dataset.rd = m.rd; x.dataset.val = m.val;
+          x.addEventListener('click', () => {
+            onAction(tile, b.cmd);
+            // optimistic: light the clicked button now, clear siblings on the same reading
+            sc.querySelectorAll('.scene').forEach(o => { if (o.dataset.rd === x.dataset.rd) o.classList.toggle('active', o === x); });
+          });
+          sc.appendChild(x);
         }
         break;
       }
@@ -246,7 +263,16 @@ const Tiles = (() => {
       case 'dimmer': setSlider(el, '.ldim', v); break;
       case 'color':  if (v != null) paintColor(el, v); break;
       case 'value':  if (state) state.textContent = v != null ? (v + (tile.unit ? ' ' + tile.unit : '')) : '–'; break;
-      // button / group / readingsgroup / label: no device state line
+      case 'button': {
+        // Light each button whose target reading currently equals its value.
+        el.querySelectorAll('.scenes .scene').forEach(btn => {
+          const cur = devReading(dev, btn.dataset.rd);
+          const on = cur != null && String(cur).trim().toLowerCase() === String(btn.dataset.val).trim().toLowerCase();
+          btn.classList.toggle('active', on);
+        });
+        break;
+      }
+      // group / readingsgroup / label: no device state line
     }
   }
 
