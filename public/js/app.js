@@ -135,6 +135,8 @@
     if (id) await loadDashboard(id); else renderTabs(null);
   }
 
+  let dragTabId = null;
+
   function renderTabs(activeId) {
     el.tabs.innerHTML = '';
     dashboards.forEach(d => {
@@ -146,12 +148,34 @@
         if (editMode && d.id === activeId)   return renameTab(d.id);
         loadDashboard(d.id);
       });
+      if (editMode) {                                    // reorder rooms by drag (edit mode only)
+        tab.draggable = true;
+        tab.addEventListener('dragstart', e => { dragTabId = d.id; tab.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; });
+        tab.addEventListener('dragend',   () => { dragTabId = null; el.tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('drag', 'drop-target')); });
+        tab.addEventListener('dragover',  e => { e.preventDefault(); if (dragTabId != null && dragTabId !== d.id) tab.classList.add('drop-target'); });
+        tab.addEventListener('dragleave', () => tab.classList.remove('drop-target'));
+        tab.addEventListener('drop',      e => { e.preventDefault(); tab.classList.remove('drop-target'); reorderTabs(dragTabId, d.id); });
+      }
       el.tabs.appendChild(tab);
     });
-    const add = document.createElement('div');
-    add.className = 'tab-add'; add.textContent = '＋'; add.title = 'Neuer Raum';
-    add.addEventListener('click', addTab);
-    el.tabs.appendChild(add);
+    if (editMode) {                                      // adding rooms only in edit mode
+      const add = document.createElement('div');
+      add.className = 'tab-add'; add.textContent = '＋'; add.title = 'Neuer Raum';
+      add.addEventListener('click', addTab);
+      el.tabs.appendChild(add);
+    }
+  }
+
+  async function reorderTabs(srcId, destId) {
+    if (srcId == null || srcId === destId) return;
+    const arr = dashboards.slice();
+    const from = arr.findIndex(x => x.id === srcId), to = arr.findIndex(x => x.id === destId);
+    if (from < 0 || to < 0) return;
+    const [moved] = arr.splice(from, 1);
+    arr.splice(to, 0, moved);
+    dashboards = arr;
+    renderTabs(currentDash && currentDash.id);
+    try { await API.reorderDashboards(arr.map(x => x.id)); } catch (e) { /* order is best-effort */ }
   }
 
   async function addTab() {
@@ -602,6 +626,7 @@
     el.editBtn.textContent = editMode ? 'Fertig' : '✎';
     el.addBtn.classList.toggle('hidden', !editMode);
     el.saveBtn.classList.toggle('hidden', !editMode);
+    renderTabs(currentDash && currentDash.id);    // show/hide the "+ Raum" add button, enable tab drag
     applyScale();                                 // edit = 1:1, view = zoom-to-fit
     requestAnimationFrame(syncAllGroups);         // cell width may shift between fit/1:1
   }

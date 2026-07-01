@@ -24,6 +24,12 @@ class Db
                 updated TEXT
             )'
         );
+        // Room ordering: add a position column on existing installs, seed order = id.
+        $cols = $this->pdo->query('PRAGMA table_info(dashboards)')->fetchAll(\PDO::FETCH_COLUMN, 1);
+        if (!in_array('position', $cols, true)) {
+            $this->pdo->exec('ALTER TABLE dashboards ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
+            $this->pdo->exec('UPDATE dashboards SET position = id');
+        }
         $this->pdo->exec(
             'CREATE TABLE IF NOT EXISTS settings (
                 key   TEXT PRIMARY KEY,
@@ -57,7 +63,15 @@ class Db
 
     public function listDashboards(): array
     {
-        return $this->pdo->query('SELECT id, name, updated FROM dashboards ORDER BY id')->fetchAll();
+        return $this->pdo->query('SELECT id, name, updated FROM dashboards ORDER BY position, id')->fetchAll();
+    }
+
+    /** Persist room/tab order: position = index in the given id list. */
+    public function reorderDashboards(array $ids): void
+    {
+        $st = $this->pdo->prepare('UPDATE dashboards SET position = ? WHERE id = ?');
+        $pos = 0;
+        foreach ($ids as $id) { $st->execute([$pos++, (int)$id]); }
     }
 
     public function getDashboard(int $id): ?array

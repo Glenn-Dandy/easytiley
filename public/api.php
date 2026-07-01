@@ -280,6 +280,10 @@ try {
         case 'dashboards':
             if ($method === 'POST') {
                 $b = body_json();
+                if (isset($b['order']) && is_array($b['order'])) {   // reorder rooms/tabs
+                    $db->reorderDashboards($b['order']);
+                    out(['ok' => true]);
+                }
                 $id = $db->createDashboard((string)($b['name'] ?? 'Neu'));
                 out(['id' => $id], 201);
             }

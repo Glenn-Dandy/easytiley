@@ -178,12 +178,12 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
   border-color: var(--accent); color: var(--text); box-shadow: 0 0 16px -5px var(--accent); }
 /* button tile: slim title line (small accent icon + name), buttons are the main
    content — full width, 2 per row, equal size. Normal-case name (not uppercase). */
-.tile-button { gap: 10px; }
-.tile-button .row { gap: 9px; }
-.tile-button .chip { width: 27px; height: 27px; min-width: 27px; border-radius: 8px;
+.tile-button, .tile-status { gap: 10px; }
+.tile-button .row, .tile-status .row { gap: 9px; }
+.tile-button .chip, .tile-status .chip { width: 27px; height: 27px; min-width: 27px; border-radius: 8px;
   background: transparent; color: var(--accent); }
-.tile-button .chip svg { width: 18px; height: 18px; }
-.tile-button .t-name { font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--muted); }
+.tile-button .chip svg, .tile-status .chip svg { width: 18px; height: 18px; }
+.tile-button .t-name, .tile-status .t-name { font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--muted); }
 .tile-button .scenes { gap: 7px; }
 /* uniform button box so icon- and text/no-icon buttons line up on the same height */
 .tile-button .scene { flex: 1 1 calc(50% - 4px); min-height: 48px; box-sizing: border-box;
@@ -195,6 +195,25 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .tile-button .scene-icon svg { width: 26px; height: 26px; }
 .tile-button .scenes-toggle { justify-content: center; }
 .tile-button .scenes-toggle .toggle-btn { flex: 0 1 auto; min-width: 64px; }
+
+/* label / icon / title pinned to the BOTTOM of the card (consistent across device cards) */
+.tile-value > .row, .tile-switch > .row, .tile-light > .row, .tile-color > .row,
+.tile-dimmer > .row, .tile-button > .row, .tile-status > .row { order: 20; margin-top: auto; }
+
+/* very subtle placement grid while editing (main grid only; edit mode = 1:1 scale) */
+body.editing.theme-aurora { --grid-line: rgba(255,255,255,.05); }
+body.editing.theme-clean  { --grid-line: rgba(0,0,0,.06); }
+body.editing .grid-stack:not(.grid-stack-nested) {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: calc(100% / 24) 38px;
+}
+
+/* rooms (tabs) are re-orderable by drag while editing */
+body.editing .tab { cursor: grab; }
+.tab.drag { opacity: .45; }
+.tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
 
 /* status tile: header (chip + name) + big centered state icon + label */
 .tile-status.no-head .row { display: none; }

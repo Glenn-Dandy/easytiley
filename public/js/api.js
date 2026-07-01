@@ -31,6 +31,7 @@ const API = {
   dashboards()          { return this._get('dashboards'); },
   dashboard(id)         { return this._get('dashboard?id=' + id); },
   createDashboard(name) { return this._send('dashboards', 'POST', { name }); },
+  reorderDashboards(ids) { return this._send('dashboards', 'POST', { order: ids }); },
   saveDashboard(id, name, layout) { return this._send('dashboard', 'POST', { id, name, layout }); },
   deleteDashboard(id)   { return this._send('dashboard?id=' + id, 'DELETE'); },
 };
