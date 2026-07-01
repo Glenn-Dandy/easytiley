@@ -36,7 +36,6 @@ const Tiles = (() => {
     ['energy',    'Energie',        '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'],
     ['door',      'Tür',            '<path d="M6 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17"/><path d="M4 21h16"/><circle cx="14" cy="12" r="1" fill="currentColor" stroke="none"/>'],
     ['garage',    'Garagentor',     '<path d="M3 21V10l9-5 9 5v11"/><path d="M6 21v-7h12v7"/><path d="M6 17h12"/>'],
-    ['window',        'Fenster',        '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/>'],
     ['window-closed', 'Fenster zu',     '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/>'],
     ['window-open',   'Fenster offen',  '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18"/><path d="M12 5l7 2v10l-7 2z"/>'],
     ['window-tilt',   'Fenster gekippt','<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18"/><path d="M4 13l16-5v3L4 16z"/>'],
@@ -93,6 +92,7 @@ const Tiles = (() => {
   ];
   const ICON_LIB = {};
   const ICON_LIST = _icons.map(([key, label, inner]) => { ICON_LIB[key] = svg(inner); return { key, label, svg: ICON_LIB[key] }; });
+  ICON_LIB.window = ICON_LIB['window-closed'];   // legacy alias (hidden from picker), keeps old tiles working
   // Resolve a tile's chip icon: 'none' -> nothing, manual choice -> type default -> box.
   function iconFor(tile) {
     if (tile.icon === 'none') return '';
@@ -414,8 +414,7 @@ const Tiles = (() => {
       }
       case 'status': {   // reading value -> big centered icon + label (read-only status)
         el.classList.add('tile-rich', 'tile-status');
-        const title = tile.hideHeader ? '' : `<div class="st-title">${esc(tile.label || tile.device || '')}</div>`;
-        el.innerHTML = EDIT + title +
+        el.innerHTML = EDIT + header(tile) +
           '<div class="st-body"><div class="st-ico"></div><div class="st-lbl"></div></div>';
         break;
       }
@@ -479,10 +478,10 @@ const Tiles = (() => {
         let rule = rules.find(r => r.val && norm(r.val) === norm(rv));  // exact value match
         if (!rule) rule = rules.find(r => !r.val);                      // "Standard/sonst" catch-all row
         const icoEl = el.querySelector('.st-ico'), lblEl = el.querySelector('.st-lbl');
-        if (rule) {
+        if (rule) {                                                    // matched: honour an empty label (icon-only)
           if (icoEl) { icoEl.innerHTML = rule.icon ? iconHtml(rule.icon) : iconFor(tile); icoEl.style.color = safeColor(rule.iconColor) || ''; }
-          if (lblEl) lblEl.textContent = rule.label || rv || '–';
-        } else {                                                       // no match, no default: raw value + tile icon
+          if (lblEl) lblEl.textContent = rule.label || '';
+        } else {                                                       // no configured rule for this value: raw value + tile icon
           if (icoEl) { icoEl.innerHTML = iconFor(tile); icoEl.style.color = safeColor(tile.iconColor) || ''; }
           if (lblEl) lblEl.textContent = rv || '–';
         }
