@@ -427,7 +427,12 @@ const Tiles = (() => {
         el.innerHTML = EDIT + `<div class="row">${chip}<div class="lbl-text">${esc(tile.label || '')}</div></div>`;
         break;
       }
-      default: // value / sensor
+      case 'value': {   // big value centered, small label (chip + name) at the bottom
+        el.classList.add('tile-rich');
+        el.innerHTML = EDIT + '<div class="va-body"><span class="va-val">–</span><span class="va-unit"></span></div>' + header(tile);
+        break;
+      }
+      default: // sensor / unknown -> plain header card
         el.innerHTML = EDIT + header(tile);
     }
     return el;
@@ -471,7 +476,12 @@ const Tiles = (() => {
       }
       case 'dimmer': setSlider(el, '.ldim', v); break;
       case 'color':  if (v != null) paintColor(el, v); break;
-      case 'value':  if (state) state.textContent = v != null ? (v + (tile.unit ? ' ' + tile.unit : '')) : '–'; break;
+      case 'value': {
+        const valEl = el.querySelector('.va-val'), unitEl = el.querySelector('.va-unit');
+        if (valEl)  valEl.textContent  = v != null ? v : '–';
+        if (unitEl) unitEl.textContent = (v != null && tile.unit) ? tile.unit : '';
+        break;
+      }
       case 'status': {
         const rv = String(v ?? '');
         const norm = s => String(s ?? '').trim().toLowerCase();
