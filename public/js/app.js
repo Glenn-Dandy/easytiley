@@ -4,6 +4,7 @@
   let tiles = {};               // id -> tile config
   let deviceCache = [];         // [{name,type,room,readings[],sets[],onoff}]
   let editingTileId = null;     // set while the dialog edits an existing tile
+  let noteEditId = null;        // set while the dedicated note dialog is open
 
   const $  = sel => document.querySelector(sel);
   const el = {};
@@ -102,11 +103,13 @@
     window.addEventListener('resize', () => { clearTimeout(window._sc); window._sc = setTimeout(applyScale, 120); });
 
     grid.el.addEventListener('click', onGridClick);
+    grid.el.addEventListener('change', onNoteCheck);   // tick a checklist item (normal mode)
     el.editBtn.addEventListener('click', toggleEdit);
     el.addBtn.addEventListener('click', openAddDialog);
     el.saveBtn.addEventListener('click', save);
     el.settingsBtn.addEventListener('click', openSettings);
     setupDialog();
+    setupNoteDialog();
     setupSettings();
 
     // NOTE: the full device list (heavy on single-threaded FHEM) is loaded
@@ -341,10 +344,10 @@
 
   function onGridClick(e) {
     if (!editMode) {
-      // notes are edited in normal mode: tap the card to open the dialog
-      if (e.target.closest('.tile-note')) {
+      // notes are edited in normal mode: tap the card (but not a checkbox) to open the note dialog
+      if (e.target.closest('.tile-note') && !e.target.closest('.chk-item')) {
         const it = e.target.closest('.grid-stack-item');
-        if (it) openEditDialog(it.getAttribute('gs-id'));
+        if (it) openNoteDialog(it.getAttribute('gs-id'));
       }
       return;
     }
@@ -365,7 +368,19 @@
       return;
     }
     if (e.target.closest('.tile-del'))       removeTile(item, id);
-    else if (e.target.closest('.tile-edit')) openEditDialog(id);
+    else if (e.target.closest('.tile-edit')) { const t = tiles[id]; (t && t.type === 'note') ? openNoteDialog(id) : openEditDialog(id); }
+  }
+
+  // Tick/untick a checklist item directly on the tile (normal mode) -> persist.
+  function onNoteCheck(e) {
+    const cb = e.target.closest('.tile-note .chk-item input');
+    if (!cb || editMode) return;
+    const item = e.target.closest('.grid-stack-item'); if (!item) return;
+    const t = tiles[item.getAttribute('gs-id')];
+    if (!t || !t.items || !t.items[+cb.dataset.i]) return;
+    t.items[+cb.dataset.i].done = cb.checked;
+    cb.closest('.chk-item').classList.toggle('done', cb.checked);
+    save();
   }
 
   // Replace a tile's content in place, keeping its grid position/size. Editing a
@@ -733,11 +748,14 @@
     const pop = ensureIconPicker();
     iconPickerCb = cb;
     pop.querySelectorAll('.ip-cell').forEach(c => c.classList.toggle('sel', c.dataset.key === (current || '')));
+    // Move the popover into whichever dialog the anchor lives in, so it renders in
+    // that modal's top layer (a body child would hide behind the open modal).
+    const host = anchor.closest('dialog') || document.getElementById('tileDialog') || document.body;
+    if (pop.parentElement !== host) host.appendChild(pop);
     pop.style.display = 'grid';
     // The dialog's backdrop-filter makes it the containing block for our fixed
     // popover, so subtract the dialog's padding-box origin to convert viewport
     // coords -> dialog-relative coords (else the popover lands far off).
-    const host = pop.offsetParent || document.getElementById('tileDialog') || document.body;
     const hr = host.getBoundingClientRect();
     const ox = hr.left + (host.clientLeft || 0), oy = hr.top + (host.clientTop || 0);
     const r = anchor.getBoundingClientRect();
@@ -961,6 +979,49 @@
     dlgSyncRows();
     el.dlg.returnValue = '';
     el.dlg.showModal();
+  }
+
+  // ---- dedicated note editor (separate from the big tile dialog) -----------
+  function noteSyncRows() {
+    const check = document.getElementById('nMode').value === 'check';
+    document.getElementById('nTextRow').style.display  = check ? 'none' : '';
+    document.getElementById('nItemsRow').style.display = check ? '' : 'none';
+  }
+  function setupNoteDialog() {
+    el.noteDlg = document.getElementById('noteDialog');
+    attachIconField(document.getElementById('nIcon'));
+    document.getElementById('nMode').addEventListener('change', noteSyncRows);
+    el.noteDlg.addEventListener('close', () => {
+      const id = noteEditId; noteEditId = null;
+      if (el.noteDlg.returnValue !== 'ok' || !id) return;
+      const t = tiles[id]; if (!t) return;
+      t.hideHeader = !document.getElementById('nHeader').checked;
+      t.label = document.getElementById('nTitle').value.trim();
+      t.icon  = document.getElementById('nIcon').dataset.icon || '';
+      t.noteMode = document.getElementById('nMode').value;
+      if (t.noteMode === 'check') {
+        const prev = t.items || [];
+        t.items = document.getElementById('nItems').value.split('\n').map(s => s.trim()).filter(Boolean)
+          .map(text => ({ text, done: (prev.find(p => p.text === text) || {}).done || false })); // keep ticks for unchanged lines
+      } else {
+        t.text = document.getElementById('nText').value;
+      }
+      rebuildTileContent(id);
+      save();                                       // normal mode has no Save button -> persist now
+    });
+  }
+  function openNoteDialog(id) {
+    const t = tiles[id]; if (!t) return;
+    noteEditId = id;
+    document.getElementById('nHeader').checked = !t.hideHeader;
+    document.getElementById('nTitle').value = t.label || '';
+    setIconBtn(document.getElementById('nIcon'), t.icon || '');
+    document.getElementById('nMode').value = t.noteMode || 'text';
+    document.getElementById('nText').value = t.text || '';
+    document.getElementById('nItems').value = (t.items || []).map(it => it.text).join('\n');
+    noteSyncRows();
+    el.noteDlg.returnValue = '';
+    el.noteDlg.showModal();
   }
 
   // ---- settings ------------------------------------------------------------

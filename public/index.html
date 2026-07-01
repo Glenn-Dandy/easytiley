@@ -111,6 +111,36 @@
     </form>
   </dialog>
 
+  <!-- Dedicated note editor (opens on tapping a note in normal mode) -->
+  <dialog id="noteDialog">
+    <form method="dialog">
+      <h3>Notiz bearbeiten</h3>
+      <label class="lopt"><input type="checkbox" id="nHeader" checked> Titel anzeigen</label>
+      <label>Titel
+        <span class="label-row">
+          <input id="nTitle" placeholder="Titel">
+          <button type="button" id="nIcon" class="icon-pick-btn" data-ph="Icon"></button>
+        </span>
+      </label>
+      <label>Modus
+        <select id="nMode">
+          <option value="text">Text</option>
+          <option value="check">Checkliste</option>
+        </select>
+      </label>
+      <label id="nTextRow">Text
+        <textarea id="nText" rows="6" placeholder="Freier Text…"></textarea>
+      </label>
+      <label id="nItemsRow">Punkte – eine Zeile pro Punkt
+        <textarea id="nItems" rows="6" placeholder="Milch&#10;Eier&#10;Brot"></textarea>
+      </label>
+      <menu>
+        <button value="cancel" class="btn">Abbrechen</button>
+        <button value="ok" class="btn btn-primary">Übernehmen</button>
+      </menu>
+    </form>
+  </dialog>
+
   <!-- Settings dialog -->
   <dialog id="settingsDialog">
     <form method="dialog" id="settingsForm">

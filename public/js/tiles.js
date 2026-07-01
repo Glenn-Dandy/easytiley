@@ -310,10 +310,19 @@ const Tiles = (() => {
           </div>`;
         break;
       }
-      case 'note': {     // local free-text note, no FHEM; text stored in the layout
+      case 'note': {     // local note, no FHEM; text or checklist, stored in the layout
         el.classList.add('tile-rich', 'tile-note');
-        el.innerHTML = EDIT + header(tile) + '<div class="note-body"></div>';
-        el.querySelector('.note-body').textContent = tile.text || '';   // textContent: safe + keeps newlines
+        if ((tile.noteMode || 'text') === 'check') {
+          el.classList.add('tile-check');
+          const items = tile.items || [];
+          el.innerHTML = EDIT + header(tile) + '<div class="note-body check-list">' +
+            items.map((it, i) => `<label class="chk-item${it.done ? ' done' : ''}"><input type="checkbox" data-i="${i}"${it.done ? ' checked' : ''}><span></span></label>`).join('') +
+            '</div>';
+          el.querySelectorAll('.chk-item > span').forEach((s, i) => { s.textContent = items[i].text; }); // textContent: XSS-safe
+        } else {
+          el.innerHTML = EDIT + header(tile) + '<div class="note-body"></div>';
+          el.querySelector('.note-body').textContent = tile.text || '';   // textContent: safe + keeps newlines
+        }
         break;
       }
       case 'label': {   // standalone bold text label (no device); icon optional
