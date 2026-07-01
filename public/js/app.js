@@ -10,7 +10,7 @@
   const el = {};
   // 24-column grid (finer snap than the old 12). Sizes are in those finer units.
   const GRID_GEN = 2;                 // bump when the column resolution changes
-  const COLS = 24;
+  const COLS = 23;
   const DEFAULT_SIZE = {
     value:  { w: 4, h: 4 }, switch: { w: 4, h: 4 }, dimmer: { w: 6, h: 4 },
     color:  { w: 4, h: 4 }, light: { w: 6, h: 6 }, readingsgroup: { w: 24, h: 8 },
@@ -276,7 +276,7 @@
   // Zoom the whole grid (built at REF px) down to fit the viewport, so the same
   // layout renders identically — just smaller — on tablet vs laptop. Edit mode
   // stays 1:1 so GridStack drag math is exact.
-  const REF = 1280;
+  const REF = 1227;   // 23 columns × ~53.3px cell (was 24×… = 1280); one raster narrower, same cell size
   function applyScale() {
     const main = document.querySelector('main');
     if (!main || !grid) return;

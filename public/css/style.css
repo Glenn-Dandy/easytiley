@@ -186,7 +186,7 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .tile-button .t-name, .tile-status .t-name, .tile-value .t-name { font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--muted); }
 
 /* value/sensor card: big value centered, small label at the bottom */
-.tile-value .va-body { flex: 1; display: flex; align-items: baseline; justify-content: center; gap: 4px; min-height: 0; }
+.tile-value .va-body { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 0; }
 .tile-value .va-val { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tile-value .va-unit { font-size: 14px; font-weight: 700; color: var(--muted); }
