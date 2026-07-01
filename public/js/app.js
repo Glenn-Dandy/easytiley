@@ -18,6 +18,7 @@
     clock:  { w: 3, h: 3 },   // also the min size (see addWidget)
     note:   { w: 6, h: 5 },
     weather:{ w: 12, h: 8 },
+    thermostat: { w: 5, h: 6 },
   };
 
   // ---- init ----------------------------------------------------------------
@@ -709,6 +710,7 @@
     document.getElementById('rowNote').style.display    = t === 'note'   ? '' : 'none';
     document.getElementById('rowWeatherHint').style.display = t === 'weather' ? '' : 'none';
     document.getElementById('rowWeather').style.display = t === 'weather' ? '' : 'none';
+    document.getElementById('rowThermo').style.display  = t === 'thermostat' ? '' : 'none';
     document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
     document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
   }
@@ -919,6 +921,7 @@
       dlgSyncRows(); applyDefaults();
       if (type.value === 'button') { renderCmdSetList(dev.value); if (!document.querySelector('#cmdRows .cmd-row')) addCmdRow(); }
       if (type.value === 'light')  initLightOpts();
+      if (type.value === 'thermostat') fillThermoAuto(deviceCache.find(x => x.name === dev.value), false);
       if (type.value === 'weather' && !dev.value) {   // default to the PROPLANTA device
         const w = deviceCache.find(d => /proplanta|weather/i.test(d.type || ''));
         if (w) { dev.value = w.name; dev.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -935,6 +938,7 @@
       applyDefaults();
       if (type.value === 'button') renderCmdSetList(dev.value);
       if (type.value === 'light')  document.getElementById('lRgbCmd').value = pickColor(d);
+      if (type.value === 'thermostat') fillThermoAuto(d, true);   // device changed -> overwrite
     });
 
     document.getElementById('tileForm').addEventListener('submit', e => {
@@ -968,10 +972,11 @@
         btnDisplay = document.getElementById('btnDisplay').value;
       }
       if (t === 'weather') sources = collectWeatherSources();
+      const thermo = t === 'thermostat' ? collectThermo() : null;
 
       const cfg = {
         type: t, device, setcmd, colorcmd, buttons, btnDisplay, sources, ctcmd, useRgb, useCt, ctMin, ctMax,
-        useDim, dimcmd, dimReading,
+        useDim, dimcmd, dimReading, ...(thermo || {}),
         icon: document.getElementById('tIconField').dataset.icon || '',
         iconColor: document.getElementById('tIconColor').dataset.color || '',
         hideHeader: !document.getElementById('tHeader').checked,
@@ -1016,6 +1021,49 @@
     return { setcmd, reading };
   }
 
+  // ---- thermostat: auto-detect readings/commands across HM / MAX / HmIP -----
+  function autoThermo(d) {
+    const rds = (d && d.readings) || [], sets = (d && d.sets) || [];
+    const pick = cands => cands.find(c => rds.includes(c)) || '';
+    const actual  = pick(['measured-temp', 'temperature', 'ACTUAL_TEMPERATURE', 'temp']);
+    const desired = pick(['desired-temp', 'desiredTemperature', 'SET_POINT_TEMPERATURE', 'desired']);
+    const setcmd  = ['desired-temp', 'desiredTemperature', 'desired'].find(c => sets.includes(c)) || desired || 'desired-temp';
+    const valve   = pick(['valveposition', 'ValveState', 'valve', 'valvePosition', 'LEVEL']);
+    const battery = pick(['batteryLevel', 'battery', 'batteryPercent', 'BATTERY_STATE']);
+    const mode    = pick(['controlMode', 'mode', 'SET_POINT_MODE']);
+    return { actual, desired, setcmd, valve, battery, mode };
+  }
+  const thF = id => document.getElementById(id);
+  // Fill the thermostat config fields. `force` overwrites (device change);
+  // otherwise only empty fields are auto-filled (don't clobber manual edits).
+  function fillThermoAuto(d, force) {
+    if (!d) return;
+    const a = autoThermo(d);
+    const put = (id, v) => { const e = thF(id); if (e && (force || !e.value.trim())) e.value = v || ''; };
+    put('tThActual', a.actual); put('tThDesired', a.desired); put('tThSet', a.setcmd);
+    put('tThValve', a.valve);   put('tThBattery', a.battery); put('tThMode', a.mode);
+    put('tThModeCmd', a.mode);
+  }
+  function fillThermo(t) {                                      // from a stored tile
+    thF('tThStep').value    = t.tstep != null ? t.tstep : 0.5;
+    thF('tThActual').value  = t.taReading || '';
+    thF('tThDesired').value = t.tdReading || '';
+    thF('tThSet').value     = t.tsetCmd   || '';
+    thF('tThValve').value   = t.tvReading || '';
+    thF('tThBattery').value = t.tbReading || '';
+    thF('tThMode').value    = t.tmReading || '';
+    thF('tThModeCmd').value = t.tmodeCmd  || '';
+  }
+  function collectThermo() {
+    const g = id => thF(id).value.trim();
+    return {
+      taReading: g('tThActual'), tdReading: g('tThDesired'), tsetCmd: g('tThSet'),
+      tstep: parseFloat(thF('tThStep').value) || 0.5,
+      tvReading: g('tThValve'), tbReading: g('tThBattery'),
+      tmReading: g('tThMode'),  tmodeCmd: g('tThModeCmd'),
+    };
+  }
+
   // Which colour set-command the device supports (rgb hex, hsv, or color); rgb default.
   function pickColor(d) {
     const sets = (d && d.sets) || [];
@@ -1056,6 +1104,7 @@
     setIconBtn(document.getElementById('tIconField'), t.icon || '');
     setColorBtn(document.getElementById('tIconColor'), t.iconColor || '');
     if (t.type === 'weather') fillWeatherSources(t.sources);
+    if (t.type === 'thermostat') fillThermo(t);
     if (t.type === 'button') {
       document.getElementById('btnDisplay').value = t.btnDisplay || 'text';
       document.getElementById('cmdRows').innerHTML = '';

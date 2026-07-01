@@ -18,6 +18,7 @@ const Tiles = (() => {
     clock:        svg('<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>'),                 // clock
     note:         svg('<path d="M4 4h16v11l-5 5H4z"/><path d="M20 14h-6v6"/><path d="M8 9h8M8 13h5"/>'), // note
     weather:      svg('<circle cx="9" cy="8.5" r="3"/><path d="M9 2.5v1.3M3.5 8.5H2.2M13.8 3.7l-.9.9M5 12.5l-.9.9M4.1 3.7l.9.9"/><path d="M17.5 20a3 3 0 0 0 0-6 4.2 4.2 0 0 0-8-1.1"/><path d="M7 20h10.5"/>'), // sun+cloud
+    thermostat:   svg('<circle cx="12" cy="12" r="9"/><path d="M12 12l3-3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>'), // dial
   };
   const ICON_DEFAULT = svg('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 
@@ -369,6 +370,44 @@ const Tiles = (() => {
           '<div class="wx-fc"></div>';
         break;
       }
+      case 'thermostat': {   // universal heating thermostat: big Ist, Soll with −/+, modes, valve+battery
+        el.classList.add('tile-rich', 'tile-thermo');
+        const step   = parseFloat(tile.tstep) || 0.5;
+        const setcmd = tile.tsetCmd || tile.tdReading || 'desired-temp';
+        const modeCmd = tile.tmodeCmd || tile.tmReading || 'controlMode';
+        // Mode buttons only when a mode reading is configured (auto-detected). Value
+        // is the loose match token for glow ("manu" matches "manual" and vice versa).
+        const modes  = tile.tmReading ? [['Auto', 'auto', 'auto'], ['Manuell', 'manual', 'manu'], ['Boost', 'boost', 'boost']] : [];
+        el.innerHTML = EDIT + header(tile) +
+          '<div class="th-main">' +
+            '<div class="th-actual"><b class="th-av">–</b><span class="th-u">°</span></div>' +
+            '<div class="th-setrow">' +
+              '<button type="button" class="th-step th-dn" title="kühler">−</button>' +
+              '<div class="th-desired" data-val=""><b class="th-dv">–</b><span class="th-u">°</span></div>' +
+              '<button type="button" class="th-step th-up" title="wärmer">+</button>' +
+            '</div>' +
+          '</div>' +
+          (modes.length ? '<div class="th-modes">' + modes.map(([lbl, arg, val]) =>
+              `<button type="button" class="th-mode" data-arg="${arg}" data-val="${val}">${lbl}</button>`).join('') + '</div>' : '') +
+          '<div class="th-foot"></div>';
+        const fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
+        const desired = el.querySelector('.th-desired'), dvEl = el.querySelector('.th-dv');
+        const bump = dir => {
+          let cur = parseFloat(desired.dataset.val); if (isNaN(cur)) cur = 20;
+          let nv = Math.round((cur + dir * step) / step) * step;      // snap to the step grid
+          nv = Math.min(30, Math.max(5, Math.round(nv * 10) / 10));   // sane bounds, kill fp noise
+          onAction(tile, setcmd + ' ' + nv);
+          desired.dataset.val = nv; dvEl.textContent = fmt(nv);       // optimistic until the reading confirms
+        };
+        el.querySelector('.th-dn').addEventListener('click', e => { e.stopPropagation(); bump(-1); });
+        el.querySelector('.th-up').addEventListener('click', e => { e.stopPropagation(); bump(1); });
+        el.querySelectorAll('.th-mode').forEach(m => m.addEventListener('click', e => {
+          e.stopPropagation();
+          onAction(tile, modeCmd + ' ' + m.dataset.arg);
+          el.querySelectorAll('.th-mode').forEach(o => o.classList.toggle('active', o === m)); // optimistic
+        }));
+        break;
+      }
       case 'label': {   // standalone bold text label (no device); icon optional
         el.classList.add('tile-label');
         const g   = (tile.icon && tile.icon !== 'none') ? iconHtml(tile.icon) : '';
@@ -478,6 +517,38 @@ const Tiles = (() => {
                 '<div class="hl"><b>' + (hi != null ? hi + '°' : '–') + '</b> <span class="lo">' + (lo != null ? lo + '°' : '') + '</span></div></div>';
         }
         set('.wx-fc', fc);
+        break;
+      }
+      case 'thermostat': {
+        const num = x => (x == null || x === '' || isNaN(parseFloat(x))) ? null : parseFloat(x);
+        const fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
+        const rd  = k => devReading(dev, k);
+        const a = num(rd(tile.taReading || 'measured-temp'));
+        const av = el.querySelector('.th-av'); if (av) av.textContent = a != null ? fmt(Math.round(a * 10) / 10) : '–';
+        const d = num(rd(tile.tdReading || 'desired-temp'));
+        const desired = el.querySelector('.th-desired'), dv = el.querySelector('.th-dv');
+        if (d != null && desired) { desired.dataset.val = d; if (dv) dv.textContent = fmt(d); }
+        if (tile.tmReading) {                                       // glow the active mode
+          const mv = String(rd(tile.tmReading) ?? '').toLowerCase();
+          el.querySelectorAll('.th-mode').forEach(m => {
+            const t = m.dataset.val;
+            m.classList.toggle('active', !!mv && (mv === t || mv.startsWith(t.slice(0, 4))));
+          });
+        }
+        const foot = el.querySelector('.th-foot');
+        if (foot) {                                                 // dezent: valve % + battery, only if present
+          const parts = [];
+          const vv = tile.tvReading ? num(rd(tile.tvReading)) : null;
+          if (vv != null) parts.push('<span class="th-fi">' + iconHtml('heating') + Math.round(vv) + '%</span>');
+          const bRaw = tile.tbReading ? rd(tile.tbReading) : null;
+          if (bRaw != null && bRaw !== '') {
+            const bn = num(bRaw);
+            const low = /^(low|nok|err|critical|empty)$/i.test(String(bRaw)) || (bn != null && bn <= 15);
+            parts.push('<span class="th-fi' + (low ? ' th-low' : '') + '">' + iconHtml('battery') +
+                       esc(bRaw) + (bn != null ? '%' : '') + '</span>');
+          }
+          foot.innerHTML = parts.join('');
+        }
         break;
       }
       // group / readingsgroup / label: no device state line

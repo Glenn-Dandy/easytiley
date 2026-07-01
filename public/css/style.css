@@ -288,6 +288,35 @@ body.editing .chk-item input { pointer-events: none; } /* don't toggle while arr
 .tile-weather .wx-day .hl b { font-weight: 800; }
 .tile-weather .wx-day .lo { color: var(--muted); }
 
+/* thermostat: big Ist temp, Soll with −/+ steppers, mode buttons, dezent valve+battery */
+.tile-thermo { gap: 8px; }
+.tile-thermo .th-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: 1; }
+.tile-thermo .th-actual { font-weight: 800; line-height: 1; display: flex; align-items: flex-start; }
+.tile-thermo .th-actual .th-av { font-size: 34px; }
+.tile-thermo .th-actual .th-u { font-size: 18px; color: var(--muted); margin-top: 2px; }
+.tile-thermo .th-setrow { display: flex; align-items: center; gap: 8px; }
+.tile-thermo .th-step { width: 40px; height: 40px; border-radius: 12px; flex: 0 0 auto;
+  background: var(--btn-bg); color: var(--text); border: 1px solid var(--stroke);
+  font-size: 22px; font-weight: 700; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.tile-thermo .th-step:hover { border-color: var(--accent); color: var(--accent); }
+.tile-thermo .th-desired { min-width: 58px; text-align: center; font-weight: 800; color: var(--on); }
+.tile-thermo .th-desired .th-dv { font-size: 24px; }
+.tile-thermo .th-desired .th-u { font-size: 14px; }
+.tile-thermo .th-modes { display: flex; gap: 6px; }
+.tile-thermo .th-mode { flex: 1; padding: 8px 4px; border-radius: 10px; font-size: 12px; font-weight: 700;
+  background: var(--btn-bg); color: var(--text); border: 1px solid var(--stroke); cursor: pointer; }
+.tile-thermo .th-mode:hover { border-color: var(--accent); }
+.tile-thermo .th-mode.active { background: color-mix(in srgb, var(--accent) 22%, var(--card));
+  border-color: var(--accent); box-shadow: 0 0 16px -5px var(--accent); }
+.tile-thermo .th-foot { display: flex; gap: 14px; font-size: 12px; color: var(--muted); min-height: 16px; }
+.tile-thermo .th-fi { display: inline-flex; align-items: center; gap: 5px; }
+.tile-thermo .th-fi svg { width: 15px; height: 15px; }
+.tile-thermo .th-low { color: #ff6b6b; }
+/* thermostat config: advanced (readings/commands) collapsible */
+#rowThermo .th-adv { margin-top: 8px; }
+#rowThermo .th-adv summary { cursor: pointer; font-size: 13px; color: var(--muted); font-weight: 600; }
+#rowThermo .th-adv label { display: block; margin-top: 8px; font-size: 13px; }
+
 /* standalone text label: left-aligned bold text at device-name size, icon optional */
 .tile-label .row { gap: 9px; }
 .tile-label .chip { width: 27px; height: 27px; min-width: 27px; border-radius: 8px; background: transparent; color: var(--accent); }

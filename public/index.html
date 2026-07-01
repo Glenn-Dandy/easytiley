@@ -36,6 +36,7 @@
             <option value="light">Licht (an/aus + RGB + CT)</option>
             <option value="readingsgroup">readingsGroup</option>
             <option value="button">Button(s) / Set-Befehle</option>
+            <option value="thermostat">Thermostat / Heizung</option>
             <option value="weather">Wetter</option>
           </optgroup>
           <optgroup label="Ohne FHEM">
@@ -63,6 +64,23 @@
       <label class="row-extra" id="rowReading">Reading
         <input name="reading" id="tReading" placeholder="z.B. state, temperature" autocomplete="off">
       </label>
+
+      <div class="row-extra" id="rowThermo">
+        <label>Schrittweite
+          <input id="tThStep" type="number" step="0.5" min="0.5" value="0.5">
+        </label>
+        <details class="th-adv">
+          <summary>Erweitert – Readings &amp; Befehle</summary>
+          <p class="hint">Werden beim Gerät-Auswählen automatisch erkannt – nur bei Bedarf anpassen.</p>
+          <label>Ist-Temperatur (Reading) <input id="tThActual" autocomplete="off"></label>
+          <label>Soll-Temperatur (Reading) <input id="tThDesired" autocomplete="off"></label>
+          <label>Soll setzen (Befehl) <input id="tThSet" autocomplete="off"></label>
+          <label>Ventil (Reading) <input id="tThValve" autocomplete="off" placeholder="optional"></label>
+          <label>Batterie (Reading) <input id="tThBattery" autocomplete="off" placeholder="optional"></label>
+          <label>Modus (Reading) <input id="tThMode" autocomplete="off" placeholder="optional – blendet Modus-Tasten ein"></label>
+          <label>Modus setzen (Befehl) <input id="tThModeCmd" autocomplete="off" placeholder="controlMode"></label>
+        </details>
+      </div>
 
       <label>Beschriftung
         <span class="label-row">
