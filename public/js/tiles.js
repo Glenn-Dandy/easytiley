@@ -429,7 +429,9 @@ const Tiles = (() => {
       }
       case 'value': {   // big value centered, small label (chip + name) at the bottom
         el.classList.add('tile-rich');
-        el.innerHTML = EDIT + '<div class="va-body"><span class="va-val">–</span><span class="va-unit"></span></div>';
+        // Title on -> header top + value below; title off -> value fully centered.
+        el.innerHTML = EDIT + (tile.hideHeader ? '' : header(tile)) +
+          '<div class="va-body"><span class="va-val">–</span><span class="va-unit"></span></div>';
         break;
       }
       default: // sensor / unknown -> plain header card
