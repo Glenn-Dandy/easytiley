@@ -316,7 +316,10 @@ body.editing .chk-item input { pointer-events: none; } /* don't toggle while arr
 .tile-thermo .th-low { color: #ff6b6b; }
 /* thermostat config: advanced (readings/commands) collapsible */
 #rowThermo .th-adv { margin-top: 8px; }
-#rowThermo .th-adv summary { cursor: pointer; font-size: 13px; color: var(--muted); font-weight: 600; }
+#rowThermo .th-adv[open] { max-height: 46vh; overflow-y: auto; overscroll-behavior: contain; }
+#rowThermo .th-adv summary { cursor: pointer; font-size: 13px; color: var(--muted); font-weight: 600;
+  position: sticky; top: 0; background: var(--panel); padding: 4px 0; z-index: 1; }
+body.theme-clean #rowThermo .th-adv summary { background: #fff; }
 #rowThermo .th-adv label { display: block; margin-top: 8px; font-size: 13px; }
 
 /* standalone text label: left-aligned bold text at device-name size, icon optional */

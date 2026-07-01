@@ -395,6 +395,8 @@ const Tiles = (() => {
           nv = Math.min(30, Math.max(5, Math.round(nv * 10) / 10));   // sane bounds, kill fp noise
           onAction(tile, setcmd + ' ' + nv);
           desired.dataset.val = nv; dvEl.textContent = fmt(nv);       // optimistic until the reading confirms
+          desired.dataset.pending = nv;                               // hold it; ignore stale reads until FHEM catches up
+          desired.dataset.pendingTs = Date.now();
         };
         el.querySelector('.th-dn').addEventListener('click', e => { e.stopPropagation(); bump(-1); });
         el.querySelector('.th-up').addEventListener('click', e => { e.stopPropagation(); bump(1); });
@@ -402,6 +404,7 @@ const Tiles = (() => {
           e.stopPropagation();
           onAction(tile, modeCmd + ' ' + m.dataset.arg);
           el.querySelectorAll('.th-mode').forEach(o => o.classList.toggle('active', o === m)); // optimistic
+          el.dataset.modePending = m.dataset.val; el.dataset.modePendingTs = Date.now();
         }));
         break;
       }
@@ -524,13 +527,27 @@ const Tiles = (() => {
         const av = el.querySelector('.th-av'); if (av) av.textContent = a != null ? fmt(Math.round(a * 10) / 10) : '–';
         const d = num(rd(tile.tdReading || 'desired-temp'));
         const desired = el.querySelector('.th-desired'), dv = el.querySelector('.th-dv');
-        if (d != null && desired) { desired.dataset.val = d; if (dv) dv.textContent = fmt(d); }
+        if (d != null && desired) {
+          const pend = parseFloat(desired.dataset.pending);         // a just-sent value we're waiting on
+          const waiting = !isNaN(pend) && desired.dataset.pendingTs &&
+                          (Date.now() - +desired.dataset.pendingTs < 20000) && Math.abs(d - pend) > 0.01;
+          if (!waiting) {                                           // reading confirmed (or timed out): trust it
+            if (!isNaN(pend)) { delete desired.dataset.pending; delete desired.dataset.pendingTs; }
+            desired.dataset.val = d; if (dv) dv.textContent = fmt(d);
+          }
+        }
         if (tile.tmReading) {                                       // glow the active mode
           const mv = String(rd(tile.tmReading) ?? '').toLowerCase();
-          el.querySelectorAll('.th-mode').forEach(m => {
-            const t = m.dataset.val;
-            m.classList.toggle('active', !!mv && (mv === t || mv.startsWith(t.slice(0, 4))));
-          });
+          const mp = el.dataset.modePending;
+          const mWait = mp && el.dataset.modePendingTs && (Date.now() - +el.dataset.modePendingTs < 20000) &&
+                        !(mv && (mv === mp || mv.startsWith(mp.slice(0, 4))));
+          if (!mWait) {
+            if (mp) { delete el.dataset.modePending; delete el.dataset.modePendingTs; }
+            el.querySelectorAll('.th-mode').forEach(m => {
+              const t = m.dataset.val;
+              m.classList.toggle('active', !!mv && (mv === t || mv.startsWith(t.slice(0, 4))));
+            });
+          }
         }
         const foot = el.querySelector('.th-foot');
         if (foot) {                                                 // dezent: valve % + battery, only if present
