@@ -375,20 +375,17 @@ const Tiles = (() => {
         const step   = parseFloat(tile.tstep) || 0.5;
         const setcmd = tile.tsetCmd || tile.tdReading || 'desired-temp';
         const modeCmd = tile.tmodeCmd || tile.tmReading || 'controlMode';
-        // Mode buttons only when a mode reading is configured (auto-detected). Value
-        // is the loose match token for glow ("manu" matches "manual" and vice versa).
-        const modes  = tile.tmReading ? [['Auto', 'auto', 'auto'], ['Manuell', 'manual', 'manu'], ['Boost', 'boost', 'boost']] : [];
+        // Value is the loose match token for glow ("manu" matches "manual" and back).
+        const modes  = [['Auto', 'auto', 'auto'], ['Manuell', 'manual', 'manu'], ['Boost', 'boost', 'boost']];
         el.innerHTML = EDIT + header(tile) +
-          '<div class="th-main">' +
-            '<div class="th-actual"><b class="th-av">–</b><span class="th-u">°</span></div>' +
-            '<div class="th-setrow">' +
-              '<button type="button" class="th-step th-dn" title="kühler">−</button>' +
-              '<div class="th-desired" data-val=""><b class="th-dv">–</b><span class="th-u">°</span></div>' +
-              '<button type="button" class="th-step th-up" title="wärmer">+</button>' +
-            '</div>' +
+          '<div class="th-actual"><b class="th-av">–</b><span class="th-u">°</span></div>' +
+          '<div class="th-setrow">' +
+            '<button type="button" class="th-step th-dn" title="kühler">−</button>' +
+            '<div class="th-desired" data-val=""><b class="th-dv">–</b><span class="th-u">°</span></div>' +
+            '<button type="button" class="th-step th-up" title="wärmer">+</button>' +
           '</div>' +
-          (modes.length ? '<div class="th-modes">' + modes.map(([lbl, arg, val]) =>
-              `<button type="button" class="th-mode" data-arg="${arg}" data-val="${val}">${lbl}</button>`).join('') + '</div>' : '') +
+          '<div class="th-modes">' + modes.map(([lbl, arg, val]) =>
+              `<button type="button" class="th-mode" data-arg="${arg}" data-val="${val}">${lbl}</button>`).join('') + '</div>' +
           '<div class="th-foot"></div>';
         const fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
         const desired = el.querySelector('.th-desired'), dvEl = el.querySelector('.th-dv');
@@ -539,12 +536,12 @@ const Tiles = (() => {
         if (foot) {                                                 // dezent: valve % + battery, only if present
           const parts = [];
           const vv = tile.tvReading ? num(rd(tile.tvReading)) : null;
-          if (vv != null) parts.push('<span class="th-fi">' + iconHtml('heating') + Math.round(vv) + '%</span>');
+          if (vv != null) parts.push('<span class="th-fi th-valve" title="Ventil">' + iconHtml('heating') + Math.round(vv) + '%</span>');
           const bRaw = tile.tbReading ? rd(tile.tbReading) : null;
           if (bRaw != null && bRaw !== '') {
             const bn = num(bRaw);
             const low = /^(low|nok|err|critical|empty)$/i.test(String(bRaw)) || (bn != null && bn <= 15);
-            parts.push('<span class="th-fi' + (low ? ' th-low' : '') + '">' + iconHtml('battery') +
+            parts.push('<span class="th-fi th-bat' + (low ? ' th-low' : '') + '" title="Batterie">' + iconHtml('battery') +
                        esc(bRaw) + (bn != null ? '%' : '') + '</span>');
           }
           foot.innerHTML = parts.join('');
