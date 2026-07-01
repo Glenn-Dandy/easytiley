@@ -423,6 +423,11 @@
     const item = grid.el.querySelector(`.grid-stack-item[gs-id="${id}"]`);
     if (!item) return;
     item.replaceChild(Tiles.build(tiles[id], onAction), item.querySelector('.grid-stack-item-content'));
+    if (editMode) {                         // swapping the content drops GridStack's drag handle -> re-arm it
+      const g = (item.gridstackNode && item.gridstackNode.grid) || grid;
+      g.movable(item, true);
+      g.resizable(item, true);
+    }
   }
 
   // Split a merged card back into standalone tiles at its old spot.
