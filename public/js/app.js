@@ -422,12 +422,12 @@
     }
     const item = grid.el.querySelector(`.grid-stack-item[gs-id="${id}"]`);
     if (!item) return;
-    item.replaceChild(Tiles.build(tiles[id], onAction), item.querySelector('.grid-stack-item-content'));
-    if (editMode) {                         // swapping the content drops GridStack's drag handle -> re-arm it
-      const g = (item.gridstackNode && item.gridstackNode.grid) || grid;
-      g.movable(item, true);
-      g.resizable(item, true);
-    }
+    // Update in place: keep the same .grid-stack-item-content node so GridStack's
+    // drag/resize handle binding survives (replacing the whole node breaks dragging).
+    const content = item.querySelector('.grid-stack-item-content');
+    const built = Tiles.build(tiles[id], onAction);   // a fresh .grid-stack-item-content
+    content.className = built.className;               // pick up tile-type / no-head class changes
+    content.replaceChildren(...built.childNodes);      // move children (with their listeners) over
   }
 
   // Split a merged card back into standalone tiles at its old spot.
