@@ -19,6 +19,7 @@ const Tiles = (() => {
     note:         svg('<path d="M4 4h16v11l-5 5H4z"/><path d="M20 14h-6v6"/><path d="M8 9h8M8 13h5"/>'), // note
     weather:      svg('<circle cx="9" cy="8.5" r="3"/><path d="M9 2.5v1.3M3.5 8.5H2.2M13.8 3.7l-.9.9M5 12.5l-.9.9M4.1 3.7l.9.9"/><path d="M17.5 20a3 3 0 0 0 0-6 4.2 4.2 0 0 0-8-1.1"/><path d="M7 20h10.5"/>'), // sun+cloud
     thermostat:   svg('<circle cx="12" cy="12" r="9"/><path d="M12 12l3-3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>'), // dial
+    status:       svg('<circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>'),                 // check in circle
   };
   const ICON_DEFAULT = svg('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 
@@ -35,7 +36,10 @@ const Tiles = (() => {
     ['energy',    'Energie',        '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'],
     ['door',      'Tür',            '<path d="M6 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17"/><path d="M4 21h16"/><circle cx="14" cy="12" r="1" fill="currentColor" stroke="none"/>'],
     ['garage',    'Garagentor',     '<path d="M3 21V10l9-5 9 5v11"/><path d="M6 21v-7h12v7"/><path d="M6 17h12"/>'],
-    ['window',    'Fenster',        '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/>'],
+    ['window',        'Fenster',        '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/>'],
+    ['window-closed', 'Fenster zu',     '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/>'],
+    ['window-open',   'Fenster offen',  '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18"/><path d="M12 5l7 2v10l-7 2z"/>'],
+    ['window-tilt',   'Fenster gekippt','<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18"/><path d="M4 13l16-5v3L4 16z"/>'],
     ['lock',      'Schloss zu',     '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'],
     ['lockopen',  'Schloss auf',    '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>'],
     ['shutter',   'Rollladen',      '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 8h16M4 12h16M4 16h16"/>'],
@@ -408,6 +412,13 @@ const Tiles = (() => {
         }));
         break;
       }
+      case 'status': {   // reading value -> big centered icon + label (read-only status)
+        el.classList.add('tile-rich', 'tile-status');
+        const title = tile.hideHeader ? '' : `<div class="st-title">${esc(tile.label || tile.device || '')}</div>`;
+        el.innerHTML = EDIT + title +
+          '<div class="st-body"><div class="st-ico"></div><div class="st-lbl"></div></div>';
+        break;
+      }
       case 'label': {   // standalone bold text label (no device); icon optional
         el.classList.add('tile-label');
         const g   = (tile.icon && tile.icon !== 'none') ? iconHtml(tile.icon) : '';
@@ -461,6 +472,22 @@ const Tiles = (() => {
       case 'dimmer': setSlider(el, '.ldim', v); break;
       case 'color':  if (v != null) paintColor(el, v); break;
       case 'value':  if (state) state.textContent = v != null ? (v + (tile.unit ? ' ' + tile.unit : '')) : '–'; break;
+      case 'status': {
+        const rv = String(v ?? '');
+        const norm = s => String(s ?? '').trim().toLowerCase();
+        const rules = tile.statusMap || [];
+        let rule = rules.find(r => r.val && norm(r.val) === norm(rv));  // exact value match
+        if (!rule) rule = rules.find(r => !r.val);                      // "Standard/sonst" catch-all row
+        const icoEl = el.querySelector('.st-ico'), lblEl = el.querySelector('.st-lbl');
+        if (rule) {
+          if (icoEl) { icoEl.innerHTML = rule.icon ? iconHtml(rule.icon) : iconFor(tile); icoEl.style.color = safeColor(rule.iconColor) || ''; }
+          if (lblEl) lblEl.textContent = rule.label || rv || '–';
+        } else {                                                       // no match, no default: raw value + tile icon
+          if (icoEl) { icoEl.innerHTML = iconFor(tile); icoEl.style.color = safeColor(tile.iconColor) || ''; }
+          if (lblEl) lblEl.textContent = rv || '–';
+        }
+        break;
+      }
       case 'button': {
         const eq = (a, b) => a != null && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
         const tog = el.querySelector('.toggle-btn');

@@ -19,6 +19,7 @@
     note:   { w: 6, h: 5 },
     weather:{ w: 12, h: 8 },
     thermostat: { w: 5, h: 6 },
+    status: { w: 4, h: 4 },
   };
 
   // ---- init ----------------------------------------------------------------
@@ -711,7 +712,8 @@
     document.getElementById('rowWeatherHint').style.display = t === 'weather' ? '' : 'none';
     document.getElementById('rowWeather').style.display = t === 'weather' ? '' : 'none';
     document.getElementById('rowThermo').style.display  = t === 'thermostat' ? '' : 'none';
-    document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
+    document.getElementById('rowStatus').style.display  = t === 'status' ? '' : 'none';
+    document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer' || t === 'status') ? '' : 'none';
     document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
   }
 
@@ -880,6 +882,39 @@
       .filter(b => b.cmd);
   }
 
+  // ---- status tile: reading value -> icon rows (reuses .cmd-row styling, no glow) ----
+  function renderStatusValList() {                   // convenience presets for the value field
+    document.getElementById('statusValList').innerHTML =
+      ['open', 'closed', 'tilted', 'on', 'off', 'present', 'absent', 'locked', 'unlocked', 'motion', 'error']
+        .map(v => `<option value="${esc(v)}">`).join('');
+  }
+  function addStatusRow(val = '', label = '', icon = '', iconColor = '') {
+    const row = document.createElement('div');
+    row.className = 'cmd-row';
+    row.innerHTML =
+      `<input class="cmd-c" list="statusValList" placeholder="Wert, z.B. open (leer=Standard)" value="${esc(val)}">
+       <input class="cmd-l" placeholder="Text (optional)" value="${esc(label)}">
+       <button type="button" class="cmd-ic icon-pick-btn" data-ph="Icon"></button>
+       <button type="button" class="cmd-col color-pick-btn is-std" title="Icon-Farbe"></button>
+       <button type="button" class="cmd-rm" title="Entfernen">✕</button>`;
+    const ic = row.querySelector('.cmd-ic');  setIconBtn(ic, icon);       attachIconField(ic);
+    const co = row.querySelector('.cmd-col'); setColorBtn(co, iconColor); attachColorField(co);
+    row.querySelector('.cmd-rm').addEventListener('click', () => row.remove());
+    document.getElementById('statusRows').appendChild(row);
+  }
+  function collectStatusRows() {
+    return [...document.querySelectorAll('#statusRows .cmd-row')]
+      .map(r => ({ val: r.querySelector('.cmd-c').value.trim(), label: r.querySelector('.cmd-l').value.trim(),
+                   icon: r.querySelector('.cmd-ic').dataset.icon || '', iconColor: r.querySelector('.cmd-col').dataset.color || '' }))
+      .filter(s => s.val || s.icon || s.label);   // keep "Standard" rows that at least set an icon/label
+  }
+  function seedStatusRows() {                        // helpful window defaults on first switch
+    document.getElementById('statusRows').innerHTML = '';
+    addStatusRow('open',   'offen',   'window-open',   '#e0a44c');
+    addStatusRow('tilted', 'gekippt', 'window-tilt',   '#e0a44c');
+    addStatusRow('closed', 'zu',      'window-closed', '#4caf7d');
+  }
+
   function setupDialog() {
     el.dlg = document.getElementById('tileDialog');
     const type = document.getElementById('tType');
@@ -914,12 +949,14 @@
     };
 
     document.getElementById('cmdAdd').addEventListener('click', () => addCmdRow());
+    document.getElementById('statusAdd').addEventListener('click', () => addStatusRow());
     attachIconField(document.getElementById('tIconField'));
     attachColorField(document.getElementById('tIconColor'));
 
     type.addEventListener('change', () => {
       dlgSyncRows(); applyDefaults();
       if (type.value === 'button') { renderCmdSetList(dev.value); if (!document.querySelector('#cmdRows .cmd-row')) addCmdRow(); }
+      if (type.value === 'status') { renderStatusValList(); if (!document.querySelector('#statusRows .cmd-row')) seedStatusRows(); }
       if (type.value === 'light')  initLightOpts();
       if (type.value === 'thermostat') fillThermoAuto(deviceCache.find(x => x.name === dev.value), false);
       if (type.value === 'weather' && !dev.value) {   // default to the PROPLANTA device
@@ -973,10 +1010,11 @@
       }
       if (t === 'weather') sources = collectWeatherSources();
       const thermo = t === 'thermostat' ? collectThermo() : null;
+      const statusMap = t === 'status' ? collectStatusRows() : undefined;
 
       const cfg = {
         type: t, device, setcmd, colorcmd, buttons, btnDisplay, sources, ctcmd, useRgb, useCt, ctMin, ctMax,
-        useDim, dimcmd, dimReading, ...(thermo || {}),
+        useDim, dimcmd, dimReading, statusMap, ...(thermo || {}),
         icon: document.getElementById('tIconField').dataset.icon || '',
         iconColor: document.getElementById('tIconColor').dataset.color || '',
         hideHeader: !document.getElementById('tHeader').checked,
@@ -1076,6 +1114,7 @@
     document.getElementById('dlgTitle').textContent = 'Kachel hinzufügen';
     document.getElementById('tileForm').reset();
     document.getElementById('cmdRows').innerHTML = '';
+    document.getElementById('statusRows').innerHTML = '';
     setIconBtn(document.getElementById('tIconField'), '');
     setColorBtn(document.getElementById('tIconColor'), '');
     document.getElementById('btnDisplay').value = 'text';
@@ -1105,6 +1144,12 @@
     setColorBtn(document.getElementById('tIconColor'), t.iconColor || '');
     if (t.type === 'weather') fillWeatherSources(t.sources);
     if (t.type === 'thermostat') fillThermo(t);
+    if (t.type === 'status') {
+      document.getElementById('statusRows').innerHTML = '';
+      renderStatusValList();
+      (t.statusMap && t.statusMap.length ? t.statusMap : [{}])
+        .forEach(s => addStatusRow(s.val || '', s.label || '', s.icon || '', s.iconColor || ''));
+    }
     if (t.type === 'button') {
       document.getElementById('btnDisplay').value = t.btnDisplay || 'text';
       document.getElementById('cmdRows').innerHTML = '';

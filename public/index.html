@@ -37,6 +37,7 @@
             <option value="readingsgroup">readingsGroup</option>
             <option value="button">Button(s) / Set-Befehle</option>
             <option value="thermostat">Thermostat / Heizung</option>
+            <option value="status">Status (Fenster / Tür / Kontakt)</option>
             <option value="weather">Wetter</option>
           </optgroup>
           <optgroup label="Ohne FHEM">
@@ -64,6 +65,14 @@
       <label class="row-extra" id="rowReading">Reading
         <input name="reading" id="tReading" placeholder="z.B. state, temperature" autocomplete="off">
       </label>
+
+      <div class="row-extra" id="rowStatus">
+        <label>Zustände – Wert&nbsp;→&nbsp;Icon</label>
+        <div id="statusRows"></div>
+        <datalist id="statusValList"></datalist>
+        <button type="button" id="statusAdd" class="btn">+ Zustand</button>
+        <p class="hint">Reading-Wert links (z.&nbsp;B. <code>open</code>) → Icon + Text + Farbe. „Wert" leer = Standard/sonst (Fallback).</p>
+      </div>
 
       <div class="row-extra" id="rowThermo">
         <label>Schrittweite
