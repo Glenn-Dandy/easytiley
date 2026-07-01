@@ -35,10 +35,11 @@ const Tiles = (() => {
     ['humidity',  'Luftfeuchte',    '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/>'],
     ['energy',    'Energie',        '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'],
     ['door',      'Tür',            '<path d="M6 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17"/><path d="M4 21h16"/><circle cx="14" cy="12" r="1" fill="currentColor" stroke="none"/>'],
+    ['door-open', 'Tür offen',      '<path d="M3 21h18"/><path d="M6 6l8-2v17H6z"/><path d="M14 4h4v17"/><circle cx="8.5" cy="12.5" r="1" fill="currentColor" stroke="none"/>'],
     ['garage',    'Garagentor',     '<path d="M3 21V10l9-5 9 5v11"/><path d="M6 21v-7h12v7"/><path d="M6 17h12"/>'],
-    ['window-closed', 'Fenster zu',     '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/>'],
-    ['window-open',   'Fenster offen',  '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18"/><path d="M12 5l7 2v10l-7 2z"/>'],
-    ['window-tilt',   'Fenster gekippt','<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18"/><path d="M4 13l16-5v3L4 16z"/>'],
+    ['window-closed', 'Fenster zu',     '<rect x="4" y="3" width="16" height="18" rx="1.5"/><rect x="7.5" y="6.5" width="9" height="11" rx="1"/>'],
+    ['window-open',   'Fenster offen',  '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M4 5l8 2v10l-8 2z"/>'],
+    ['window-tilt',   'Fenster gekippt','<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M4 12l16-4v2.6L4 14.6z"/>'],
     ['lock',      'Schloss zu',     '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'],
     ['lockopen',  'Schloss auf',    '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>'],
     ['shutter',   'Rollladen',      '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 8h16M4 12h16M4 16h16"/>'],
@@ -488,7 +489,16 @@ const Tiles = (() => {
         break;
       }
       case 'button': {
-        const eq = (a, b) => a != null && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+        // Loose glow-match: equal, or one is a prefix of the other with length diff <= 2.
+        // So an imperative command lights up on its participle reading: lock->locked,
+        // unlock->unlocked, open->opened, close->closed — but not on->online (diff 4).
+        const eq = (a, b) => {
+          if (a == null) return false;
+          const x = String(a).trim().toLowerCase(), y = String(b).trim().toLowerCase();
+          if (x === y) return true;
+          const [s, l] = x.length <= y.length ? [x, y] : [y, x];
+          return s.length >= 2 && l.startsWith(s) && (l.length - s.length) <= 2;
+        };
         const tog = el.querySelector('.toggle-btn');
         if (tog) {
           // Show the icon of whichever state currently matches; glow when matched.

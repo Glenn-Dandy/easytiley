@@ -223,6 +223,11 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .ip-cell:hover { border-color: var(--accent); }
 .ip-cell.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
 .ip-auto { font-size: 11px; font-weight: 700; color: var(--muted); }
+.icon-picker .ip-search { grid-column: 1 / -1; position: sticky; top: -10px; z-index: 1;
+  margin: -10px -10px 4px; padding: 9px 11px; border: none; border-bottom: 1px solid var(--stroke);
+  background: var(--card); color: var(--text); font-size: 13px; border-radius: 12px 12px 0 0; }
+.icon-picker .ip-search::placeholder { color: var(--muted); }
+.icon-picker .ip-search:focus { outline: none; border-bottom-color: var(--accent); }
 
 /* icon colour: swatch button + colour popover */
 .color-pick-btn { flex: 0 0 auto; width: 40px; height: 40px; padding: 0; border-radius: 10px;

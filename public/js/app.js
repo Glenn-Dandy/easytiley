@@ -763,13 +763,23 @@
     const pop = document.createElement('div');
     pop.className = 'icon-picker';
     pop.style.display = 'none';
-    pop.innerHTML = '<button type="button" class="ip-cell ip-auto" data-key="" title="Standard (automatisch)">Auto</button>'
+    pop.innerHTML = '<input type="text" class="ip-search" placeholder="Icon suchen…" autocomplete="off">'
+      + '<button type="button" class="ip-cell ip-auto" data-key="" title="Standard (automatisch)">Auto</button>'
       + '<button type="button" class="ip-cell ip-auto" data-key="none" title="Kein Icon">&#8709;</button>'
-      + Tiles.iconList().map(i => `<button type="button" class="ip-cell" data-key="${i.key}" title="${esc(i.label)}">${i.svg}</button>`).join('');
+      + Tiles.iconList().map(i => `<button type="button" class="ip-cell" data-key="${i.key}" data-label="${esc(i.label.toLowerCase())}" title="${esc(i.label)}">${i.svg}</button>`).join('');
     pop.addEventListener('click', e => {
       const c = e.target.closest('.ip-cell'); if (!c) return;
       if (iconPickerCb) iconPickerCb(c.dataset.key);
       hideIconPicker();
+    });
+    const search = pop.querySelector('.ip-search');
+    search.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });  // don't submit the form
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      pop.querySelectorAll('.ip-cell').forEach(c => {
+        if (c.classList.contains('ip-auto')) { c.style.display = q ? 'none' : ''; return; }
+        c.style.display = (!q || (c.dataset.label || '').includes(q)) ? '' : 'none';
+      });
     });
     (document.getElementById('tileDialog') || document.body).appendChild(pop);
     iconPickerEl = pop;
@@ -794,8 +804,11 @@
   function openIconPicker(anchor, current, cb) {
     const pop = ensureIconPicker();
     iconPickerCb = cb;
+    const search = pop.querySelector('.ip-search');
+    if (search) { search.value = ''; pop.querySelectorAll('.ip-cell').forEach(c => c.style.display = ''); }
     pop.querySelectorAll('.ip-cell').forEach(c => c.classList.toggle('sel', c.dataset.key === (current || '')));
     placePopover(pop, anchor);
+    if (search) setTimeout(() => search.focus(), 0);
   }
   document.addEventListener('mousedown', e => {
     if (iconPickerEl && iconPickerEl.style.display !== 'none'
