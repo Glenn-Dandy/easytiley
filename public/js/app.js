@@ -960,6 +960,11 @@
 
   function setupDialog() {
     el.dlg = document.getElementById('tileDialog');
+    // Opening the modal makes the grid inert -> GridStack drops its pointer bindings.
+    // Re-arm drag/resize on every close (OK, Abbrechen or Esc) while in edit mode.
+    el.dlg.addEventListener('close', () => {
+      if (editMode) eachGrid(g => { g.enableMove(true); g.enableResize(true); });
+    });
     const type = document.getElementById('tType');
     const dev  = document.getElementById('tDevice');
     const reading = document.getElementById('tReading');
