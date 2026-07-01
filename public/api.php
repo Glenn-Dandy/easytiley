@@ -190,6 +190,40 @@ try {
             echo $body;
             exit;
 
+        // ---- live push: FHEM longpoll -> Server-Sent-Events -----------------
+        case 'stream': // GET ?names=Lamp,Door  -> SSE of reading updates
+            $names = isset($_GET['names']) ? preg_replace('/[^A-Za-z0-9_.,\-]/', '', $_GET['names']) : '';
+            $list  = array_values(array_filter(explode(',', $names)));
+            $filter = $list
+                ? '^(' . implode('|', array_map(fn($n) => preg_quote($n, '#'), $list)) . ')$'
+                : '.*';
+
+            header('Content-Type: text/event-stream; charset=utf-8'); // replaces the JSON header
+            header('Cache-Control: no-cache');
+            header('X-Accel-Buffering: no');
+            while (ob_get_level() > 0) ob_end_flush();
+            ignore_user_abort(true);
+            @set_time_limit(0);
+            echo ": connected\n\n"; @flush();
+
+            $fhem->stream($filter, function (string $line) {
+                if ($line === "\0ping") { echo ": ping\n\n"; @flush(); return; }
+                if ($line === '') return;
+                $parts = explode('<<', $line);
+                if (count($parts) < 2) return;                       // not a status line
+                $key = $parts[0];
+                $val = $parts[1];
+                if (substr($key, -3) === '-ts') return;              // timestamp lines
+                $val = preg_replace('#^<html>(.*)</html>$#s', '$1', $val); // unwrap FHEM <html> values
+                $dash = strpos($key, '-');
+                if ($dash === false) { $device = $key; $reading = 'state'; }
+                else { $device = substr($key, 0, $dash); $reading = substr($key, $dash + 1); }
+                if ($device === '' || $reading === '' || strpos($reading, ' ') !== false) return;
+                echo 'data: ' . json_encode(['d' => $device, 'r' => $reading, 'v' => $val], JSON_UNESCAPED_UNICODE) . "\n\n";
+                @flush();
+            });
+            exit;
+
         // ---- FHEM live data -------------------------------------------------
         case 'devices': // GET ?names=Lamp,Door   (omit names = all 294, heavy)
             $names = isset($_GET['names']) ? preg_replace('/[^A-Za-z0-9_.,\-]/', '', $_GET['names']) : null;

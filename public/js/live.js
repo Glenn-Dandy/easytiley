@@ -1,32 +1,59 @@
-// Live data: polls jsonlist2 for only the devices on the active dashboard.
-// (Lightweight + robust. Can later be swapped for an SSE/longpoll stream.)
+// Live data: FHEM push via Server-Sent-Events (longpoll proxied by the backend).
+// Falls back to periodic polling if SSE isn't available or the stream errors.
 const Live = (() => {
-  let timer = null, inFlight = false;
+  let es = null, poll = null;
+  let getNames = () => [], onData = () => {}, onStatus = null;
+  let map = {}, pending = false;
 
-  function start(getDeviceNames, onData, onStatus, intervalMs = 3000) {
-    stop();
-    const tick = async () => {
-      if (inFlight) return;                 // don't stack requests if one is slow
-      const names = getDeviceNames();
-      if (!names.length) { onStatus && onStatus('ok'); return; }
-      inFlight = true;
-      try {
-        const res = await API.devices(names.join(','));
-        const map = {};
-        for (const d of res.devices) map[d.name] = d;
-        onData(map);
-        onStatus && onStatus('ok');
-      } catch (e) {
-        onStatus && onStatus('err', e.message);
-      } finally {
-        inFlight = false;
-      }
-    };
-    tick();
-    timer = setInterval(tick, intervalMs);
+  // Coalesce a burst of updates into one repaint (next frame).
+  function coalesce() {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => { pending = false; onData(map); });
   }
 
-  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+  // Full current state (longpoll only sends *changes*, so we need a snapshot).
+  async function snapshot() {
+    const names = getNames();
+    if (!names.length) { onStatus && onStatus('ok'); return; }
+    try {
+      const res = await API.devices(names.join(','));
+      map = {};
+      for (const d of res.devices) map[d.name] = d;
+      onData(map);
+      onStatus && onStatus('ok');
+    } catch (e) { onStatus && onStatus('err', e.message); }
+  }
 
-  return { start, stop };
+  function connect() {
+    const names = getNames();
+    if (!names.length) { onStatus && onStatus('ok'); return; }
+    snapshot();                                   // seed current values
+    if (typeof EventSource === 'undefined') { startPoll(); return; }
+    try {
+      es = new EventSource('/api/stream?names=' + encodeURIComponent(names.join(',')));
+    } catch (e) { startPoll(); return; }
+    es.onopen = () => { stopPoll(); onStatus && onStatus('ok'); };
+    es.onmessage = ev => {
+      let u; try { u = JSON.parse(ev.data); } catch { return; }
+      const d = map[u.d] || (map[u.d] = { name: u.d, state: '', readings: {} });
+      if (u.r === 'state') d.state = u.v;
+      (d.readings || (d.readings = {}))[u.r] = { value: u.v };
+      coalesce();
+    };
+    es.onerror = () => { startPoll(); };          // keep data flowing while SSE retries
+  }
+
+  function startPoll() { if (!poll) poll = setInterval(snapshot, 3000); }
+  function stopPoll()  { if (poll) { clearInterval(poll); poll = null; } }
+
+  function start(getDeviceNames, onDataCb, onStatusCb) {
+    stop();
+    getNames = getDeviceNames; onData = onDataCb; onStatus = onStatusCb;
+    connect();
+  }
+  function reconnect() { if (es) { es.close(); es = null; } connect(); } // device set changed
+  function stop() { if (es) { es.close(); es = null; } stopPoll(); }
+
+  return { start, stop, reconnect };
 })();

@@ -131,4 +131,44 @@ class Fhem
     {
         return $this->cmd("set $device $args");
     }
+
+    /**
+     * Open a FHEMWEB longpoll (inform) connection and call $onLine(string) for
+     * every received line. Blocks until the client disconnects or $maxSeconds
+     * elapse. $filter is a regex matched against device names ("^(Lamp|Door)$").
+     * Every ~15s of silence $onLine("\0ping") is emitted so callers can keep the
+     * client connection alive; it also lets us notice a disconnected client.
+     */
+    public function stream(string $filter, callable $onLine, int $maxSeconds = 3600): void
+    {
+        if (!function_exists('curl_init')) return;
+        $since  = (string)round(microtime(true) * 1000);
+        $inform = 'type=status;filter=' . $filter . ';since=' . $since;
+        $url    = $this->base . '?XHR=1&inform=' . rawurlencode($inform) . '&timestamp=' . $since;
+
+        $buf = '';
+        $lastBeat = microtime(true);
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_TIMEOUT        => $maxSeconds,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_WRITEFUNCTION  => function ($ch, $chunk) use (&$buf, $onLine) {
+                $buf .= $chunk;
+                while (($p = strpos($buf, "\n")) !== false) {
+                    $onLine(rtrim(substr($buf, 0, $p), "\r"));
+                    $buf = substr($buf, $p + 1);
+                }
+                return connection_aborted() ? 0 : strlen($chunk);   // return != len -> curl aborts
+            },
+            CURLOPT_NOPROGRESS       => false,
+            CURLOPT_XFERINFOFUNCTION => function () use (&$lastBeat, $onLine) {
+                if (connection_aborted()) return 1;                 // non-zero -> abort
+                $now = microtime(true);
+                if ($now - $lastBeat > 15) { $lastBeat = $now; $onLine("\0ping"); }
+                return 0;
+            },
+        ]);
+        curl_exec($ch);
+        curl_close($ch);
+    }
 }
