@@ -17,6 +17,7 @@
     group:  { w: 8, h: 8 }, button: { w: 4, h: 4 }, label: { w: 6, h: 2 },
     clock:  { w: 3, h: 3 },   // also the min size (see addWidget)
     note:   { w: 6, h: 5 },
+    weather:{ w: 12, h: 8 },
   };
 
   // ---- init ----------------------------------------------------------------
@@ -98,6 +99,7 @@
     grid.on('change added removed resizestop dragstop', applyScale);
     grid.on('dragstop resizestop dropped removed added', () => collapseTop()); // gently pull off the empty top margin
     grid.on('resizestop', (e, el) => syncGroupColumns(el)); // group box resized -> match its sub-grid columns to the new width
+    grid.on('added removed', () => { clearTimeout(window._lvr); window._lvr = setTimeout(() => Live.reconnect(), 600); }); // device set changed -> re-subscribe
     grid.on('dragstart', cancelLink);            // dragging is for repositioning, not linking
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cancelLink(); });
     window.addEventListener('resize', () => { clearTimeout(window._sc); window._sc = setTimeout(applyScale, 120); });
@@ -550,7 +552,7 @@
       if (c.type === 'merge') { applyMergeLive(item, c, map); return; }
       if (!c.device) return;
       const cont = item.querySelector(`.merge-cell .tile[data-tile-id="${c.id}"]`);
-      if (cont) Tiles.apply(cont, c, map[c.device]);
+      if (cont) Tiles.apply(cont, c, map[c.device], map);
     });
   }
 
@@ -561,7 +563,7 @@
       if (!tile) return;
       if (tile.type === 'merge') { applyMergeLive(item, tile, map); return; } // incl. nested stacks
       if (!tile.device) return;
-      Tiles.apply(item.querySelector('.grid-stack-item-content'), tile, map[tile.device]);
+      Tiles.apply(item.querySelector('.grid-stack-item-content'), tile, map[tile.device], map);
     });
   }
 
@@ -580,9 +582,13 @@
   }
 
   function activeDeviceNames() {
-    return [...new Set(Object.values(tiles)
-      .filter(t => t.device && t.type !== 'readingsgroup')
-      .map(t => t.device))];
+    const s = new Set();
+    for (const t of Object.values(tiles)) {
+      if (t.device && t.type !== 'readingsgroup') s.add(t.device);
+      if (t.type === 'weather' && t.sources)                       // weather: also foreign sources
+        for (const k in t.sources) { const src = t.sources[k]; if (src && src.device) s.add(src.device); }
+    }
+    return [...s];
   }
 
   // ---- edit mode -----------------------------------------------------------
@@ -701,6 +707,8 @@
     document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
     document.getElementById('rowLight').style.display   = t === 'light'  ? '' : 'none';
     document.getElementById('rowNote').style.display    = t === 'note'   ? '' : 'none';
+    document.getElementById('rowWeatherHint').style.display = t === 'weather' ? '' : 'none';
+    document.getElementById('rowWeather').style.display = t === 'weather' ? '' : 'none';
     document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer') ? '' : 'none';
     document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
   }
@@ -723,6 +731,25 @@
 
   const deviceSets = name => { const d = deviceCache.find(x => x.name === name); return (d && d.sets) || []; };
 
+  // ---- weather tile: foreign-device sources for current values -------------
+  function collectWeatherSources() {
+    const s = {};
+    document.querySelectorAll('#rowWeather .wsrc').forEach(row => {
+      const dev = row.querySelector('.wsrc-dev').value.trim();
+      const rd  = row.querySelector('.wsrc-rd').value.trim();
+      if (dev && rd) s[row.querySelector('.wsrc-dev').dataset.metric] = { device: dev, reading: rd };
+    });
+    return s;
+  }
+  function fillWeatherSources(sources) {
+    document.querySelectorAll('#rowWeather .wsrc').forEach(row => {
+      const dev = row.querySelector('.wsrc-dev');
+      const s = (sources || {})[dev.dataset.metric] || {};
+      dev.value = s.device || '';
+      row.querySelector('.wsrc-rd').value = s.reading || '';
+    });
+  }
+
   // ---- icon picker ---------------------------------------------------------
   // A shared popover grid of all library icons. Lives INSIDE the modal dialog so
   // it renders in the dialog's top layer (a body child would hide behind the modal).
@@ -733,6 +760,7 @@
     pop.className = 'icon-picker';
     pop.style.display = 'none';
     pop.innerHTML = '<button type="button" class="ip-cell ip-auto" data-key="" title="Standard (automatisch)">Auto</button>'
+      + '<button type="button" class="ip-cell ip-auto" data-key="none" title="Kein Icon">&#8709;</button>'
       + Tiles.iconList().map(i => `<button type="button" class="ip-cell" data-key="${i.key}" title="${esc(i.label)}">${i.svg}</button>`).join('');
     pop.addEventListener('click', e => {
       const c = e.target.closest('.ip-cell'); if (!c) return;
@@ -744,18 +772,13 @@
     return pop;
   }
   function hideIconPicker() { if (iconPickerEl) iconPickerEl.style.display = 'none'; iconPickerCb = null; }
-  function openIconPicker(anchor, current, cb) {
-    const pop = ensureIconPicker();
-    iconPickerCb = cb;
-    pop.querySelectorAll('.ip-cell').forEach(c => c.classList.toggle('sel', c.dataset.key === (current || '')));
-    // Move the popover into whichever dialog the anchor lives in, so it renders in
-    // that modal's top layer (a body child would hide behind the open modal).
+  // Position a popover just under `anchor`, inside the anchor's dialog (whose
+  // backdrop-filter makes it the containing block for our fixed popover, so we
+  // convert viewport coords -> dialog-relative coords).
+  function placePopover(pop, anchor) {
     const host = anchor.closest('dialog') || document.getElementById('tileDialog') || document.body;
     if (pop.parentElement !== host) host.appendChild(pop);
     pop.style.display = 'grid';
-    // The dialog's backdrop-filter makes it the containing block for our fixed
-    // popover, so subtract the dialog's padding-box origin to convert viewport
-    // coords -> dialog-relative coords (else the popover lands far off).
     const hr = host.getBoundingClientRect();
     const ox = hr.left + (host.clientLeft || 0), oy = hr.top + (host.clientTop || 0);
     const r = anchor.getBoundingClientRect();
@@ -764,17 +787,67 @@
     pop.style.left = (vx - ox) + 'px';
     pop.style.top  = (vy - oy) + 'px';
   }
+  function openIconPicker(anchor, current, cb) {
+    const pop = ensureIconPicker();
+    iconPickerCb = cb;
+    pop.querySelectorAll('.ip-cell').forEach(c => c.classList.toggle('sel', c.dataset.key === (current || '')));
+    placePopover(pop, anchor);
+  }
   document.addEventListener('mousedown', e => {
     if (iconPickerEl && iconPickerEl.style.display !== 'none'
         && !iconPickerEl.contains(e.target) && !e.target.closest('.icon-pick-btn')) hideIconPicker();
   });
-  // Show the chosen icon (or a placeholder) on an icon-pick button + store its key.
+  // Show the chosen icon (or placeholder) on an icon-pick button + store its key.
   function setIconBtn(btn, key) {
     btn.dataset.icon = key || '';
-    btn.innerHTML = key ? Tiles.iconSvg(key) : (btn.dataset.ph || 'Standard');
+    btn.innerHTML = key === 'none' ? '&#8709;' : (key ? Tiles.iconSvg(key) : (btn.dataset.ph || 'Standard'));
   }
   function attachIconField(btn) {
     btn.addEventListener('click', () => openIconPicker(btn, btn.dataset.icon, key => setIconBtn(btn, key)));
+  }
+
+  // ---- icon colour picker (sits next to each icon field) -------------------
+  const COLOR_PRESETS = ['#ff5d5d', '#ff9f3b', '#ffd25d', '#43d17a', '#54a0ff', '#6a5dff', '#ff5dce', '#e9edf4'];
+  let colorPickerEl = null, colorPickerCb = null;
+  function ensureColorPicker() {
+    if (colorPickerEl) return colorPickerEl;
+    const pop = document.createElement('div');
+    pop.className = 'color-picker';
+    pop.style.display = 'none';
+    pop.innerHTML = '<button type="button" class="cpk-cell cpk-std" data-color="" title="Standard">&#8709;</button>'
+      + COLOR_PRESETS.map(c => `<button type="button" class="cpk-cell" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('')
+      + '<label class="cpk-cell cpk-custom" title="Eigene Farbe"><input type="color"></label>';
+    pop.addEventListener('click', e => {
+      const cell = e.target.closest('.cpk-cell'); if (!cell || cell.classList.contains('cpk-custom')) return;
+      if (colorPickerCb) colorPickerCb(cell.dataset.color);
+      hideColorPicker();
+    });
+    const inp = pop.querySelector('.cpk-custom input');
+    inp.addEventListener('input',  () => colorPickerCb && colorPickerCb(inp.value)); // live
+    inp.addEventListener('change', () => hideColorPicker());
+    (document.getElementById('tileDialog') || document.body).appendChild(pop);
+    colorPickerEl = pop;
+    return pop;
+  }
+  function hideColorPicker() { if (colorPickerEl) colorPickerEl.style.display = 'none'; colorPickerCb = null; }
+  function openColorPicker(anchor, current, cb) {
+    const pop = ensureColorPicker();
+    colorPickerCb = cb;
+    pop.querySelectorAll('.cpk-cell').forEach(c => c.classList.toggle('sel', (c.dataset.color || '') === (current || '')));
+    if (current) pop.querySelector('.cpk-custom input').value = current;
+    placePopover(pop, anchor);
+  }
+  document.addEventListener('mousedown', e => {
+    if (colorPickerEl && colorPickerEl.style.display !== 'none'
+        && !colorPickerEl.contains(e.target) && !e.target.closest('.color-pick-btn')) hideColorPicker();
+  });
+  function setColorBtn(btn, color) {
+    btn.dataset.color = color || '';
+    btn.classList.toggle('is-std', !color);
+    btn.style.background = color || '';
+  }
+  function attachColorField(btn) {
+    btn.addEventListener('click', () => openColorPicker(btn, btn.dataset.color, c => setColorBtn(btn, c)));
   }
 
   // Button tile editor: each button is a row of [command + optional label].
@@ -782,23 +855,26 @@
     document.getElementById('cmdSetList').innerHTML =
       deviceSets(deviceName).map(s => `<option value="${esc(s)}">`).join('');
   }
-  function addCmdRow(cmd = '', label = '', icon = '') {
+  function addCmdRow(cmd = '', label = '', icon = '', glow = true, iconColor = '') {
     const row = document.createElement('div');
     row.className = 'cmd-row';
     row.innerHTML =
       `<input class="cmd-c" list="cmdSetList" placeholder="Befehl, z.B. on" value="${esc(cmd)}">
        <input class="cmd-l" placeholder="Text (optional)" value="${esc(label)}">
        <button type="button" class="cmd-ic icon-pick-btn" data-ph="Icon"></button>
+       <button type="button" class="cmd-col color-pick-btn is-std" title="Icon-Farbe"></button>
+       <label class="cmd-glow" title="Leuchtet, wenn dieser Zustand aktiv ist"><input type="checkbox" class="cmd-g"${glow !== false ? ' checked' : ''}>✨</label>
        <button type="button" class="cmd-rm" title="Entfernen">✕</button>`;
-    const ic = row.querySelector('.cmd-ic');
-    setIconBtn(ic, icon); attachIconField(ic);
+    const ic = row.querySelector('.cmd-ic');  setIconBtn(ic, icon);       attachIconField(ic);
+    const co = row.querySelector('.cmd-col'); setColorBtn(co, iconColor); attachColorField(co);
     row.querySelector('.cmd-rm').addEventListener('click', () => row.remove());
     document.getElementById('cmdRows').appendChild(row);
   }
   function collectCmdRows() {
     return [...document.querySelectorAll('#cmdRows .cmd-row')]
       .map(r => ({ cmd: r.querySelector('.cmd-c').value.trim(), label: r.querySelector('.cmd-l').value.trim(),
-                   icon: r.querySelector('.cmd-ic').dataset.icon || '' }))
+                   icon: r.querySelector('.cmd-ic').dataset.icon || '', glow: r.querySelector('.cmd-g').checked,
+                   iconColor: r.querySelector('.cmd-col').dataset.color || '' }))
       .filter(b => b.cmd);
   }
 
@@ -818,6 +894,15 @@
       return (d ? d.readings : []).map(r => ({ value: r }));
     });
 
+    // Weather foreign-source rows: same device + reading autocomplete as above.
+    document.querySelectorAll('#rowWeather .wsrc').forEach(row => {
+      const wd = row.querySelector('.wsrc-dev'), wr = row.querySelector('.wsrc-rd');
+      attachAutocomplete(wd, () => deviceCache.map(d => ({
+        value: d.name, sub: (d.alias && d.alias !== d.name ? d.alias + ' · ' : '') + (d.type || ''),
+      })));
+      attachAutocomplete(wr, () => { const d = deviceCache.find(x => x.name === wd.value); return (d ? d.readings : []).map(r => ({ value: r })); });
+    });
+
     // Fill the reading field with the sensible default for the chosen device+type.
     const applyDefaults = () => {
       const d = deviceCache.find(x => x.name === dev.value);
@@ -828,11 +913,16 @@
 
     document.getElementById('cmdAdd').addEventListener('click', () => addCmdRow());
     attachIconField(document.getElementById('tIconField'));
+    attachColorField(document.getElementById('tIconColor'));
 
     type.addEventListener('change', () => {
       dlgSyncRows(); applyDefaults();
       if (type.value === 'button') { renderCmdSetList(dev.value); if (!document.querySelector('#cmdRows .cmd-row')) addCmdRow(); }
       if (type.value === 'light')  initLightOpts();
+      if (type.value === 'weather' && !dev.value) {   // default to the PROPLANTA device
+        const w = deviceCache.find(d => /proplanta|weather/i.test(d.type || ''));
+        if (w) { dev.value = w.name; dev.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
     });
     document.getElementById('tLabelReset').addEventListener('click', () => {
       const d = deviceCache.find(x => x.name === dev.value);
@@ -872,16 +962,18 @@
         ctMax    = parseInt(document.getElementById('lCtMax').value, 10) || 6500;
         if (document.getElementById('lOptDim').checked) { const p = pickDim(d); useDim = true; dimcmd = p.setcmd; dimReading = p.reading; }
       }
-      let btnDisplay;
+      let btnDisplay, sources;
       if (t === 'button') {
         buttons = collectCmdRows(); if (!buttons.length) buttons = [{ cmd: 'on' }];
         btnDisplay = document.getElementById('btnDisplay').value;
       }
+      if (t === 'weather') sources = collectWeatherSources();
 
       const cfg = {
-        type: t, device, setcmd, colorcmd, buttons, btnDisplay, ctcmd, useRgb, useCt, ctMin, ctMax,
+        type: t, device, setcmd, colorcmd, buttons, btnDisplay, sources, ctcmd, useRgb, useCt, ctMin, ctMax,
         useDim, dimcmd, dimReading,
         icon: document.getElementById('tIconField').dataset.icon || '',
+        iconColor: document.getElementById('tIconColor').dataset.color || '',
         hideHeader: !document.getElementById('tHeader').checked,
         reading: rd || 'state',
         label: f.label.value.trim(),
@@ -937,7 +1029,9 @@
     document.getElementById('tileForm').reset();
     document.getElementById('cmdRows').innerHTML = '';
     setIconBtn(document.getElementById('tIconField'), '');
+    setColorBtn(document.getElementById('tIconColor'), '');
     document.getElementById('btnDisplay').value = 'text';
+    fillWeatherSources({});
     dlgSyncRows();
     el.dlg.returnValue = '';
     el.dlg.showModal();
@@ -960,12 +1054,14 @@
     document.getElementById('tHeader').checked = !t.hideHeader;
     document.getElementById('tNote').value = t.text || '';
     setIconBtn(document.getElementById('tIconField'), t.icon || '');
+    setColorBtn(document.getElementById('tIconColor'), t.iconColor || '');
+    if (t.type === 'weather') fillWeatherSources(t.sources);
     if (t.type === 'button') {
       document.getElementById('btnDisplay').value = t.btnDisplay || 'text';
       document.getElementById('cmdRows').innerHTML = '';
       renderCmdSetList(t.device);
       const list = t.buttons || (t.cmds || []).map(c => ({ cmd: c }));
-      (list.length ? list : [{ cmd: '' }]).forEach(b => addCmdRow(b.cmd, b.label || '', b.icon || ''));
+      (list.length ? list : [{ cmd: '' }]).forEach(b => addCmdRow(b.cmd, b.label || '', b.icon || '', b.glow, b.iconColor || ''));
     }
     if (t.type === 'light') {
       document.getElementById('lOptRgb').checked = t.useRgb !== false;
@@ -990,6 +1086,7 @@
   function setupNoteDialog() {
     el.noteDlg = document.getElementById('noteDialog');
     attachIconField(document.getElementById('nIcon'));
+    attachColorField(document.getElementById('nIconColor'));
     document.getElementById('nMode').addEventListener('change', noteSyncRows);
     el.noteDlg.addEventListener('close', () => {
       const id = noteEditId; noteEditId = null;
@@ -998,6 +1095,7 @@
       t.hideHeader = !document.getElementById('nHeader').checked;
       t.label = document.getElementById('nTitle').value.trim();
       t.icon  = document.getElementById('nIcon').dataset.icon || '';
+      t.iconColor = document.getElementById('nIconColor').dataset.color || '';
       t.noteMode = document.getElementById('nMode').value;
       if (t.noteMode === 'check') {
         const prev = t.items || [];
@@ -1016,6 +1114,7 @@
     document.getElementById('nHeader').checked = !t.hideHeader;
     document.getElementById('nTitle').value = t.label || '';
     setIconBtn(document.getElementById('nIcon'), t.icon || '');
+    setColorBtn(document.getElementById('nIconColor'), t.iconColor || '');
     document.getElementById('nMode').value = t.noteMode || 'text';
     document.getElementById('nText').value = t.text || '';
     document.getElementById('nItems').value = (t.items || []).map(it => it.text).join('\n');

@@ -17,6 +17,7 @@ const Tiles = (() => {
     label:        svg('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/>'), // tag
     clock:        svg('<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>'),                 // clock
     note:         svg('<path d="M4 4h16v11l-5 5H4z"/><path d="M20 14h-6v6"/><path d="M8 9h8M8 13h5"/>'), // note
+    weather:      svg('<circle cx="9" cy="8.5" r="3"/><path d="M9 2.5v1.3M3.5 8.5H2.2M13.8 3.7l-.9.9M5 12.5l-.9.9M4.1 3.7l.9.9"/><path d="M17.5 20a3 3 0 0 0 0-6 4.2 4.2 0 0 0-8-1.1"/><path d="M7 20h10.5"/>'), // sun+cloud
   };
   const ICON_DEFAULT = svg('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 
@@ -82,15 +83,19 @@ const Tiles = (() => {
     ['plant',     'Pflanze',        '<path d="M12 21V11"/><path d="M12 11c0-4 3-7 8-7 0 5-3 8-8 8z"/><path d="M12 14c0-3-2-5-6-5 0 4 2 6 6 6z"/>'],
     ['vacuum',    'Saugroboter',    '<circle cx="12" cy="12" r="9"/><path d="M3 9h18"/><circle cx="9" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="14" cy="6.5" r="1" fill="currentColor" stroke="none"/>'],
     ['key',       'Schlüssel',      '<circle cx="8" cy="8" r="4"/><path d="M11 11l9 9M17 17l2-2M15 19l2-2"/>'],
+    ['trash',     'Mülleimer',      '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6"/>'],
+    ['gauge',     'Luftdruck',      '<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4-3"/><circle cx="12" cy="15" r="1.3" fill="currentColor" stroke="none"/>'],
   ];
   const ICON_LIB = {};
   const ICON_LIST = _icons.map(([key, label, inner]) => { ICON_LIB[key] = svg(inner); return { key, label, svg: ICON_LIB[key] }; });
-  // Resolve a tile's chip icon: manual choice -> type default -> generic box.
+  // Resolve a tile's chip icon: 'none' -> nothing, manual choice -> type default -> box.
   function iconFor(tile) {
+    if (tile.icon === 'none') return '';
     if (tile.icon && ICON_LIB[tile.icon]) return ICON_LIB[tile.icon];
     return ICONS[tile.type] || ICON_DEFAULT;
   }
-  const iconHtml = key => (key && ICON_LIB[key]) || ICON_DEFAULT;
+  const iconHtml = key => key === 'none' ? '' : ((key && ICON_LIB[key]) || ICON_DEFAULT);
+  const safeColor = c => /^#[0-9a-fA-F]{6}$/.test(String(c || '')) ? c : ''; // only #rrggbb into inline styles
 
   // #rrggbb -> "H,S,V" for `set x hsv`.
   function hexToHsv(hex) {
@@ -175,6 +180,25 @@ const Tiles = (() => {
   const isOn = v => ['on', '1', 'true', 'open', 'yes', 'ja'].includes(String(v ?? '').toLowerCase());
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+  // Map a German weather-condition text (PROPLANTA "weather"/"fcN_weatherDay") to
+  // one of our SVG icons — device-consistent, no external images.
+  function wxIcon(txt) {
+    const s = String(txt || '').toLowerCase();
+    if (/(schnee|flocke|graupel)/.test(s)) return 'snow';
+    if (/(gewitter|blitz)/.test(s))        return 'rain';   // no thunder glyph
+    if (/(regen|schauer|niesel|nass)/.test(s)) return 'rain';
+    if (/(nebel|dunst)/.test(s))           return 'cloud';
+    if (/(bedeckt|bewölkt|bewoelkt|wolk|trüb|trueb)/.test(s)) return 'cloud';
+    if (/(heiter|sonnig|klar|wolkenlos)/.test(s)) return 'sun';
+    return 'cloud';
+  }
+  // "01.07.2026" -> "Di"
+  function wxWeekday(d) {
+    const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(String(d || ''));
+    if (!m) return '';
+    return ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][new Date(+m[3], +m[2] - 1, +m[1]).getDay()];
+  }
+
   function chipClass(tile) {
     const u = tile.unit || '';
     if (u === '°C') return ' c-temp';
@@ -184,9 +208,11 @@ const Tiles = (() => {
   }
   function header(tile, ctrl) {
     const icon = iconFor(tile);
+    const col  = safeColor(tile.iconColor);
+    const chip = icon ? `<div class="chip${chipClass(tile)}"${col ? ` style="color:${col}"` : ''}>${icon}</div>` : '';
     const name = esc(tile.label || tile.device || '');
     return `<div class="row">
-        <div class="chip${chipClass(tile)}">${icon}</div>
+        ${chip}
         <div class="tx"><div class="t-name">${name}</div><div class="t-state"></div></div>
         ${ctrl || ''}</div>`;
   }
@@ -240,32 +266,39 @@ const Tiles = (() => {
         const sc = el.querySelector('.scenes');
         if (mode === 'toggle') {
           // One button cycling through all commands; shows the active state's icon.
-          const states = list.map(b => Object.assign(btnMatch(tile, b), { cmd: b.cmd, icon: b.icon }));
+          const states = list.map(b => Object.assign(btnMatch(tile, b), { cmd: b.cmd, icon: b.icon, glow: b.glow !== false, iconColor: safeColor(b.iconColor) }));
           const x = document.createElement('button');
           x.className = 'scene scene-icon toggle-btn';
           x.dataset.states = JSON.stringify(states);
           x.dataset.cur = '0';
           x.title = 'Umschalten';
           x.innerHTML = iconHtml(states[0] && states[0].icon);
+          x.style.color = (states[0] && states[0].iconColor) || '';
           x.addEventListener('click', () => {
             const st = JSON.parse(x.dataset.states);
             const next = (parseInt(x.dataset.cur || '0', 10) + 1) % st.length;
             onAction(tile, st[next].cmd);
             x.dataset.cur = String(next);            // optimistic until next poll confirms
             x.innerHTML = iconHtml(st[next].icon);
+            x.style.color = st[next].iconColor || '';
           });
           sc.appendChild(x);
         } else {
           for (const b of list) {
             const x = document.createElement('button');
-            x.className = 'scene' + (mode === 'icons' ? ' scene-icon' : '');
-            if (mode === 'icons') x.innerHTML = iconHtml(b.icon); else x.textContent = b.label || b.cmd;
+            // In icon mode a button without a (real) icon falls back to its text,
+            // rendered in the exact same button box -> mixed rows stay aligned.
+            const showIcon = mode === 'icons' && b.icon && b.icon !== 'none' && ICON_LIB[b.icon];
+            x.className = 'scene' + (showIcon ? ' scene-icon' : '');
+            if (showIcon) { x.innerHTML = iconHtml(b.icon); const c = safeColor(b.iconColor); if (c) x.style.color = c; }
+            else x.textContent = b.label || b.cmd;
             const m = btnMatch(tile, b);
             x.dataset.rd = m.rd; x.dataset.val = m.val;
+            x.dataset.glow = b.glow === false ? '0' : '1';
             x.addEventListener('click', () => {
               onAction(tile, b.cmd);
-              // optimistic: light the clicked button now, clear siblings on the same reading
-              sc.querySelectorAll('.scene').forEach(o => { if (o.dataset.rd === x.dataset.rd) o.classList.toggle('active', o === x); });
+              // optimistic: light the clicked button now (if it glows), clear siblings on the same reading
+              sc.querySelectorAll('.scene').forEach(o => { if (o.dataset.rd === x.dataset.rd) o.classList.toggle('active', o === x && x.dataset.glow !== '0'); });
             });
             sc.appendChild(x);
           }
@@ -325,9 +358,22 @@ const Tiles = (() => {
         }
         break;
       }
+      case 'weather': {   // PROPLANTA/Weather device: current + stats + N-day forecast
+        el.classList.add('tile-rich', 'tile-weather');
+        el.innerHTML = EDIT + header(tile) +
+          '<div class="wx-top">' +
+            '<div class="wx-cur"><div class="wx-ico"></div>' +
+              '<div class="wx-info"><div class="wx-temp">–</div><div class="wx-cond"></div></div></div>' +
+            '<div class="wx-stats"></div>' +
+          '</div>' +
+          '<div class="wx-fc"></div>';
+        break;
+      }
       case 'label': {   // standalone bold text label (no device); icon optional
         el.classList.add('tile-label');
-        const chip = tile.icon ? `<div class="chip">${iconHtml(tile.icon)}</div>` : '';
+        const g   = (tile.icon && tile.icon !== 'none') ? iconHtml(tile.icon) : '';
+        const col = safeColor(tile.iconColor);
+        const chip = g ? `<div class="chip"${col ? ` style="color:${col}"` : ''}>${g}</div>` : '';
         el.innerHTML = EDIT + `<div class="row">${chip}<div class="lbl-text">${esc(tile.label || '')}</div></div>`;
         break;
       }
@@ -351,7 +397,7 @@ const Tiles = (() => {
     if (!isNaN(n)) { r.value = n; const v = r.parentElement.querySelector('.mval'); if (v) v.textContent = n + (sel === '.lct' ? 'K' : '%'); }
   }
 
-  function apply(el, tile, dev) {
+  function apply(el, tile, dev, map) {
     const v = readingValue(tile, dev);
     const state = el.querySelector('.t-state');
     switch (tile.type) {
@@ -387,13 +433,51 @@ const Tiles = (() => {
           if (!matched) idx = 0;
           tog.dataset.cur = String(idx);
           tog.innerHTML = iconHtml(st[idx] && st[idx].icon);
-          tog.classList.toggle('active', matched);
+          tog.style.color = (st[idx] && st[idx].iconColor) || '';
+          tog.classList.toggle('active', matched && st[idx] && st[idx].glow !== false);
         } else {
-          // Light each button whose target reading currently equals its value.
+          // Light each button whose target reading matches — unless glow is off for it.
           el.querySelectorAll('.scenes .scene').forEach(btn => {
-            btn.classList.toggle('active', eq(devReading(dev, btn.dataset.rd), btn.dataset.val));
+            btn.classList.toggle('active', btn.dataset.glow !== '0' && eq(devReading(dev, btn.dataset.rd), btn.dataset.val));
           });
         }
+        break;
+      }
+      case 'weather': {
+        const R = (dev && dev.readings) || {};
+        const rv = k => (R[k] != null ? R[k].value : null);          // PROPLANTA reading
+        const num = x => (x == null || x === '' || isNaN(parseFloat(x))) ? null : Math.round(parseFloat(x));
+        const set = (sel, html, isText) => { const n = el.querySelector(sel); if (n) n[isText ? 'textContent' : 'innerHTML'] = html; };
+        // A current value: from a configured foreign device+reading, else PROPLANTA.
+        const src = (metric, propKey) => {
+          const s = tile.sources && tile.sources[metric];
+          if (s && s.device && s.reading && map && map[s.device] && map[s.device].readings && map[s.device].readings[s.reading] != null)
+            return map[s.device].readings[s.reading].value;
+          return rv(propKey);
+        };
+        const cond = rv('weather'), temp = src('temperature', 'temperature');
+        set('.wx-ico', iconHtml(wxIcon(cond)));
+        set('.wx-temp', temp != null ? (temp + '°') : '–', true);
+        set('.wx-cond', cond || '', true);
+        // right-hand stats block (overridable: humidity/pressure; PROPLANTA: wind/uv/sun)
+        const stats = [
+          ['droplet', src('humidity', 'humidity'), '%',    'Feuchte'],
+          ['gauge',   src('pressure', 'pressure'), ' hPa', 'Druck'],
+          ['wind',    rv('wind'),                  ' km/h','Wind'],
+          ['sun',     rv('fc0_uv'),                '',     'UV'],
+          ['sun',     rv('fc0_sun'),               '%',    'Sonne'],
+        ];
+        set('.wx-stats', stats.filter(s => s[1] != null && s[1] !== '')
+          .map(([ic, val, unit, lbl]) => '<div class="wx-stat">' + iconHtml(ic) +
+            '<span class="wv"><b>' + val + unit + '</b><span class="wl">' + lbl + '</span></span></div>').join(''));
+        let fc = '';
+        for (let i = 0; i < (tile.fcDays || 7); i++) {
+          const date = rv('fc' + i + '_date'); if (date == null) continue;
+          const hi = num(rv('fc' + i + '_tempMax')), lo = num(rv('fc' + i + '_tempMin'));
+          fc += '<div class="wx-day"><div class="d">' + wxWeekday(date) + '</div>' + iconHtml(wxIcon(rv('fc' + i + '_weatherDay'))) +
+                '<div class="hl"><b>' + (hi != null ? hi + '°' : '–') + '</b> <span class="lo">' + (lo != null ? lo + '°' : '') + '</span></div></div>';
+        }
+        set('.wx-fc', fc);
         break;
       }
       // group / readingsgroup / label: no device state line

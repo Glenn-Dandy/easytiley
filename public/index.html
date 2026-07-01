@@ -36,6 +36,7 @@
             <option value="light">Licht (an/aus + RGB + CT)</option>
             <option value="readingsgroup">readingsGroup</option>
             <option value="button">Button(s) / Set-Befehle</option>
+            <option value="weather">Wetter</option>
           </optgroup>
           <optgroup label="Ohne FHEM">
             <option value="group">Gruppe / Raum-Box</option>
@@ -49,6 +50,15 @@
       <label id="rowDevice">Gerät
         <input name="device" id="tDevice" placeholder="Gerät suchen…" autocomplete="off">
       </label>
+
+      <p class="hint row-extra" id="rowWeatherHint">Voraussetzung: ein <code>PROPLANTA</code>-Device (z.&nbsp;B. AgroWeather).</p>
+
+      <div class="row-extra" id="rowWeather">
+        <label>Ist-Werte aus Fremd-Gerät <span style="font-weight:400">(leer = Proplanta)</span></label>
+        <div class="wsrc"><span class="wsrc-l">Temp</span><input class="wsrc-dev" data-metric="temperature" placeholder="Gerät" autocomplete="off"><input class="wsrc-rd" placeholder="Reading" autocomplete="off"></div>
+        <div class="wsrc"><span class="wsrc-l">Feuchte</span><input class="wsrc-dev" data-metric="humidity" placeholder="Gerät" autocomplete="off"><input class="wsrc-rd" placeholder="Reading" autocomplete="off"></div>
+        <div class="wsrc"><span class="wsrc-l">Druck</span><input class="wsrc-dev" data-metric="pressure" placeholder="Gerät" autocomplete="off"><input class="wsrc-rd" placeholder="Reading" autocomplete="off"></div>
+      </div>
 
       <label class="row-extra" id="rowReading">Reading
         <input name="reading" id="tReading" placeholder="z.B. state, temperature" autocomplete="off">
@@ -64,6 +74,7 @@
       <div class="row-extra" id="rowIcon">
         <label>Icon</label>
         <button type="button" id="tIconField" class="icon-pick-btn" data-icon="">Standard</button>
+        <button type="button" id="tIconColor" class="color-pick-btn is-std" title="Icon-Farbe"></button>
       </div>
 
       <label class="row-extra" id="rowUnit">Einheit
@@ -120,6 +131,7 @@
         <span class="label-row">
           <input id="nTitle" placeholder="Titel">
           <button type="button" id="nIcon" class="icon-pick-btn" data-ph="Icon"></button>
+          <button type="button" id="nIconColor" class="color-pick-btn is-std" title="Icon-Farbe"></button>
         </span>
       </label>
       <label>Modus

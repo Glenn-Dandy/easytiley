@@ -185,12 +185,13 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .tile-button .chip svg { width: 18px; height: 18px; }
 .tile-button .t-name { font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--muted); }
 .tile-button .scenes { gap: 7px; }
-.tile-button .scene { flex: 1 1 calc(50% - 4px); text-align: center; padding: 12px 10px; border-radius: 11px; }
+/* uniform button box so icon- and text/no-icon buttons line up on the same height */
+.tile-button .scene { flex: 1 1 calc(50% - 4px); min-height: 48px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; border-radius: 11px; }
 /* title hidden -> center the buttons in the tile */
 .tile-button.no-head .row { display: none; }
 .tile-button.no-head { justify-content: center; }
 /* icon-mode buttons (and the single "wechselnder" toggle) */
-.tile-button .scene-icon { flex: 1 1 calc(50% - 4px); display: grid; place-items: center; padding: 12px; }
 .tile-button .scene-icon svg { width: 26px; height: 26px; }
 .tile-button .scenes-toggle { justify-content: center; }
 .tile-button .scenes-toggle .toggle-btn { flex: 0 1 auto; min-width: 64px; }
@@ -204,6 +205,8 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 #rowIcon { display: flex; align-items: center; gap: 12px; }
 #rowIcon > label { margin: 0; }
 .cmd-row .cmd-ic { flex: 0 0 auto; width: 46px; padding: 0; }
+.cmd-row .cmd-glow { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; font-size: 15px; }
+.cmd-row .cmd-glow input { margin: 0; accent-color: var(--accent); cursor: pointer; }
 .icon-picker { position: fixed; z-index: 50; display: grid; grid-template-columns: repeat(6, 38px); gap: 6px;
   padding: 10px; max-height: 320px; overflow: auto; background: var(--card);
   border: 1px solid var(--stroke); border-radius: 12px; box-shadow: 0 12px 40px #0008; }
@@ -213,6 +216,21 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .ip-cell:hover { border-color: var(--accent); }
 .ip-cell.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
 .ip-auto { font-size: 11px; font-weight: 700; color: var(--muted); }
+
+/* icon colour: swatch button + colour popover */
+.color-pick-btn { flex: 0 0 auto; width: 40px; height: 40px; padding: 0; border-radius: 10px;
+  border: 1px solid var(--stroke); cursor: pointer; background: var(--btn-bg); }
+.color-pick-btn:hover { border-color: var(--accent); }
+.color-pick-btn.is-std { background: repeating-linear-gradient(45deg, var(--btn-bg), var(--btn-bg) 5px, var(--panel-2) 5px, var(--panel-2) 10px); }
+.cmd-row .cmd-col { width: 40px; }
+.color-picker { position: fixed; z-index: 50; display: grid; grid-template-columns: repeat(5, 34px); gap: 6px;
+  padding: 10px; background: var(--card); border: 1px solid var(--stroke); border-radius: 12px; box-shadow: 0 12px 40px #0008; }
+.cpk-cell { width: 34px; height: 34px; padding: 0; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.cpk-cell:hover { border-color: var(--accent); }
+.cpk-cell.sel { box-shadow: 0 0 0 2px var(--accent); }
+.cpk-std { background: var(--btn-bg); color: var(--muted); font-size: 16px; display: grid; place-items: center; }
+.cpk-custom { position: relative; overflow: hidden; background: conic-gradient(red, orange, yellow, lime, cyan, blue, magenta, red); }
+.cpk-custom input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
 
 /* label field + "reset to alias" button */
 .label-row { display: flex; gap: 8px; align-items: stretch; }
@@ -242,6 +260,33 @@ dialog textarea { width: 100%; margin-top: 5px; padding: 10px 12px; resize: vert
 .chk-item span { word-break: break-word; }
 .chk-item.done span { text-decoration: line-through; color: var(--muted); }
 body.editing .chk-item input { pointer-events: none; } /* don't toggle while arranging tiles */
+
+/* weather tile: current + stats block + N-day forecast strip */
+.tile-weather .wx-top { display: flex; gap: 16px; align-items: center; }
+.tile-weather .wx-cur { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+.tile-weather .wx-ico { color: var(--accent); flex: 0 0 auto; }
+.tile-weather .wx-ico svg { width: 52px; height: 52px; }
+.tile-weather .wx-info { min-width: 0; }
+.tile-weather .wx-temp { font-size: 32px; font-weight: 800; line-height: 1; }
+.tile-weather .wx-cond { font-size: 13px; color: var(--muted); }
+.tile-weather .wx-stats { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; align-content: center; }
+.tile-weather .wx-stat { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.tile-weather .wx-stat svg { width: 16px; height: 16px; color: var(--muted); flex: 0 0 auto; }
+.tile-weather .wv { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.tile-weather .wv b { font-size: 13px; font-weight: 700; }
+.tile-weather .wl { font-size: 11px; color: var(--muted); }
+.tile-weather .wx-fc { display: flex; justify-content: space-between; gap: 6px; margin-top: auto; padding-top: 10px; }
+/* weather config: foreign-source rows */
+.wsrc { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.wsrc-l { width: 62px; flex: 0 0 auto; font-size: 12px; color: var(--muted); font-weight: 600; }
+.wsrc input { flex: 1; min-width: 0; margin: 0; }
+.wsrc .ac-wrap { flex: 1; min-width: 0; }
+.tile-weather .wx-day { flex: 1; min-width: 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tile-weather .wx-day .d { font-size: 12px; color: var(--muted); font-weight: 700; }
+.tile-weather .wx-day svg { width: 22px; height: 22px; }
+.tile-weather .wx-day .hl { font-size: 12px; white-space: nowrap; }
+.tile-weather .wx-day .hl b { font-weight: 800; }
+.tile-weather .wx-day .lo { color: var(--muted); }
 
 /* standalone text label: left-aligned bold text at device-name size, icon optional */
 .tile-label .row { gap: 9px; }
