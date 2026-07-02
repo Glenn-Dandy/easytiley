@@ -233,6 +233,8 @@ const Tiles = (() => {
     const el = document.createElement('div');
     el.className = 'grid-stack-item-content tile tile-' + tile.type + (tile.hideHeader ? ' no-head' : '');
     el.dataset.tileId = tile.id;
+    // Loading skeleton: pulse until the first poll delivers data (apply() clears it).
+    if (tile.device && tile.type !== 'readingsgroup' && tile.type !== 'group') el.classList.add('tile-wait');
 
     switch (tile.type) {
       case 'switch': {
@@ -455,6 +457,7 @@ const Tiles = (() => {
   }
 
   function apply(el, tile, dev, map) {
+    if (dev) el.classList.remove('tile-wait');   // first data arrived -> stop the loading pulse
     const v = readingValue(tile, dev);
     const state = el.querySelector('.t-state');
     switch (tile.type) {
@@ -561,8 +564,10 @@ const Tiles = (() => {
         for (let i = 0; i < (tile.fcDays || 7); i++) {
           const date = rv('fc' + i + '_date'); if (date == null) continue;
           const hi = num(rv('fc' + i + '_tempMax')), lo = num(rv('fc' + i + '_tempMin'));
+          const pop = num(rv('fc' + i + '_chOfRainDay'));       // PROPLANTA: Regenwahrscheinlichkeit in %
           fc += '<div class="wx-day"><div class="d">' + wxWeekday(date) + '</div>' + iconHtml(wxIcon(rv('fc' + i + '_weatherDay'))) +
-                '<div class="hl"><b>' + (hi != null ? hi + '°' : '–') + '</b> <span class="lo">' + (lo != null ? lo + '°' : '') + '</span></div></div>';
+                '<div class="hl"><b>' + (hi != null ? hi + '°' : '–') + '</b> <span class="lo">' + (lo != null ? lo + '°' : '') + '</span></div>' +
+                (pop != null ? '<div class="pop">' + iconHtml('droplet') + pop + '%</div>' : '') + '</div>';
         }
         set('.wx-fc', fc);
         break;
