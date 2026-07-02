@@ -10,7 +10,7 @@
   const el = {};
   // 24-column grid (finer snap than the old 12). Sizes are in those finer units.
   const GRID_GEN = 2;                 // bump when the column resolution changes
-  const APP_NAME = 'EasyTiley', APP_VERSION = '1.00';
+  const APP_NAME = 'EasyTiley', APP_VERSION = '1.01';
   const COLS = 23;
   const DEFAULT_SIZE = {
     value:  { w: 4, h: 4 }, switch: { w: 4, h: 4 }, dimmer: { w: 6, h: 4 },
@@ -1299,16 +1299,24 @@
       if (!url) { settingsResult('Bitte eine Adresse eingeben.', false); return; }
       settingsResult('…prüfe Verbindung…');
       try {
-        const r = await API.saveSettings(url, test);
+        const cfg = {
+          fhemUrl:  url,
+          fhemUser: document.getElementById('sUser').value.trim(),
+          fhemPass: document.getElementById('sPass').value,   // leer = gespeichertes behalten
+          insecure: document.getElementById('sInsecure').checked,
+        };
+        const r = await API.saveSettings(cfg, test);
         if (test) {
-          settingsResult(r.reachable ? '✓ erreichbar: ' + r.fhemUrl : '✗ nicht erreichbar: ' + r.fhemUrl, r.reachable);
+          settingsResult(r.reachable ? '✓ erreichbar: ' + r.fhemUrl
+            : (r.authFailed ? '✗ Login abgelehnt (Benutzer/Passwort prüfen)' : '✗ nicht erreichbar: ' + r.fhemUrl), r.reachable);
         } else if (r.reachable) {
           settingsResult('✓ gespeichert & verbunden', true);
           deviceCache = [];                         // refresh picker for the new instance
           el.settingsDlg.close();
           await loadDashboards();
         } else {
-          settingsResult('⚠ gespeichert, aber nicht erreichbar: ' + r.fhemUrl, false);
+          settingsResult(r.authFailed ? '⚠ gespeichert, aber Login abgelehnt (Benutzer/Passwort prüfen)'
+            : '⚠ gespeichert, aber nicht erreichbar: ' + r.fhemUrl, false);
         }
       } catch (err) { settingsResult('Fehler: ' + err.message, false); }
     });
@@ -1326,8 +1334,15 @@
 
   async function openSettings() {
     document.getElementById('sTheme').value = localStorage.getItem('theme') || 'aurora';
-    try { const s = await API.settings(); document.getElementById('sFhemUrl').value = s.fhemUrl || ''; }
-    catch (e) { /* ignore */ }
+    try {
+      const s = await API.settings();
+      document.getElementById('sFhemUrl').value = s.fhemUrl || '';
+      document.getElementById('sUser').value = s.fhemUser || '';
+      const pass = document.getElementById('sPass');
+      pass.value = '';
+      pass.placeholder = s.hasPass ? 'gespeichert – leer lassen zum Behalten' : '';
+      document.getElementById('sInsecure').checked = s.insecure !== false;
+    } catch (e) { /* ignore */ }
     document.getElementById('sAbout').textContent = `${APP_NAME} V${APP_VERSION}`;
     settingsResult('');
     el.settingsDlg.showModal();

@@ -46,6 +46,13 @@ Optional als Start-Default vorab per Env: `FHEM_URL=http://<ip>:8083/fhem`.
 Der Container muss das FHEM im Netz erreichen (gleiches LAN/Routing). Die
 Dashboards in `data/fhem.db` überleben Updates/Rebuilds.
 
+**HTTPS & Passwortschutz:** FHEMWEB mit `attr WEB HTTPS 1` wird unterstützt —
+einfach `https://<ip>:8083` als Adresse eintragen. Selbstsignierte Zertifikate
+(der FHEM-Normalfall) sind per Voreinstellung erlaubt (abschaltbar in den
+Einstellungen). Ist FHEMWEB per `attr WEB basicAuth …` geschützt, Benutzername
+und Passwort in den Einstellungen hinterlegen — sie bleiben serverseitig in
+der SQLite und werden nie an den Browser ausgeliefert.
+
 ## Aktualisieren
 
 Im geklonten Ordner (`cd easytiley`):

@@ -191,9 +191,19 @@
         </select>
       </label>
       <label>FHEM-Adresse (IP oder URL)
-        <input name="fhemUrl" id="sFhemUrl" placeholder="z.B. 192.168.10.2:8083 oder http://host:8083/fhem">
+        <input name="fhemUrl" id="sFhemUrl" placeholder="z.B. 192.168.10.2:8083 oder https://host:8083/fhem">
       </label>
-      <p class="hint" id="sHint">Beispiel: <code>192.168.10.2:8083</code> – <code>/fhem</code> wird ergänzt.</p>
+      <p class="hint" id="sHint">Beispiel: <code>192.168.10.2:8083</code> – <code>/fhem</code> wird ergänzt. HTTPS wird unterstützt.</p>
+
+      <div class="s-cred">
+        <label>Benutzername <span style="font-weight:400">(leer = kein Passwortschutz)</span>
+          <input id="sUser" autocomplete="off">
+        </label>
+        <label>Passwort
+          <input id="sPass" type="password" autocomplete="new-password">
+        </label>
+      </div>
+      <label class="lopt"><input type="checkbox" id="sInsecure" checked> Selbstsignierte Zertifikate erlauben</label>
 
       <label>Layout (alle Dashboards)</label>
       <div class="row-actions">

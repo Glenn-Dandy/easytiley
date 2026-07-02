@@ -10,10 +10,31 @@ class Fhem
 {
     private string $base;
     private ?string $csrf = null;
+    private string $user;
+    private string $pass;
+    private bool $insecure;   // accept self-signed TLS certs (the FHEM norm)
 
-    public function __construct(string $baseUrl)
+    public function __construct(string $baseUrl, string $user = '', string $pass = '', bool $insecure = true)
     {
-        $this->base = rtrim($baseUrl, '/');
+        $this->base     = rtrim($baseUrl, '/');
+        $this->user     = $user;
+        $this->pass     = $pass;
+        $this->insecure = $insecure;
+    }
+
+    /** curl options shared by all FHEM requests: Basic Auth (FHEMWEB attr basicAuth) + TLS mode. */
+    private function curlCommon(): array
+    {
+        $opts = [];
+        if ($this->user !== '') {
+            $opts[CURLOPT_HTTPAUTH] = CURLAUTH_BASIC;
+            $opts[CURLOPT_USERPWD]  = $this->user . ':' . $this->pass;
+        }
+        if ($this->insecure) {
+            $opts[CURLOPT_SSL_VERIFYPEER] = false;
+            $opts[CURLOPT_SSL_VERIFYHOST] = 0;
+        }
+        return $opts;
     }
 
     /**
@@ -25,7 +46,7 @@ class Fhem
     {
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
-            curl_setopt_array($ch, [
+            curl_setopt_array($ch, $this->curlCommon() + [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HEADER         => true,
                 CURLOPT_TIMEOUT        => 15,
@@ -41,13 +62,15 @@ class Fhem
         }
 
         // Fallback (e.g. CLI without curl): bound the keep-alive hang with Connection: close.
+        $hdr = "Connection: close\r\n";
+        if ($this->user !== '') $hdr .= 'Authorization: Basic ' . base64_encode($this->user . ':' . $this->pass) . "\r\n";
         $ctx = stream_context_create(['http' => [
             'method'           => 'GET',
             'timeout'          => 15,
             'ignore_errors'    => true,
             'protocol_version' => 1.1,
-            'header'           => "Connection: close\r\n",
-        ]]);
+            'header'           => $hdr,
+        ], 'ssl' => $this->insecure ? ['verify_peer' => false, 'verify_peer_name' => false] : []]);
         $body = @file_get_contents($url, false, $ctx);
         $headers = $http_response_header ?? [];
         $code = 0;
@@ -149,7 +172,7 @@ class Fhem
         $buf = '';
         $lastBeat = microtime(true);
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
+        curl_setopt_array($ch, $this->curlCommon() + [
             CURLOPT_TIMEOUT        => $maxSeconds,
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_WRITEFUNCTION  => function ($ch, $chunk) use (&$buf, $onLine) {
@@ -170,5 +193,21 @@ class Fhem
         ]);
         curl_exec($ch);
         curl_close($ch);
+    }
+
+    /**
+     * Connection probe for the settings "Testen" button.
+     * Returns ['ok' => csrf token received, 'code' => http status] so the UI can
+     * distinguish "wrong password" (401) from "unreachable" (0/5xx).
+     */
+    public function probe(): array
+    {
+        [$code, , $headers] = $this->http($this->base);
+        $csrf = '';
+        foreach ($headers as $h) {
+            if (preg_match('/^X-FHEM-csrfToken:\s*(.+)$/i', trim($h), $m)) { $csrf = trim($m[1]); break; }
+        }
+        // FHEMWEB without csrfToken attr still answers 200 — treat any 2xx as reachable.
+        return ['ok' => ($code >= 200 && $code < 300), 'code' => $code, 'csrf' => $csrf !== ''];
     }
 }

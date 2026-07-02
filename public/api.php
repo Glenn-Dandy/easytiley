@@ -139,8 +139,11 @@ try {
     $db = new Db($DB_PATH);
     // Runtime-configurable FHEM URL (settings override the build-time env default),
     // so the same image works against any FHEM instance.
-    $fhemUrl = $db->getSetting('fhem_url') ?: $FHEM_URL;
-    $fhem    = new Fhem($fhemUrl);
+    $fhemUrl      = $db->getSetting('fhem_url') ?: $FHEM_URL;
+    $fhemUser     = $db->getSetting('fhem_user') ?: '';
+    $fhemPass     = $db->getSetting('fhem_pass') ?: '';
+    $fhemInsecure = ($db->getSetting('fhem_insecure') ?? '1') !== '0';   // default: allow self-signed
+    $fhem         = new Fhem($fhemUrl, $fhemUser, $fhemPass, $fhemInsecure);
 
     switch ($path) {
 
@@ -159,14 +162,28 @@ try {
                 if (!preg_match('#^https?://#i', $url)) $url = 'http://' . $url;
                 $p = parse_url($url);                       // append /fhem if only host[:port] given
                 if (empty($p['path']) || $p['path'] === '/') $url = rtrim($url, '/') . '/fhem';
-                // Probe the candidate URL before (optionally) persisting.
-                $reachable = false;
-                try { $reachable = (new Fhem($url))->token() !== ''; } catch (Throwable $e) {}
+                // Credentials: empty password field means "keep the stored one";
+                // an empty username turns auth off entirely.
+                $user = trim((string)($b['fhemUser'] ?? ''));
+                $pass = (string)($b['fhemPass'] ?? '');
+                if ($user === '')          $pass = '';
+                elseif ($pass === '')      $pass = $fhemPass;
+                $insecure = !isset($b['insecure']) || !empty($b['insecure']);
+                // Probe the candidate URL with the candidate credentials before persisting.
+                $probe = ['ok' => false, 'code' => 0, 'csrf' => false];
+                try { $probe = (new Fhem($url, $user, $pass, $insecure))->probe(); } catch (Throwable $e) {}
                 $save = empty($b['test']);
-                if ($save) $db->setSetting('fhem_url', $url);
-                out(['ok' => true, 'reachable' => $reachable, 'saved' => $save, 'fhemUrl' => $url]);
+                if ($save) {
+                    $db->setSetting('fhem_url', $url);
+                    $db->setSetting('fhem_user', $user);
+                    $db->setSetting('fhem_pass', $pass);
+                    $db->setSetting('fhem_insecure', $insecure ? '1' : '0');
+                }
+                out(['ok' => true, 'reachable' => $probe['ok'], 'authFailed' => $probe['code'] === 401,
+                     'code' => $probe['code'], 'saved' => $save, 'fhemUrl' => $url]);
             }
-            out(['fhemUrl' => $fhemUrl, 'default' => $FHEM_URL, 'gridGen' => (int)($db->getSetting('grid_gen') ?: 1)]);
+            out(['fhemUrl' => $fhemUrl, 'default' => $FHEM_URL, 'gridGen' => (int)($db->getSetting('grid_gen') ?: 1),
+                 'fhemUser' => $fhemUser, 'hasPass' => $fhemPass !== '', 'insecure' => $fhemInsecure]);
 
         // ---- readingsGroup: parse FHEM's rendering into our own table -------
         case 'readingsgroup': // GET ?name=WetterInfo -> { rows:[{sep,cells[]}] }
