@@ -79,7 +79,7 @@ async function migrateGrid() {
 async function init() {
   applyTheme(localStorage.getItem('theme') || 'aurora');
   injectColumnCss(COLS);                     // GridStack only ships CSS up to gs-12
-  ['tabs','addBtn','saveBtn','editBtn','settingsBtn','status'].forEach(id => el[id] = document.getElementById(id));
+  ['tabs','addBtn','saveBtn','editBtn','settingsBtn','fsBtn','status'].forEach(id => el[id] = document.getElementById(id));
   await migrateGrid();                       // one-time ×2 layout rescale to the finer grid
 
   grid = GridStack.init({
@@ -113,6 +113,14 @@ async function init() {
   el.addBtn.addEventListener('click', openAddDialog);
   el.saveBtn.addEventListener('click', save);
   el.settingsBtn.addEventListener('click', openSettings);
+  // Browser fullscreen: works over plain http, unlike PWA standalone (needs https).
+  el.fsBtn.addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  });
+  document.addEventListener('fullscreenchange', () =>
+    el.fsBtn.classList.toggle('active', !!document.fullscreenElement));
+  if (!document.documentElement.requestFullscreen) el.fsBtn.classList.add('hidden'); // e.g. iPhone Safari
   setupDialog();
   setupNoteDialog();
   setupSettings();
