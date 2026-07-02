@@ -11,6 +11,7 @@ function dlgSyncRows() {
   document.getElementById('rowWeatherHint').style.display = t === 'weather' ? '' : 'none';
   document.getElementById('rowWeather').style.display = t === 'weather' ? '' : 'none';
   document.getElementById('rowThermo').style.display  = t === 'thermostat' ? '' : 'none';
+  document.getElementById('rowCover').style.display   = t === 'cover' ? '' : 'none';
   document.getElementById('rowStatus').style.display  = t === 'status' ? '' : 'none';
   document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer' || t === 'status') ? '' : 'none';
   document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
@@ -163,6 +164,7 @@ function setupDialog() {
     if (type.value === 'status') { renderStatusValList(); if (!document.querySelector('#statusRows .cmd-row')) seedStatusRows(); }
     if (type.value === 'light')  initLightOpts();
     if (type.value === 'thermostat') fillThermoAuto(deviceCache.find(x => x.name === dev.value), false);
+    if (type.value === 'cover') fillCoverAuto(deviceCache.find(x => x.name === dev.value), false);
     if (type.value === 'weather' && !dev.value) {   // default to the PROPLANTA device
       const w = deviceCache.find(d => /proplanta|weather/i.test(d.type || ''));
       if (w) { dev.value = w.name; dev.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -180,6 +182,7 @@ function setupDialog() {
     if (type.value === 'button') renderCmdSetList(dev.value);
     if (type.value === 'light')  document.getElementById('lRgbCmd').value = pickColor(d);
     if (type.value === 'thermostat') fillThermoAuto(d, true);   // device changed -> overwrite
+    if (type.value === 'cover') fillCoverAuto(d, true);
   });
 
   document.getElementById('tileForm').addEventListener('submit', e => {
@@ -214,11 +217,12 @@ function setupDialog() {
     }
     if (t === 'weather') sources = collectWeatherSources();
     const thermo = t === 'thermostat' ? collectThermo() : null;
+    const cover  = t === 'cover' ? collectCover() : null;
     const statusMap = t === 'status' ? collectStatusRows() : undefined;
 
     const cfg = {
       type: t, device, setcmd, colorcmd, buttons, btnDisplay, sources, ctcmd, useRgb, useCt, ctMin, ctMax,
-      useDim, dimcmd, dimReading, statusMap, ...(thermo || {}),
+      useDim, dimcmd, dimReading, statusMap, ...(thermo || {}), ...(cover || {}),
       icon: document.getElementById('tIconField').dataset.icon || '',
       iconColor: document.getElementById('tIconColor').dataset.color || '',
       hideHeader: !document.getElementById('tHeader').checked,
@@ -306,6 +310,40 @@ function collectThermo() {
   };
 }
 
+// ---- cover (Rollladen/Jalousie): auto-detect across HM / HmIP / Shelly / ROLLO / ZWave ----
+function autoCover(d) {
+  const rds = (d && d.readings) || [], sets = (d && d.sets) || [];
+  const pos    = ['pct', 'level', 'position', 'ShutterPosition', 'dim', 'LEVEL'].find(r => rds.includes(r)) || '';
+  const posCmd = ['pct', 'level', 'position', 'ShutterPosition', 'dim'].find(c => sets.includes(c)) || pos || 'pct';
+  const up     = ['up', 'auf', 'open', 'on'].find(c => sets.includes(c)) || '';
+  const down   = ['down', 'ab', 'close', 'closes', 'off'].find(c => sets.includes(c)) || '';
+  const stop   = ['stop', 'halt'].find(c => sets.includes(c)) || '';
+  return { pos, posCmd, up, down, stop };
+}
+function fillCoverAuto(d, force) {
+  if (!d) return;
+  const a = autoCover(d);
+  const put = (id, v) => { const f = thF(id); if (force || !f.value) f.value = v; };
+  put('tCvPos', a.pos); put('tCvPosCmd', a.posCmd);
+  put('tCvUp', a.up); put('tCvDown', a.down); put('tCvStop', a.stop);
+}
+function fillCover(t) {                                       // from a stored tile
+  thF('tCvPos').value    = t.cposReading || '';
+  thF('tCvPosCmd').value = t.cposCmd || '';
+  thF('tCvUp').value     = t.cupCmd || '';
+  thF('tCvDown').value   = t.cdownCmd || '';
+  thF('tCvStop').value   = t.cstopCmd || '';
+  thF('tCvInvert').checked = !!t.cinvert;
+}
+function collectCover() {
+  const g = id => thF(id).value.trim();
+  return {
+    cposReading: g('tCvPos'), cposCmd: g('tCvPosCmd'),
+    cupCmd: g('tCvUp'), cdownCmd: g('tCvDown'), cstopCmd: g('tCvStop'),
+    cinvert: thF('tCvInvert').checked,
+  };
+}
+
 // Which colour set-command the device supports (rgb hex, hsv, or color); rgb default.
 function pickColor(d) {
   const sets = (d && d.sets) || [];
@@ -348,6 +386,7 @@ async function openEditDialog(id) {
   setColorBtn(document.getElementById('tIconColor'), t.iconColor || '');
   if (t.type === 'weather') fillWeatherSources(t.sources);
   if (t.type === 'thermostat') fillThermo(t);
+  if (t.type === 'cover') fillCover(t);
   if (t.type === 'status') {
     document.getElementById('statusRows').innerHTML = '';
     renderStatusValList();

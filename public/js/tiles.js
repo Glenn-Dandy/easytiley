@@ -20,6 +20,7 @@ const Tiles = (() => {
     weather:      svg('<circle cx="9" cy="8.5" r="3"/><path d="M9 2.5v1.3M3.5 8.5H2.2M13.8 3.7l-.9.9M5 12.5l-.9.9M4.1 3.7l.9.9"/><path d="M17.5 20a3 3 0 0 0 0-6 4.2 4.2 0 0 0-8-1.1"/><path d="M7 20h10.5"/>'), // sun+cloud
     thermostat:   svg('<circle cx="12" cy="12" r="9"/><path d="M12 12l3-3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>'), // dial
     status:       svg('<circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>'),                 // check in circle
+    cover:        svg('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 8h16M4 12h16"/>'), // half-closed shutter
   };
   const ICON_DEFAULT = svg('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 
@@ -164,6 +165,15 @@ const Tiles = (() => {
     r.addEventListener('change', () => onChange(r.value));
     show();
     return w;
+  }
+
+  // Paint a cover tile from its opening degree (0 = geschlossen, 100 = offen).
+  function paintCover(el, sem) {
+    sem = Math.min(100, Math.max(0, Math.round(sem)));
+    const pv = el.querySelector('.cv-pv');    if (pv) pv.textContent = sem;
+    const sh = el.querySelector('.cv-shade'); if (sh) sh.style.height = (100 - sem) + '%';
+    const wd = el.querySelector('.cv-word');  if (wd) wd.textContent = sem <= 1 ? 'geschlossen' : (sem >= 99 ? 'offen' : 'teils offen');
+    setSlider(el, '.cvs', sem);
   }
 
   function devReading(dev, name) {
@@ -421,6 +431,34 @@ const Tiles = (() => {
           '<div class="st-body"><div class="st-ico"></div><div class="st-lbl"></div></div>';
         break;
       }
+      case 'cover': {   // shutter/blind: visual + %, position slider, up/stop/down
+        el.classList.add('tile-rich', 'tile-cover');
+        const posCmd = tile.cposCmd || 'pct';
+        const inv = !!tile.cinvert;                 // true -> reading 100 = geschlossen
+        el.innerHTML = EDIT + header(tile) +
+          '<div class="cv-mid">' +
+            '<div class="cv-vis"><div class="cv-shade"></div></div>' +
+            '<div class="cv-val"><b class="cv-pv">–</b><span class="cv-u">%</span><div class="cv-word"></div></div>' +
+          '</div>' +
+          '<div class="cv-btns">' +
+            '<button type="button" class="cv-b cv-up" title="öffnen">▲</button>' +
+            (tile.cstopCmd ? '<button type="button" class="cv-b cv-stop" title="stopp">■</button>' : '') +
+            '<button type="button" class="cv-b cv-dn" title="schließen">▼</button>' +
+          '</div>';
+        // UI is always "% offen" (100 = open); `inv` converts to/from devices that count the other way.
+        const setPending = sem => { el.dataset.cvPending = sem; el.dataset.cvPendingTs = Date.now(); };
+        const send = sem => { onAction(tile, posCmd + ' ' + (inv ? 100 - sem : sem)); setPending(sem); paintCover(el, sem); };
+        el.insertBefore(miniSlider('cvs', 0, 100, 1, v => send(+v), '%'), el.querySelector('.cv-btns'));
+        // up/down: dedicated command if the device has one, else drive via position
+        el.querySelector('.cv-up').addEventListener('click', e => { e.stopPropagation();
+          if (tile.cupCmd) { onAction(tile, tile.cupCmd); setPending(100); paintCover(el, 100); } else send(100); });
+        el.querySelector('.cv-dn').addEventListener('click', e => { e.stopPropagation();
+          if (tile.cdownCmd) { onAction(tile, tile.cdownCmd); setPending(0); paintCover(el, 0); } else send(0); });
+        const st = el.querySelector('.cv-stop');
+        if (st) st.addEventListener('click', e => { e.stopPropagation(); onAction(tile, tile.cstopCmd);
+          delete el.dataset.cvPending; delete el.dataset.cvPendingTs; }); // accept wherever it stops
+        break;
+      }
       case 'label': {   // standalone bold text label (no device); icon optional
         el.classList.add('tile-label');
         const g   = (tile.icon && tile.icon !== 'none') ? iconHtml(tile.icon) : '';
@@ -530,6 +568,22 @@ const Tiles = (() => {
           el.querySelectorAll('.scenes .scene').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.glow !== '0' && eq(devReading(dev, btn.dataset.rd), btn.dataset.val));
           });
+        }
+        break;
+      }
+      case 'cover': {
+        const num = x => (x == null || x === '' || isNaN(parseFloat(x))) ? null : parseFloat(x);
+        const raw = num(devReading(dev, tile.cposReading || 'pct'));
+        if (raw == null) break;
+        const sem = tile.cinvert ? 100 - raw : raw;   // normalize to "% offen"
+        const pend = parseFloat(el.dataset.cvPending);
+        // While travelling, intermediate positions stream in — hold the target
+        // until reached (±2 %) or 45 s passed (long blinds), then trust readings.
+        const waiting = !isNaN(pend) && el.dataset.cvPendingTs &&
+                        (Date.now() - +el.dataset.cvPendingTs < 45000) && Math.abs(sem - pend) > 2;
+        if (!waiting) {
+          if (!isNaN(pend)) { delete el.dataset.cvPending; delete el.dataset.cvPendingTs; }
+          paintCover(el, sem);
         }
         break;
       }

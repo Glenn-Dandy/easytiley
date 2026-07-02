@@ -47,6 +47,7 @@
             <option value="button">Button(s) / Set-Befehle</option>
             <option value="thermostat">Thermostat / Heizung</option>
             <option value="status">Status (Fenster / Tür / Kontakt)</option>
+            <option value="cover">Rollladen / Jalousie</option>
             <option value="weather">Wetter</option>
           </optgroup>
           <optgroup label="Ohne FHEM">
@@ -81,6 +82,19 @@
         <datalist id="statusValList"></datalist>
         <button type="button" id="statusAdd" class="btn">+ Zustand</button>
         <p class="hint">Reading-Wert links (z.&nbsp;B. <code>open</code>) → Icon + Text + Farbe. „Wert" leer = Standard/sonst (Fallback).</p>
+      </div>
+
+      <div class="row-extra" id="rowCover">
+        <label class="lopt"><input type="checkbox" id="tCvInvert"> Invertiert (Gerät meldet 100&nbsp;% = geschlossen)</label>
+        <details class="th-adv">
+          <summary>Erweitert – Readings &amp; Befehle</summary>
+          <p class="hint">Werden beim Gerät-Auswählen automatisch erkannt – nur bei Bedarf anpassen.</p>
+          <label>Position (Reading) <input id="tCvPos" autocomplete="off"></label>
+          <label>Position setzen (Befehl) <input id="tCvPosCmd" autocomplete="off"></label>
+          <label>Öffnen (Befehl) <input id="tCvUp" autocomplete="off" placeholder="optional – sonst Position 100"></label>
+          <label>Schließen (Befehl) <input id="tCvDown" autocomplete="off" placeholder="optional – sonst Position 0"></label>
+          <label>Stopp (Befehl) <input id="tCvStop" autocomplete="off" placeholder="optional – blendet ■ ein"></label>
+        </details>
       </div>
 
       <div class="row-extra" id="rowThermo">

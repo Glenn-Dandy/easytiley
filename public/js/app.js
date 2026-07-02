@@ -21,6 +21,7 @@ const DEFAULT_SIZE = {
   weather:{ w: 12, h: 8 },
   thermostat: { w: 5, h: 6 },
   status: { w: 4, h: 4 },
+  cover: { w: 5, h: 6 },
 };
 
 // ---- init ----------------------------------------------------------------

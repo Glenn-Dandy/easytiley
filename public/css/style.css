@@ -347,6 +347,26 @@ body.editing .chk-item input { pointer-events: none; } /* don't toggle while arr
 .tile-weather .wx-day .pop { display: flex; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); margin-top: 4px; }
 .tile-weather .wx-day .pop svg { width: 10px; height: 10px; }
 
+/* cover (Rollladen): visual shutter + %, position slider, up/stop/down */
+.tile-cover { gap: 6px; }
+.tile-cover .cv-mid { flex: 1; display: flex; align-items: center; justify-content: center; gap: 16px; min-height: 0; }
+.tile-cover .cv-vis { width: 40px; height: 52px; border: 2px solid var(--stroke); border-radius: 6px;
+  overflow: hidden; background: color-mix(in srgb, var(--accent) 14%, transparent); flex: 0 0 auto; }
+.tile-cover .cv-shade { width: 100%; height: 100%; transition: height .3s;
+  background: repeating-linear-gradient(to bottom, var(--muted) 0 5px, color-mix(in srgb, var(--muted) 45%, var(--card)) 5px 8px); opacity: .8; }
+.tile-cover .cv-val { text-align: center; }
+.tile-cover .cv-pv { font-size: 26px; font-weight: 800; }
+.tile-cover .cv-u { font-size: 15px; font-weight: 700; color: var(--muted); margin-left: 2px; }
+.tile-cover .cv-word { font-size: 11px; color: var(--muted); font-weight: 600; }
+.tile-cover .mslider { display: flex; align-items: center; }
+.tile-cover .mslider .mval { display: none; }  /* big % above is enough */
+.tile-cover .cv-btns { display: flex; gap: 6px; }
+.tile-cover .cv-b { flex: 1; padding: 7px 4px; border-radius: 10px; font-size: 14px; font-weight: 700;
+  background: var(--btn-bg); color: var(--text); border: 1px solid var(--stroke); cursor: pointer; }
+.tile-cover .cv-b:hover { border-color: var(--accent); }
+body:not(.editing) .tile-cover .cv-b:active { transform: scale(.92); }
+.tile-cover .cv-b { transition: transform .08s; }
+
 /* thermostat: vertical — Ist on top, Soll steppers, mode row, valve left/battery right */
 .tile-thermo { gap: 8px; }
 .tile-thermo .th-actual { font-weight: 800; line-height: 1; display: flex; align-items: flex-start;
@@ -374,12 +394,12 @@ body.editing .chk-item input { pointer-events: none; } /* don't toggle while arr
 .tile-thermo .th-bat { margin-left: auto; }   /* battery sticks to the right */
 .tile-thermo .th-low { color: #ff6b6b; }
 /* thermostat config: advanced (readings/commands) collapsible */
-#rowThermo .th-adv { margin-top: 8px; }
-#rowThermo .th-adv[open] { max-height: 46vh; overflow-y: auto; overscroll-behavior: contain; }
-#rowThermo .th-adv summary { cursor: pointer; font-size: 13px; color: var(--muted); font-weight: 600;
+.row-extra .th-adv { margin-top: 8px; }
+.row-extra .th-adv[open] { max-height: 46vh; overflow-y: auto; overscroll-behavior: contain; }
+.row-extra .th-adv summary { cursor: pointer; font-size: 13px; color: var(--muted); font-weight: 600;
   position: sticky; top: 0; background: var(--panel); padding: 4px 0; z-index: 1; }
-body.theme-clean #rowThermo .th-adv summary { background: #fff; }
-#rowThermo .th-adv label { display: block; margin-top: 8px; font-size: 13px; }
+body.theme-clean .row-extra .th-adv summary { background: #fff; }
+.row-extra .th-adv label { display: block; margin-top: 8px; font-size: 13px; }
 
 /* standalone text label: left-aligned bold text at device-name size, icon optional */
 .tile-label .row { gap: 9px; }
