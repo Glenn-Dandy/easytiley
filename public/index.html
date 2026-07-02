@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>FHEM Dashboard</title>
+  <title>EasyTiley</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-extra.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand" title="FHEM">⌂</div>
+    <div class="brand" title="EasyTiley">⌂</div>
     <nav id="tabs" class="tabs"></nav>
     <span id="status" class="status" title="Verbindung"></span>
     <button id="addBtn"  class="btn icon hidden" title="Kachel hinzufügen">＋</button>
@@ -201,6 +201,8 @@
         <button type="button" id="btnImport" class="btn">⬆ Importieren</button>
         <input type="file" id="importFile" accept="application/json" hidden>
       </div>
+
+      <p class="hint" id="sAbout"></p>
 
       <menu>
         <button value="cancel" class="btn">Schließen</button>

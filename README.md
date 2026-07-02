@@ -1,7 +1,9 @@
-# FHEM Frontend
+# EasyTiley
 
 Web-Dashboard für FHEM mit editierbaren Gerätekacheln.
 Kacheln hinzufügen, frei platzieren, vergrößern, verschmelzen und speichern — alles im Browser.
+
+![EasyTiley Dashboard](docs/screenshot.png)
 
 ```
 Browser ──HTTP──> 1 Docker-Container ──HTTP──> FHEMWEB (192.168.10.2:8083)
@@ -30,7 +32,7 @@ sudo usermod -aG docker "$USER"   # danach einmal ab- und neu anmelden
 ## Installieren & Starten
 
 ```bash
-git clone <repo-url> fhem-frontend && cd fhem-frontend
+git clone <repo-url> easytiley && cd easytiley
 mkdir -p data && chmod 777 data      # php-fpm (uid 82) muss in data/ schreiben
 docker compose up -d --build         # baut das Image lokal und startet den Container
 # -> http://localhost:8080
@@ -46,7 +48,7 @@ Dashboards in `data/fhem.db` überleben Updates/Rebuilds.
 
 ## Aktualisieren
 
-Im geklonten Ordner (`cd fhem-frontend`):
+Im geklonten Ordner (`cd easytiley`):
 
 ```bash
 git pull                      # neuen Code holen
@@ -69,7 +71,9 @@ Deine Dashboards in `data/fhem.db` bleiben erhalten. Altes Image aufräumen:
 6. **Speichern** → Layout landet in SQLite. **Fertig** → Anzeige-/Bedienmodus mit Live-Werten.
 
 Kacheltypen: `Wert / Sensor`, `Schalter (on/off)`, `Licht (an/aus + RGB + CT)`,
-`readingsGroup`, `Gruppe / Raum-Box`, `Button(s) / Set-Befehle`.
+`readingsGroup`, `Button(s) / Set-Befehle`, `Thermostat / Heizung`,
+`Status (Fenster / Tür / Kontakt)`, `Wetter (PROPLANTA)`, `Gruppe / Raum-Box`,
+`Uhrzeit / Datum`, `Notiz (Text / Checkliste)`, `Beschriftung / Text`.
 
 **Freies Raster:** Kacheln liegen, wo du sie hinsetzt. Nur leerer Platz **über
 allen** Kacheln wird automatisch entfernt — innere Lücken bleiben.
@@ -81,8 +85,8 @@ im Editiermodus benennt ein Klick auf den aktiven Tab ihn um, **✕** löscht ih
 rendert intern, das Backend parst Werte + Icons heraus (DOMDocument) und das
 Frontend zeichnet eine **eigene Tabelle im Dark-Theme** (Aktualisierung alle 30 s).
 
-**Gruppe / Raum-Box:** ein verschachteltes Raster; Kacheln per Drag hinein- oder
-herausziehen (Größe wird proportional ans Ziel-Raster angepasst).
+**Gruppe / Raum-Box:** ein verschachteltes Raster im selben Koordinatensystem wie
+das Hauptraster; Kacheln behalten beim Hinein-/Herausziehen ihre Größe 1:1.
 
 ## API (PHP, unter `/api/`)
 
@@ -114,5 +118,4 @@ data/              fhem.db (SQLite, gitignored)
 ## Roadmap / mögliche Erweiterungen
 
 * SSE/longpoll statt Polling (Push-Updates direkt aus FHEM).
-* Mehr Kacheltypen (Charts, Thermostat, Kamera).
-* Icon-Auswahl je Kachel.
+* Mehr Kacheltypen (Charts, Rollladen/Cover, Kamera).

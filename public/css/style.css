@@ -213,6 +213,12 @@ body.editing .grid-stack:not(.grid-stack-nested) {
   background-size: calc(100% / 24) 38px;
 }
 
+/* view mode: taps and gestures must reach tile controls — GridStack's drag layer
+   marks items touch-action:none even when moving is disabled, which eats taps
+   (noticeable inside group sub-grids). Editing keeps none so dragging works. */
+body:not(.editing) .grid-stack-item,
+body:not(.editing) .grid-stack-item-content { touch-action: auto !important; }
+
 /* rooms (tabs) are re-orderable by drag while editing */
 body.editing .tab { cursor: grab; }
 .tab.drag { opacity: .45; }

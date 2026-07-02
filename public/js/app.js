@@ -10,6 +10,7 @@
   const el = {};
   // 24-column grid (finer snap than the old 12). Sizes are in those finer units.
   const GRID_GEN = 2;                 // bump when the column resolution changes
+  const APP_NAME = 'EasyTiley', APP_VERSION = '1.00';
   const COLS = 23;
   const DEFAULT_SIZE = {
     value:  { w: 4, h: 4 }, switch: { w: 4, h: 4 }, dimmer: { w: 6, h: 4 },
@@ -253,7 +254,7 @@
   // the same coordinate system, so a tile keeps its size and proportions 1:1 when
   // dragged in or out — no per-grid rescaling needed.
   const NESTED_OPTS = {                          // options for a group's sub-grid
-    cellHeight: 38, margin: 4, float: false,     // column is set per group from its width
+    cellHeight: 38, margin: 4, float: true,      // free placement like the main grid; column set per group width
     acceptWidgets: true, resizable: { handles: 'se, s, e' },
   };
   // Match a group's sub-grid column count to its pixel width so the sub-grid's cell
@@ -286,19 +287,7 @@
     grid.el.style.transform = s === 1 ? '' : `scale(${s})`;
     const h = grid.el.offsetHeight;            // unscaled layout height
     grid.el.style.marginBottom = s < 1 ? `${-Math.round(h * (1 - s))}px` : '';
-    fitSubGrids();
-  }
-
-  // Group sub-grids: keep a constant tile (cell) size by adapting the column
-  // count to the group's width -> tiles don't shrink, and the grid grows wider
-  // (more columns) when there's room. ~64px cell.
-  function fitSubGrids() {
-    document.querySelectorAll('.grid-stack-nested').forEach(el => {
-      const sub = el.gridstack; if (!sub) return;
-      const w = el.clientWidth; if (w < 30) return;
-      const col = Math.max(2, Math.min(COLS, Math.round(w / 64)));
-      if (sub.getColumn() !== col) sub.column(col, 'none');
-    });
+    syncAllGroups();   // single source of truth for sub-grid columns (1:1 cell size with the main grid)
   }
 
   // Register a tile in the flat tiles map, recursing into merge children (which
@@ -1335,6 +1324,7 @@
     document.getElementById('sTheme').value = localStorage.getItem('theme') || 'aurora';
     try { const s = await API.settings(); document.getElementById('sFhemUrl').value = s.fhemUrl || ''; }
     catch (e) { /* ignore */ }
+    document.getElementById('sAbout').textContent = `${APP_NAME} V${APP_VERSION}`;
     settingsResult('');
     el.settingsDlg.showModal();
   }
