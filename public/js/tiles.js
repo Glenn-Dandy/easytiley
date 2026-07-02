@@ -21,6 +21,7 @@ const Tiles = (() => {
     thermostat:   svg('<circle cx="12" cy="12" r="9"/><path d="M12 12l3-3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>'), // dial
     status:       svg('<circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>'),                 // check in circle
     cover:        svg('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 8h16M4 12h16"/>'), // half-closed shutter
+    chart:        svg('<path d="M3 3v18h18"/><path d="M6 15l4-5 3 3 5-7"/>'),                       // line chart
   };
   const ICON_DEFAULT = svg('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 
@@ -165,6 +166,57 @@ const Tiles = (() => {
     r.addEventListener('change', () => onChange(r.value));
     show();
     return w;
+  }
+
+  // ---- chart tile ----------------------------------------------------------
+  const fmtChVal = (v, unit) =>
+    (Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 10) / 10) + (unit ? ' ' + unit : '');
+  const fmtChTime = (ts, spanH) => {
+    const d = new Date(ts * 1000);
+    const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return spanH > 48 ? (d.getDate() + '.' + (d.getMonth() + 1) + '. ' + hm) : hm;
+  };
+
+  // Render points [[unixTs, value], ...] into the tile's SVG. Grid/labels wear
+  // text tokens; the single series uses the accent (validated vs both surfaces).
+  function drawChart(el, tile, pts) {
+    const wrap = el.querySelector('.ch-wrap'); if (!wrap) return;
+    el._chPts = pts;
+    const svg = wrap.querySelector('svg'), empty = wrap.querySelector('.ch-empty');
+    const W = Math.max(80, wrap.clientWidth), H = Math.max(50, wrap.clientHeight);
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    if (!pts || pts.length < 2) {
+      svg.innerHTML = ''; el._chMap = null;
+      if (empty) { empty.style.display = ''; empty.textContent = pts && pts.length ? 'zu wenig Datenpunkte' : 'keine Daten im Zeitraum'; }
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    const ys = pts.map(p => p[1]);
+    let mn = Math.min(...ys), mx = Math.max(...ys);
+    if (mx - mn < 1e-9) { mx += 1; mn -= 1; }               // flat series: give it a band
+    const padT = 6, padB = 16, padL = 6, padR = 8;
+    const x0 = pts[0][0], x1 = pts[pts.length - 1][0];
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const X = t => padL + (t - x0) / (x1 - x0 || 1) * plotW;
+    const Y = v => padT + (mx - v) / (mx - mn) * plotH;
+    const spanH = (x1 - x0) / 3600;
+    el._chMap = { pts, X, Y, W, padL, plotW, spanH };
+    let line = '';
+    for (let i = 0; i < pts.length; i++) line += (i ? 'L' : 'M') + X(pts[i][0]).toFixed(1) + ' ' + Y(pts[i][1]).toFixed(1);
+    const area = line + `L${(padL + plotW).toFixed(1)} ${padT + plotH}L${padL} ${padT + plotH}Z`;
+    const gy = [Y(mx), Y((mn + mx) / 2), Y(mn)];
+    const last = pts[pts.length - 1];
+    const lastY = Math.min(padT + plotH - 4, Math.max(padT + 10, Y(last[1])));
+    svg.innerHTML =
+      gy.map(y => `<line class="ch-grid" x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(1)}"/>`).join('') +
+      `<path class="ch-area" d="${area}"/><path class="ch-line" d="${line}"/>` +
+      `<text class="ch-lbl" x="${padL + 2}" y="${(gy[0] + 10).toFixed(1)}">${fmtChVal(mx, tile.unit)}</text>` +
+      `<text class="ch-lbl" x="${padL + 2}" y="${(gy[2] - 4).toFixed(1)}">${fmtChVal(mn, tile.unit)}</text>` +
+      `<text class="ch-lbl" x="${padL}" y="${H - 4}">${fmtChTime(x0, spanH)}</text>` +
+      `<text class="ch-lbl" x="${padL + plotW}" y="${H - 4}" text-anchor="end">${fmtChTime(x1, spanH)}</text>` +
+      `<text class="ch-last" x="${(X(last[0]) - 6).toFixed(1)}" y="${(lastY - 8).toFixed(1)}" text-anchor="end">${fmtChVal(last[1], tile.unit)}</text>` +
+      `<circle class="ch-dot" cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="3.5"/>` +
+      `<g class="ch-hover" style="display:none"><line class="ch-hoverline" y1="${padT}" y2="${padT + plotH}"/><circle class="ch-dot" r="4"/></g>`;
   }
 
   // Paint a cover tile from its opening degree (0 = geschlossen, 100 = offen).
@@ -458,6 +510,36 @@ const Tiles = (() => {
           delete el.dataset.cvPending; delete el.dataset.cvPendingTs; }); // accept wherever it stops
         break;
       }
+      case 'chart': {   // history line chart from a FileLog/DbLog (data via refreshCharts)
+        el.classList.add('tile-rich', 'tile-chart');
+        el.innerHTML = EDIT + header(tile) +
+          '<div class="ch-wrap"><svg class="ch-svg"></svg><div class="ch-tip"></div><div class="ch-empty">lädt…</div></div>';
+        const wrap = el.querySelector('.ch-wrap');
+        new ResizeObserver(() => { if (el._chPts) drawChart(el, tile, el._chPts); }).observe(wrap);
+        // hover layer: crosshair + tooltip at the nearest point
+        wrap.addEventListener('pointermove', ev => {
+          const m = el._chMap; if (!m) return;
+          const r = wrap.getBoundingClientRect();
+          const px = (ev.clientX - r.left) * (m.W / r.width);   // undo the dashboard zoom scale
+          let i = Math.round((px - m.padL) / (m.plotW || 1) * (m.pts.length - 1));
+          i = Math.max(0, Math.min(m.pts.length - 1, i));
+          const [t, v] = m.pts[i], x = m.X(t), y = m.Y(v);
+          const hv = wrap.querySelector('.ch-hover'); if (!hv) return;
+          hv.style.display = '';
+          hv.querySelector('line').setAttribute('x1', x); hv.querySelector('line').setAttribute('x2', x);
+          const c = hv.querySelector('circle'); c.setAttribute('cx', x); c.setAttribute('cy', y);
+          const tip = wrap.querySelector('.ch-tip');
+          tip.style.display = 'block';
+          tip.textContent = fmtChTime(t, m.spanH) + ' · ' + fmtChVal(v, tile.unit);
+          const left = Math.min(Math.max(0, x / m.W * r.width - tip.offsetWidth / 2), r.width - tip.offsetWidth);
+          tip.style.left = left + 'px';
+        });
+        wrap.addEventListener('pointerleave', () => {
+          const hv = wrap.querySelector('.ch-hover'); if (hv) hv.style.display = 'none';
+          const tip = wrap.querySelector('.ch-tip'); if (tip) tip.style.display = 'none';
+        });
+        break;
+      }
       case 'label': {   // standalone bold text label (no device); icon optional
         el.classList.add('tile-label');
         const g   = (tile.icon && tile.icon !== 'none') ? iconHtml(tile.icon) : '';
@@ -679,5 +761,5 @@ const Tiles = (() => {
     }
   }
 
-  return { build, apply, iconList: () => ICON_LIST, iconSvg: iconHtml };
+  return { build, apply, drawChart, iconList: () => ICON_LIST, iconSvg: iconHtml };
 })();

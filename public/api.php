@@ -195,6 +195,33 @@ try {
             $html = str_replace(['="/fhem/', "='/fhem/"], ['="/api/fhemasset?path=/fhem/', "='/api/fhemasset?path=/fhem/"], $html);
             out(['rows' => rg_parse($html)]);
 
+        // ---- chart data: FileLog/DbLog history via FHEM "get" ---------------
+        case 'chart': // GET ?log=FileLog_X&spec=4:temperature:0:&hours=24
+            $log  = preg_replace('/[^A-Za-z0-9_.\-]/', '', (string)($_GET['log'] ?? ''));
+            $spec = trim((string)($_GET['spec'] ?? ''));
+            $hours = max(1, min(24 * 90, (int)($_GET['hours'] ?? 24)));
+            if ($log === '' || $spec === '') fail('log and spec required', 400);
+            if (!preg_match('#^[A-Za-z0-9_.:%\-]+$#', $spec)) fail('bad spec', 400); // one token, no shell/FHEM metachars
+            $from = date('Y-m-d_H:i:s', time() - $hours * 3600);
+            $to   = date('Y-m-d_H:i:s');
+            $body = $fhem->cmd("get $log - - $from $to $spec");
+            $pts = [];
+            foreach (preg_split('/\n/', $body) as $line) {   // "2026-07-03_10:15:30 21.5"
+                if ($line === '' || $line[0] === '#') continue;
+                if (preg_match('/^(\d{4}-\d{2}-\d{2})_(\d{2}:\d{2}:\d{2})\s+(-?[\d.]+)/', $line, $m)) {
+                    $ts = strtotime($m[1] . ' ' . $m[2]);
+                    if ($ts !== false) $pts[] = [$ts, (float)$m[3]];
+                }
+            }
+            $n = count($pts);                                // decimate: a tile never needs >400 points
+            if ($n > 400) {
+                $out = []; $step = $n / 400;
+                for ($i = 0.0; $i < $n; $i += $step) $out[] = $pts[(int)$i];
+                if (end($out) !== $pts[$n - 1]) $out[] = $pts[$n - 1];
+                $pts = $out;
+            }
+            out(['points' => $pts, 'from' => $from, 'to' => $to, 'count' => count($pts)]);
+
         // ---- icon proxy: fetch a FHEM asset and serve it from the app -------
         case 'fhemasset': // GET ?path=/fhem/images/.../sunny.svg
             $assetPath = (string)($_GET['path'] ?? '');

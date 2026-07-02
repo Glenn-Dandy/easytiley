@@ -4,7 +4,7 @@
 function dlgSyncRows() {
   const t = document.getElementById('tType').value;
   document.getElementById('rowDevice').style.display  = (t === 'group' || t === 'clock' || t === 'note' || t === 'label') ? 'none' : '';
-  document.getElementById('rowUnit').style.display    = t === 'value'  ? '' : 'none';
+  document.getElementById('rowUnit').style.display    = (t === 'value' || t === 'chart') ? '' : 'none';
   document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
   document.getElementById('rowLight').style.display   = t === 'light'  ? '' : 'none';
   document.getElementById('rowNote').style.display    = t === 'note'   ? '' : 'none';
@@ -13,7 +13,8 @@ function dlgSyncRows() {
   document.getElementById('rowThermo').style.display  = t === 'thermostat' ? '' : 'none';
   document.getElementById('rowCover').style.display   = t === 'cover' ? '' : 'none';
   document.getElementById('rowStatus').style.display  = t === 'status' ? '' : 'none';
-  document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer' || t === 'status') ? '' : 'none';
+  document.getElementById('rowChart').style.display   = t === 'chart' ? '' : 'none';
+  document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer' || t === 'status' || t === 'chart') ? '' : 'none';
   document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
 }
 
@@ -131,6 +132,9 @@ function setupDialog() {
     value: d.name,
     sub: (d.alias && d.alias !== d.name ? d.alias + ' · ' : '') + (d.type || ''),
   })));
+  attachAutocomplete(document.getElementById('tChLog'), () => deviceCache
+    .filter(d => /^(filelog|dblog)$/i.test(d.type || ''))
+    .map(d => ({ value: d.name, sub: d.type || '' })));
   attachAutocomplete(reading, () => {
     const d = deviceCache.find(x => x.name === dev.value);
     return (d ? d.readings : []).map(r => ({ value: r }));
@@ -165,6 +169,7 @@ function setupDialog() {
     if (type.value === 'light')  initLightOpts();
     if (type.value === 'thermostat') fillThermoAuto(deviceCache.find(x => x.name === dev.value), false);
     if (type.value === 'cover') fillCoverAuto(deviceCache.find(x => x.name === dev.value), false);
+    if (type.value === 'chart') fillChartAuto(deviceCache.find(x => x.name === dev.value), false);
     if (type.value === 'weather' && !dev.value) {   // default to the PROPLANTA device
       const w = deviceCache.find(d => /proplanta|weather/i.test(d.type || ''));
       if (w) { dev.value = w.name; dev.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -183,6 +188,7 @@ function setupDialog() {
     if (type.value === 'light')  document.getElementById('lRgbCmd').value = pickColor(d);
     if (type.value === 'thermostat') fillThermoAuto(d, true);   // device changed -> overwrite
     if (type.value === 'cover') fillCoverAuto(d, true);
+    if (type.value === 'chart') fillChartAuto(d, true);
   });
 
   document.getElementById('tileForm').addEventListener('submit', e => {
@@ -218,11 +224,12 @@ function setupDialog() {
     if (t === 'weather') sources = collectWeatherSources();
     const thermo = t === 'thermostat' ? collectThermo() : null;
     const cover  = t === 'cover' ? collectCover() : null;
+    const chart  = t === 'chart' ? collectChart() : null;
     const statusMap = t === 'status' ? collectStatusRows() : undefined;
 
     const cfg = {
       type: t, device, setcmd, colorcmd, buttons, btnDisplay, sources, ctcmd, useRgb, useCt, ctMin, ctMax,
-      useDim, dimcmd, dimReading, statusMap, ...(thermo || {}), ...(cover || {}),
+      useDim, dimcmd, dimReading, statusMap, ...(thermo || {}), ...(cover || {}), ...(chart || {}),
       icon: document.getElementById('tIconField').dataset.icon || '',
       iconColor: document.getElementById('tIconColor').dataset.color || '',
       hideHeader: !document.getElementById('tHeader').checked,
@@ -252,6 +259,7 @@ function setupDialog() {
     editingTileId = null;
     applyScale();                                 // re-fit zoom after adding a tile
     refreshReadingsGroups();                      // fill any new readingsGroup tile
+    refreshCharts();                              // fill any new chart tile
     updateClocks();                               // fill a new clock tile right away
     if (!editMode) save();                        // normal-mode edit (note) -> persist now (no Save button visible)
   });
@@ -307,6 +315,35 @@ function collectThermo() {
     tstep: parseFloat(thF('tThStep').value) || 0.5,
     tvReading: g('tThValve'), tbReading: g('tThBattery'),
     tmReading: g('tThMode'),  tmodeCmd: g('tThModeCmd'),
+  };
+}
+
+// ---- chart: guess the FileLog/DbLog for a device + a matching column spec ----
+function autoChart(d, reading) {
+  if (!d) return { log: '', spec: '' };
+  const logs = deviceCache.filter(x => /^(filelog|dblog)$/i.test(x.type || ''));
+  const cand = logs.find(x => x.name === 'FileLog_' + d.name) ||
+               logs.find(x => x.name.toLowerCase().includes(d.name.toLowerCase()));
+  const isDb = cand && /dblog/i.test(cand.type || '');
+  const spec = isDb ? `${d.name}:${reading || 'state'}` : `4:${reading || 'state'}:0:`;
+  return { log: cand ? cand.name : '', spec };
+}
+function fillChartAuto(d, force) {
+  if (!d) return;
+  const a = autoChart(d, document.getElementById('tReading').value.trim());
+  const put = (id, v) => { const f = thF(id); if (force || !f.value) f.value = v; };
+  put('tChLog', a.log); put('tChSpec', a.spec);
+}
+function fillChart(t) {
+  thF('tChLog').value   = t.chLog || '';
+  thF('tChSpec').value  = t.chSpec || '';
+  thF('tChHours').value = String(t.chHours || 24);
+}
+function collectChart() {
+  return {
+    chLog: thF('tChLog').value.trim(),
+    chSpec: thF('tChSpec').value.trim(),
+    chHours: parseInt(thF('tChHours').value, 10) || 24,
   };
 }
 
@@ -387,6 +424,7 @@ async function openEditDialog(id) {
   if (t.type === 'weather') fillWeatherSources(t.sources);
   if (t.type === 'thermostat') fillThermo(t);
   if (t.type === 'cover') fillCover(t);
+  if (t.type === 'chart') fillChart(t);
   if (t.type === 'status') {
     document.getElementById('statusRows').innerHTML = '';
     renderStatusValList();

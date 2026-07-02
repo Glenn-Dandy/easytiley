@@ -22,6 +22,7 @@ const DEFAULT_SIZE = {
   thermostat: { w: 5, h: 6 },
   status: { w: 4, h: 4 },
   cover: { w: 5, h: 6 },
+  chart: { w: 9, h: 5 },
 };
 
 // ---- init ----------------------------------------------------------------
@@ -132,6 +133,7 @@ async function init() {
 
   Live.start(activeDeviceNames, applyLive, setStatus, 3000);
   setInterval(refreshReadingsGroups, 30000); // readingsGroups change slowly
+  setInterval(refreshCharts, 300000);        // log history: 5 min is plenty
   updateClocks();
   setInterval(updateClocks, 1000);            // local clock tiles (no FHEM)
 }
@@ -221,6 +223,7 @@ async function loadDashboard(id) {
   applyScale();                                         // re-fit zoom after layout change
   requestAnimationFrame(syncAllGroups);                 // match group sub-grid columns once laid out
   refreshReadingsGroups();
+  refreshCharts();
   updateClocks();
 }
 
@@ -230,6 +233,24 @@ function syncAllGroups() {
 }
 
 // readingsGroup tiles: pull FHEM's own rendered HTML and inject it.
+// Pull log history for every chart tile and (re)draw it.
+async function refreshCharts() {
+  for (const t of Object.values(tiles)) {
+    if (t.type !== 'chart' || !t.chLog || !t.chSpec) continue;
+    const el2 = grid.el.querySelector(`.tile[data-tile-id="${t.id}"]`);
+    if (!el2) continue;
+    try {
+      const { points } = await API.chart(t.chLog, t.chSpec, t.chHours || 24);
+      el2.classList.remove('tile-wait');
+      Tiles.drawChart(el2, t, points);
+    } catch (e) {
+      el2.classList.remove('tile-wait');
+      const em = el2.querySelector('.ch-empty');
+      if (em) { em.style.display = ''; em.textContent = 'Fehler: ' + e.message; }
+    }
+  }
+}
+
 async function refreshReadingsGroups() {
   for (const t of Object.values(tiles)) {
     if (t.type !== 'readingsgroup' || !t.device) continue;

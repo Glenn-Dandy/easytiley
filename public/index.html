@@ -48,6 +48,7 @@
             <option value="thermostat">Thermostat / Heizung</option>
             <option value="status">Status (Fenster / Tür / Kontakt)</option>
             <option value="cover">Rollladen / Jalousie</option>
+            <option value="chart">Diagramm / Verlauf</option>
             <option value="weather">Wetter</option>
           </optgroup>
           <optgroup label="Ohne FHEM">
@@ -82,6 +83,26 @@
         <datalist id="statusValList"></datalist>
         <button type="button" id="statusAdd" class="btn">+ Zustand</button>
         <p class="hint">Reading-Wert links (z.&nbsp;B. <code>open</code>) → Icon + Text + Farbe. „Wert" leer = Standard/sonst (Fallback).</p>
+      </div>
+
+      <div class="row-extra" id="rowChart">
+        <label>Log-Gerät (FileLog / DbLog)
+          <input id="tChLog" autocomplete="off" placeholder="wird automatisch gesucht">
+        </label>
+        <label>Zeitraum
+          <select id="tChHours">
+            <option value="6">6 Stunden</option>
+            <option value="12">12 Stunden</option>
+            <option value="24" selected>24 Stunden</option>
+            <option value="48">48 Stunden</option>
+            <option value="168">7 Tage</option>
+          </select>
+        </label>
+        <details class="th-adv">
+          <summary>Erweitert – Log-Spezifikation</summary>
+          <p class="hint">FileLog: <code>4:Reading:0:</code> (Spalte:Filter:Default) · DbLog: <code>Gerät:Reading</code>. Wird beim Gerät-Auswählen vorbelegt.</p>
+          <label>Spezifikation <input id="tChSpec" autocomplete="off"></label>
+        </details>
       </div>
 
       <div class="row-extra" id="rowCover">

@@ -20,6 +20,7 @@ const API = {
   deviceList()          { return this._get('devicelist'); },
   cmd(device, args)     { return this._send('cmd', 'POST', { device, args }); },
   readingsGroup(name) { return this._get('readingsgroup?name=' + encodeURIComponent(name)); },
+  chart(log, spec, hours) { return this._get('chart?log=' + encodeURIComponent(log) + '&spec=' + encodeURIComponent(spec) + '&hours=' + (hours || 24)); },
   rawCmd(cmd)           { return this._send('cmd', 'POST', { cmd }); },
 
   settings()            { return this._get('settings'); },

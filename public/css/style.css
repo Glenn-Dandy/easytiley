@@ -348,6 +348,22 @@ body.editing .chk-item input { pointer-events: none; } /* don't toggle while arr
 .tile-weather .wx-day .pop { display: flex; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); margin-top: 4px; }
 .tile-weather .wx-day .pop svg { width: 10px; height: 10px; }
 
+/* chart tile: history line from a FileLog/DbLog */
+.tile-chart .ch-wrap { flex: 1; position: relative; min-height: 0; }
+.tile-chart .ch-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tile-chart .ch-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.tile-chart .ch-area { fill: var(--accent); opacity: .12; }
+.tile-chart .ch-grid { stroke: var(--stroke); }
+.tile-chart .ch-lbl  { fill: var(--muted); font-size: 10px; font-weight: 600; }
+.tile-chart .ch-last { fill: var(--text); font-size: 11px; font-weight: 800; }
+.tile-chart .ch-dot  { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+.tile-chart .ch-hoverline { stroke: var(--muted); stroke-dasharray: 3 3; }
+.tile-chart .ch-empty { position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; color: var(--muted); font-size: 13px; text-align: center; padding: 8px; }
+.tile-chart .ch-tip { position: absolute; top: 0; display: none; pointer-events: none; z-index: 3;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--stroke); border-radius: 8px;
+  padding: 3px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+
 /* cover (Rollladen): shutter visual + status word centered, slider like the light, up/stop/down */
 .tile-cover { gap: 8px; }
 .tile-cover .cv-mid { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 0; }

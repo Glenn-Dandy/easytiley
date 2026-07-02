@@ -7,6 +7,7 @@ services:
     environment:
       - FHEM_URL=${FHEM_URL:-http://192.168.10.2:8083/fhem}
       - DB_PATH=/var/www/data/fhem.db
+      - TZ=${TZ:-Europe/Berlin}
     volumes:
       - ./data:/var/www/data           # sqlite DB (dashboards) persists on the host
       # Dev only: live-edit code without rebuild (comment out for deploy)
