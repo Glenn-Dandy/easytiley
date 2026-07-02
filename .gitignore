@@ -4,3 +4,4 @@
 /data/devicelist.*.json
 !/data/.gitkeep
 .DS_Store
+/node_modules/
