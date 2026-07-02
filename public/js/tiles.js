@@ -549,17 +549,21 @@ const Tiles = (() => {
         set('.wx-ico', iconHtml(wxIcon(cond)));
         set('.wx-temp', temp != null ? (temp + '°') : '–', true);
         set('.wx-cond', cond || '', true);
-        // right-hand stats block (overridable: humidity/pressure; PROPLANTA: wind/uv/sun)
-        const stats = [
+        // stats block: two fixed columns — Feuchte/Druck/Wind and Regen/Sonne/UV
+        const col1 = [
           ['droplet', src('humidity', 'humidity'), '%',    'Feuchte'],
           ['gauge',   src('pressure', 'pressure'), ' hPa', 'Druck'],
           ['wind',    rv('wind'),                  ' km/h','Wind'],
-          ['sun',     rv('fc0_uv'),                '',     'UV'],
-          ['sun',     rv('fc0_sun'),               '%',    'Sonne'],
         ];
-        set('.wx-stats', stats.filter(s => s[1] != null && s[1] !== '')
+        const col2 = [
+          ['rain',    rv('fc0_chOfRainDay'),       '%',    'Regen'],
+          ['sun',     rv('fc0_sun'),               '%',    'Sonne'],
+          ['sun',     rv('fc0_uv'),                '',     'UV'],
+        ];
+        const colHtml = list => '<div class="wx-col">' + list.filter(s => s[1] != null && s[1] !== '')
           .map(([ic, val, unit, lbl]) => '<div class="wx-stat">' + iconHtml(ic) +
-            '<span class="wv"><b>' + val + unit + '</b><span class="wl">' + lbl + '</span></span></div>').join(''));
+            '<span class="wv"><b>' + val + unit + '</b><span class="wl">' + lbl + '</span></span></div>').join('') + '</div>';
+        set('.wx-stats', colHtml(col1) + colHtml(col2));
         let fc = '';
         for (let i = 0; i < (tile.fcDays || 7); i++) {
           const date = rv('fc' + i + '_date'); if (date == null) continue;

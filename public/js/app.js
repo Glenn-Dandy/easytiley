@@ -329,6 +329,10 @@
       item.setAttribute('gs-min-w', DEFAULT_SIZE.clock.w);
       item.setAttribute('gs-min-h', DEFAULT_SIZE.clock.h);
     }
+    if (tile.type === 'weather') {               // weather needs room for stats + forecast strip
+      item.setAttribute('gs-min-w', 9);
+      item.setAttribute('gs-min-h', 5);
+    }
     item.appendChild(Tiles.build(tile, onAction));
     targetGrid.el.appendChild(item);
     targetGrid.makeWidget(item);

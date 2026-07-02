@@ -316,14 +316,16 @@ dialog textarea { width: 100%; margin-top: 5px; padding: 10px 12px; resize: vert
 body.editing .chk-item input { pointer-events: none; } /* don't toggle while arranging tiles */
 
 /* weather tile: current + stats block + N-day forecast strip */
-.tile-weather .wx-top { display: flex; gap: 16px; align-items: center; }
+.tile-weather { gap: 4px; }                                  /* content sits higher in the card */
+.tile-weather .wx-top { display: flex; gap: 16px; align-items: flex-start; }
 .tile-weather .wx-cur { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
 .tile-weather .wx-ico { color: var(--accent); flex: 0 0 auto; }
 .tile-weather .wx-ico svg { width: 52px; height: 52px; }
 .tile-weather .wx-info { min-width: 0; }
 .tile-weather .wx-temp { font-size: 32px; font-weight: 800; line-height: 1; }
 .tile-weather .wx-cond { font-size: 13px; color: var(--muted); }
-.tile-weather .wx-stats { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; align-content: center; }
+.tile-weather .wx-stats { flex: 1; display: flex; gap: 16px; justify-content: space-evenly; }
+.tile-weather .wx-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .tile-weather .wx-stat { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .tile-weather .wx-stat svg { width: 16px; height: 16px; color: var(--muted); flex: 0 0 auto; }
 .tile-weather .wv { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
@@ -341,7 +343,7 @@ body.editing .chk-item input { pointer-events: none; } /* don't toggle while arr
 .tile-weather .wx-day .hl { font-size: 12px; white-space: nowrap; }
 .tile-weather .wx-day .hl b { font-weight: 800; }
 .tile-weather .wx-day .lo { color: var(--muted); }
-.tile-weather .wx-day .pop { display: flex; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); }
+.tile-weather .wx-day .pop { display: flex; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); margin-top: 4px; }
 .tile-weather .wx-day .pop svg { width: 10px; height: 10px; }
 
 /* thermostat: vertical — Ist on top, Soll steppers, mode row, valve left/battery right */
