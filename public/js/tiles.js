@@ -170,10 +170,9 @@ const Tiles = (() => {
   // Paint a cover tile from its opening degree (0 = geschlossen, 100 = offen).
   function paintCover(el, sem) {
     sem = Math.min(100, Math.max(0, Math.round(sem)));
-    const pv = el.querySelector('.cv-pv');    if (pv) pv.textContent = sem;
     const sh = el.querySelector('.cv-shade'); if (sh) sh.style.height = (100 - sem) + '%';
     const wd = el.querySelector('.cv-word');  if (wd) wd.textContent = sem <= 1 ? 'geschlossen' : (sem >= 99 ? 'offen' : 'teils offen');
-    setSlider(el, '.cvs', sem);
+    setSlider(el, '.cvs', sem);   // slider + small % label (like the dimmer)
   }
 
   function devReading(dev, name) {
@@ -438,7 +437,7 @@ const Tiles = (() => {
         el.innerHTML = EDIT + header(tile) +
           '<div class="cv-mid">' +
             '<div class="cv-vis"><div class="cv-shade"></div></div>' +
-            '<div class="cv-val"><b class="cv-pv">–</b><span class="cv-u">%</span><div class="cv-word"></div></div>' +
+            '<div class="cv-word">–</div>' +
           '</div>' +
           '<div class="cv-btns">' +
             '<button type="button" class="cv-b cv-up" title="öffnen">▲</button>' +

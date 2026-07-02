@@ -162,12 +162,13 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 /* extra controls under the header (light/dimmer/color) */
 .ctrls { display: flex; flex-direction: column; gap: 11px; }
 .mslider { display: flex; align-items: center; gap: 10px; }
+.mslider input { min-width: 0; }   /* flex items refuse to shrink below default size otherwise */
 .mslider .mval { font-size: 13px; font-weight: 700; color: var(--muted); min-width: 44px; text-align: right; }
-.ldim, .lct { -webkit-appearance: none; flex: 1; height: 9px; border-radius: 8px; outline: none; background: var(--panel-2); }
+.ldim, .lct, .cvs { -webkit-appearance: none; flex: 1; height: 9px; border-radius: 8px; outline: none; background: var(--panel-2); }
 .lct { background: linear-gradient(90deg,#ff9d3c,#fff5e0,#cfe0ff); }
-.ldim::-webkit-slider-thumb, .lct::-webkit-slider-thumb { -webkit-appearance: none; width: 19px; height: 19px;
+.ldim::-webkit-slider-thumb, .lct::-webkit-slider-thumb, .cvs::-webkit-slider-thumb { -webkit-appearance: none; width: 19px; height: 19px;
   border-radius: 50%; background: #fff; border: 2px solid var(--accent); cursor: pointer; box-shadow: 0 2px 6px #0006; }
-.ldim::-moz-range-thumb, .lct::-moz-range-thumb { width: 17px; height: 17px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); cursor: pointer; }
+.ldim::-moz-range-thumb, .lct::-moz-range-thumb, .cvs::-moz-range-thumb { width: 17px; height: 17px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); cursor: pointer; }
 
 /* scene buttons */
 .scenes { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -347,25 +348,19 @@ body.editing .chk-item input { pointer-events: none; } /* don't toggle while arr
 .tile-weather .wx-day .pop { display: flex; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); margin-top: 4px; }
 .tile-weather .wx-day .pop svg { width: 10px; height: 10px; }
 
-/* cover (Rollladen): visual shutter + %, position slider, up/stop/down */
-.tile-cover { gap: 6px; }
-.tile-cover .cv-mid { flex: 1; display: flex; align-items: center; justify-content: center; gap: 16px; min-height: 0; }
-.tile-cover .cv-vis { width: 40px; height: 52px; border: 2px solid var(--stroke); border-radius: 6px;
+/* cover (Rollladen): shutter visual + status word centered, slider like the light, up/stop/down */
+.tile-cover { gap: 8px; }
+.tile-cover .cv-mid { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 0; }
+.tile-cover .cv-vis { width: 44px; height: 56px; border: 2px solid var(--stroke); border-radius: 6px;
   overflow: hidden; background: color-mix(in srgb, var(--accent) 14%, transparent); flex: 0 0 auto; }
 .tile-cover .cv-shade { width: 100%; height: 100%; transition: height .3s;
   background: repeating-linear-gradient(to bottom, var(--muted) 0 5px, color-mix(in srgb, var(--muted) 45%, var(--card)) 5px 8px); opacity: .8; }
-.tile-cover .cv-val { text-align: center; }
-.tile-cover .cv-pv { font-size: 26px; font-weight: 800; }
-.tile-cover .cv-u { font-size: 15px; font-weight: 700; color: var(--muted); margin-left: 2px; }
-.tile-cover .cv-word { font-size: 11px; color: var(--muted); font-weight: 600; }
-.tile-cover .mslider { display: flex; align-items: center; }
-.tile-cover .mslider .mval { display: none; }  /* big % above is enough */
+.tile-cover .cv-word { font-size: 12px; color: var(--muted); font-weight: 600; text-align: center; }
 .tile-cover .cv-btns { display: flex; gap: 6px; }
 .tile-cover .cv-b { flex: 1; padding: 7px 4px; border-radius: 10px; font-size: 14px; font-weight: 700;
-  background: var(--btn-bg); color: var(--text); border: 1px solid var(--stroke); cursor: pointer; }
+  background: var(--btn-bg); color: var(--text); border: 1px solid var(--stroke); cursor: pointer; transition: transform .08s; }
 .tile-cover .cv-b:hover { border-color: var(--accent); }
 body:not(.editing) .tile-cover .cv-b:active { transform: scale(.92); }
-.tile-cover .cv-b { transition: transform .08s; }
 
 /* thermostat: vertical — Ist on top, Soll steppers, mode row, valve left/battery right */
 .tile-thermo { gap: 8px; }
