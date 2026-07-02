@@ -119,3 +119,7 @@ data/              fhem.db (SQLite, gitignored)
 
 * SSE/longpoll statt Polling (Push-Updates direkt aus FHEM).
 * Mehr Kacheltypen (Charts, Rollladen/Cover, Kamera).
+
+## Lizenz
+
+MIT — siehe [LICENSE](LICENSE).
