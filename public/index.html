@@ -101,6 +101,8 @@
             <option value="168">7 Tage</option>
           </select>
         </label>
+        <label class="lopt"><input type="checkbox" id="tChSmooth"> Werte glätten</label>
+        <label class="lopt"><input type="checkbox" id="tChLabels" checked> Beschriftung anzeigen</label>
         <details class="th-adv">
           <summary>Erweitert – Log-Spezifikation</summary>
           <p class="hint">Wird aus der Messwert-Auswahl erzeugt. FileLog: <code>4:Gerät.Reading:0:</code> · DbLog: <code>Gerät:Reading</code>.</p>
@@ -237,6 +239,12 @@
           <option value="clean">Hell</option>
         </select>
       </label>
+      <label>Sprache
+        <select id="sLang">
+          <option value="de">Deutsch</option>
+          <option value="en">English</option>
+        </select>
+      </label>
       <label>FHEM-Adresse (IP oder URL)
         <input name="fhemUrl" id="sFhemUrl" placeholder="z.B. 192.168.10.2:8083 oder https://host:8083/fhem">
       </label>
@@ -270,6 +278,7 @@
   </dialog>
 
   <script src="vendor/gridstack/gridstack-all.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/api.js"></script>
   <script src="js/tiles.js"></script>
   <script src="js/live.js"></script>

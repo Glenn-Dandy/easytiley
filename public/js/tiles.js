@@ -187,43 +187,58 @@ const Tiles = (() => {
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     if (!pts || pts.length < 2) {
       svg.innerHTML = ''; el._chMap = null;
-      if (empty) { empty.style.display = ''; empty.textContent = pts && pts.length ? 'zu wenig Datenpunkte' : 'keine Daten im Zeitraum'; }
+      if (empty) { empty.style.display = ''; empty.textContent = pts && pts.length ? tr('zu wenig Datenpunkte') : tr('keine Daten im Zeitraum'); }
       return;
     }
     if (empty) empty.style.display = 'none';
     const ys = pts.map(p => p[1]);
     let mn = Math.min(...ys), mx = Math.max(...ys);
     if (mx - mn < 1e-9) { mx += 1; mn -= 1; }               // flat series: give it a band
-    const padT = 6, padB = 16, padL = 6, padR = 8;
+    const padT = 6, padB = tile.chLabels === false ? 6 : 16, padL = 4, padR = 6;
     const x0 = pts[0][0], x1 = pts[pts.length - 1][0];
     const plotW = W - padL - padR, plotH = H - padT - padB;
     const X = t => padL + (t - x0) / (x1 - x0 || 1) * plotW;
     const Y = v => padT + (mx - v) / (mx - mn) * plotH;
     const spanH = (x1 - x0) / 3600;
     el._chMap = { pts, X, Y, W, padL, plotW, spanH };
-    let line = '';
-    for (let i = 0; i < pts.length; i++) line += (i ? 'L' : 'M') + X(pts[i][0]).toFixed(1) + ' ' + Y(pts[i][1]).toFixed(1);
+    const P = pts.map(p => [X(p[0]), Y(p[1])]);
+    const line = tile.chSmooth ? smoothPath(P)
+      : P.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
     const area = line + `L${(padL + plotW).toFixed(1)} ${padT + plotH}L${padL} ${padT + plotH}Z`;
     const gy = [Y(mx), Y((mn + mx) / 2), Y(mn)];
     const last = pts[pts.length - 1];
     const lastY = Math.min(padT + plotH - 4, Math.max(padT + 10, Y(last[1])));
-    svg.innerHTML =
-      gy.map(y => `<line class="ch-grid" x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(1)}"/>`).join('') +
-      `<path class="ch-area" d="${area}"/><path class="ch-line" d="${line}"/>` +
+    const labels = tile.chLabels === false ? '' :
       `<text class="ch-lbl" x="${padL + 2}" y="${(gy[0] + 10).toFixed(1)}">${fmtChVal(mx, tile.unit)}</text>` +
       `<text class="ch-lbl" x="${padL + 2}" y="${(gy[2] - 4).toFixed(1)}">${fmtChVal(mn, tile.unit)}</text>` +
       `<text class="ch-lbl" x="${padL}" y="${H - 4}">${fmtChTime(x0, spanH)}</text>` +
       `<text class="ch-lbl" x="${padL + plotW}" y="${H - 4}" text-anchor="end">${fmtChTime(x1, spanH)}</text>` +
-      `<text class="ch-last" x="${(X(last[0]) - 6).toFixed(1)}" y="${(lastY - 8).toFixed(1)}" text-anchor="end">${fmtChVal(last[1], tile.unit)}</text>` +
+      `<text class="ch-last" x="${(X(last[0]) - 6).toFixed(1)}" y="${(lastY - 8).toFixed(1)}" text-anchor="end">${fmtChVal(last[1], tile.unit)}</text>`;
+    svg.innerHTML =
+      gy.map(y => `<line class="ch-grid" x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(1)}"/>`).join('') +
+      `<path class="ch-area" d="${area}"/><path class="ch-line" d="${line}"/>` + labels +
       `<circle class="ch-dot" cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="3.5"/>` +
       `<g class="ch-hover" style="display:none"><line class="ch-hoverline" y1="${padT}" y2="${padT + plotH}"/><circle class="ch-dot" r="4"/></g>`;
+  }
+
+  // Catmull-Rom -> cubic bezier: smooth curve through every point (for sparse logs).
+  function smoothPath(P) {
+    if (P.length < 3) return P.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+    let d = 'M' + P[0][0].toFixed(1) + ' ' + P[0][1].toFixed(1);
+    for (let i = 0; i < P.length - 1; i++) {
+      const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+      d += 'C' + (p1[0] + (p2[0] - p0[0]) / 6).toFixed(1) + ' ' + (p1[1] + (p2[1] - p0[1]) / 6).toFixed(1) +
+           ' '  + (p2[0] - (p3[0] - p1[0]) / 6).toFixed(1) + ' ' + (p2[1] - (p3[1] - p1[1]) / 6).toFixed(1) +
+           ' '  + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+    }
+    return d;
   }
 
   // Paint a cover tile from its opening degree (0 = geschlossen, 100 = offen).
   function paintCover(el, sem) {
     sem = Math.min(100, Math.max(0, Math.round(sem)));
     const sh = el.querySelector('.cv-shade'); if (sh) sh.style.height = (100 - sem) + '%';
-    const wd = el.querySelector('.cv-word');  if (wd) wd.textContent = sem <= 1 ? 'geschlossen' : (sem >= 99 ? 'offen' : 'teils offen');
+    const wd = el.querySelector('.cv-word');  if (wd) wd.textContent = sem <= 1 ? tr('geschlossen') : (sem >= 99 ? tr('offen') : tr('teils offen'));
     setSlider(el, '.cvs', sem);   // slider + small % label (like the dimmer)
   }
 
@@ -263,7 +278,7 @@ const Tiles = (() => {
   function wxWeekday(d) {
     const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(String(d || ''));
     if (!m) return '';
-    return ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][new Date(+m[3], +m[2] - 1, +m[1]).getDay()];
+    return I18N_DAYS[new Date(+m[3], +m[2] - 1, +m[1]).getDay()];
   }
 
   function chipClass(tile) {
@@ -286,9 +301,9 @@ const Tiles = (() => {
 
   // In edit mode the whole card is the drag handle (see app.js / CSS); these are
   // just the per-tile action badges layered on top.
-  const EDIT = `<div class="tile-del" title="Entfernen">✕</div>
-                <div class="tile-edit" title="Bearbeiten">✎</div>
-                <div class="tile-link" title="Mit Nachbar verbinden">🔗</div>`;
+  const EDIT = `<div class="tile-del" title="${tr('Entfernen')}">✕</div>
+                <div class="tile-edit" title="${tr('Bearbeiten')}">✎</div>
+                <div class="tile-link" title="${tr('Mit Nachbar verbinden')}">🔗</div>`;
 
   function build(tile, onAction) {
     const el = document.createElement('div');
@@ -340,7 +355,7 @@ const Tiles = (() => {
           x.className = 'scene scene-icon toggle-btn';
           x.dataset.states = JSON.stringify(states);
           x.dataset.cur = '0';
-          x.title = 'Umschalten';
+          x.title = tr('Umschalten');
           x.innerHTML = iconHtml(states[0] && states[0].icon);
           x.style.color = (states[0] && states[0].iconColor) || '';
           x.addEventListener('click', () => {
@@ -444,13 +459,13 @@ const Tiles = (() => {
         const setcmd = tile.tsetCmd || tile.tdReading || 'desired-temp';
         const modeCmd = tile.tmodeCmd || tile.tmReading || 'controlMode';
         // Value is the loose match token for glow ("manu" matches "manual" and back).
-        const modes  = [['Auto', 'auto', 'auto'], ['Manuell', 'manual', 'manu'], ['Boost', 'boost', 'boost']];
+        const modes  = [['Auto', 'auto', 'auto'], [tr('Manuell'), 'manual', 'manu'], ['Boost', 'boost', 'boost']];
         el.innerHTML = EDIT + header(tile) +
           '<div class="th-actual"><b class="th-av">–</b><span class="th-u">°</span></div>' +
           '<div class="th-setrow">' +
-            '<button type="button" class="th-step th-dn" title="kühler">−</button>' +
+            '<button type="button" class="th-step th-dn" title="' + tr('kühler') + '">−</button>' +
             '<div class="th-desired" data-val=""><b class="th-dv">–</b><span class="th-u">°</span></div>' +
-            '<button type="button" class="th-step th-up" title="wärmer">+</button>' +
+            '<button type="button" class="th-step th-up" title="' + tr('wärmer') + '">+</button>' +
           '</div>' +
           '<div class="th-modes">' + modes.map(([lbl, arg, val]) =>
               `<button type="button" class="th-mode" data-arg="${arg}" data-val="${val}">${lbl}</button>`).join('') + '</div>' +
@@ -492,9 +507,9 @@ const Tiles = (() => {
             '<div class="cv-word">–</div>' +
           '</div>' +
           '<div class="cv-btns">' +
-            '<button type="button" class="cv-b cv-up" title="öffnen">▲</button>' +
-            (tile.cstopCmd ? '<button type="button" class="cv-b cv-stop" title="stopp">■</button>' : '') +
-            '<button type="button" class="cv-b cv-dn" title="schließen">▼</button>' +
+            '<button type="button" class="cv-b cv-up" title="' + tr('öffnen') + '">▲</button>' +
+            (tile.cstopCmd ? '<button type="button" class="cv-b cv-stop" title="' + tr('stopp') + '">■</button>' : '') +
+            '<button type="button" class="cv-b cv-dn" title="' + tr('schließen') + '">▼</button>' +
           '</div>';
         // UI is always "% offen" (100 = open); `inv` converts to/from devices that count the other way.
         const setPending = sem => { el.dataset.cvPending = sem; el.dataset.cvPendingTs = Date.now(); };
@@ -513,7 +528,7 @@ const Tiles = (() => {
       case 'chart': {   // history line chart from a FileLog/DbLog (data via refreshCharts)
         el.classList.add('tile-rich', 'tile-chart');
         el.innerHTML = EDIT + header(tile) +
-          '<div class="ch-wrap"><svg class="ch-svg"></svg><div class="ch-tip"></div><div class="ch-empty">lädt…</div></div>';
+          '<div class="ch-wrap"><svg class="ch-svg"></svg><div class="ch-tip"></div><div class="ch-empty">' + tr('lädt…') + '</div></div>';
         const wrap = el.querySelector('.ch-wrap');
         new ResizeObserver(() => { if (el._chPts) drawChart(el, tile, el._chPts); }).observe(wrap);
         // hover layer: crosshair + tooltip at the nearest point
@@ -583,13 +598,13 @@ const Tiles = (() => {
       case 'switch': {
         const on = isOn(v);
         el.classList.toggle('on', on);
-        if (state) state.textContent = on ? 'An' : 'Aus';
+        if (state) state.textContent = on ? tr('An') : tr('Aus');
         break;
       }
       case 'light': {
         const on = isOn(v);
         el.classList.toggle('on', on);
-        if (state) state.textContent = on ? 'An' : 'Aus';
+        if (state) state.textContent = on ? tr('An') : tr('Aus');
         const rgb = dev && dev.readings && dev.readings.rgb ? dev.readings.rgb.value : null;
         if (rgb != null) paintColor(el, rgb);
         const dimr = dev && dev.readings && (dev.readings[tile.dimReading] || dev.readings.pct || dev.readings.bright);
@@ -686,13 +701,13 @@ const Tiles = (() => {
         set('.wx-cond', cond || '', true);
         // stats block: two fixed columns — Feuchte/Druck/Wind and Regen/Sonne/UV
         const col1 = [
-          ['droplet', src('humidity', 'humidity'), '%',    'Feuchte'],
-          ['gauge',   src('pressure', 'pressure'), ' hPa', 'Druck'],
-          ['wind',    rv('wind'),                  ' km/h','Wind'],
+          ['droplet', src('humidity', 'humidity'), '%',    tr('Feuchte')],
+          ['gauge',   src('pressure', 'pressure'), ' hPa', tr('Druck')],
+          ['wind',    rv('wind'),                  ' km/h',tr('Wind')],
         ];
         const col2 = [
-          ['rain',    rv('fc0_chOfRainDay'),       '%',    'Regen'],
-          ['sun',     rv('fc0_sun'),               '%',    'Sonne'],
+          ['rain',    rv('fc0_chOfRainDay'),       '%',    tr('Regen')],
+          ['sun',     rv('fc0_sun'),               '%',    tr('Sonne')],
           ['sun',     rv('fc0_uv'),                '',     'UV'],
         ];
         const colHtml = list => '<div class="wx-col">' + list.filter(s => s[1] != null && s[1] !== '')
@@ -745,12 +760,12 @@ const Tiles = (() => {
         if (foot) {                                                 // dezent: valve % + battery, only if present
           const parts = [];
           const vv = tile.tvReading ? num(rd(tile.tvReading)) : null;
-          if (vv != null) parts.push('<span class="th-fi th-valve" title="Ventil">' + iconHtml('heating') + Math.round(vv) + '%</span>');
+          if (vv != null) parts.push('<span class="th-fi th-valve" title="' + tr('Ventil') + '">' + iconHtml('heating') + Math.round(vv) + '%</span>');
           const bRaw = tile.tbReading ? rd(tile.tbReading) : null;
           if (bRaw != null && bRaw !== '') {
             const bn = num(bRaw);
             const low = /^(low|nok|err|critical|empty)$/i.test(String(bRaw)) || (bn != null && bn <= 15);
-            parts.push('<span class="th-fi th-bat' + (low ? ' th-low' : '') + '" title="Batterie">' + iconHtml('battery') +
+            parts.push('<span class="th-fi th-bat' + (low ? ' th-low' : '') + '" title="' + tr('Batterie') + '">' + iconHtml('battery') +
                        esc(bRaw) + (bn != null ? '%' : '') + '</span>');
           }
           foot.innerHTML = parts.join('');

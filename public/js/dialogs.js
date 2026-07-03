@@ -64,12 +64,12 @@ function addCmdRow(cmd = '', label = '', icon = '', glow = true, iconColor = '')
   const row = document.createElement('div');
   row.className = 'cmd-row';
   row.innerHTML =
-    `<input class="cmd-c" list="cmdSetList" placeholder="Befehl, z.B. on" value="${esc(cmd)}">
-     <input class="cmd-l" placeholder="Text (optional)" value="${esc(label)}">
+    `<input class="cmd-c" list="cmdSetList" placeholder="${tr('Befehl, z.B. on')}" value="${esc(cmd)}">
+     <input class="cmd-l" placeholder="${tr('Text (optional)')}" value="${esc(label)}">
      <button type="button" class="cmd-ic icon-pick-btn" data-ph="Icon"></button>
-     <button type="button" class="cmd-col color-pick-btn is-std" title="Icon-Farbe"></button>
-     <label class="cmd-glow" title="Leuchtet, wenn dieser Zustand aktiv ist"><input type="checkbox" class="cmd-g"${glow !== false ? ' checked' : ''}>✨</label>
-     <button type="button" class="cmd-rm" title="Entfernen">✕</button>`;
+     <button type="button" class="cmd-col color-pick-btn is-std" title="${tr('Icon-Farbe')}"></button>
+     <label class="cmd-glow" title="${tr('Leuchtet, wenn dieser Zustand aktiv ist')}"><input type="checkbox" class="cmd-g"${glow !== false ? ' checked' : ''}>✨</label>
+     <button type="button" class="cmd-rm" title="${tr('Entfernen')}">✕</button>`;
   const ic = row.querySelector('.cmd-ic');  setIconBtn(ic, icon);       attachIconField(ic);
   const co = row.querySelector('.cmd-col'); setColorBtn(co, iconColor); attachColorField(co);
   row.querySelector('.cmd-rm').addEventListener('click', () => row.remove());
@@ -93,11 +93,11 @@ function addStatusRow(val = '', label = '', icon = '', iconColor = '') {
   const row = document.createElement('div');
   row.className = 'cmd-row';
   row.innerHTML =
-    `<input class="cmd-c" list="statusValList" placeholder="Wert, z.B. open (leer=Standard)" value="${esc(val)}">
-     <input class="cmd-l" placeholder="Text (optional)" value="${esc(label)}">
+    `<input class="cmd-c" list="statusValList" placeholder="${tr('Wert, z.B. open (leer=Standard)')}" value="${esc(val)}">
+     <input class="cmd-l" placeholder="${tr('Text (optional)')}" value="${esc(label)}">
      <button type="button" class="cmd-ic icon-pick-btn" data-ph="Icon"></button>
-     <button type="button" class="cmd-col color-pick-btn is-std" title="Icon-Farbe"></button>
-     <button type="button" class="cmd-rm" title="Entfernen">✕</button>`;
+     <button type="button" class="cmd-col color-pick-btn is-std" title="${tr('Icon-Farbe')}"></button>
+     <button type="button" class="cmd-rm" title="${tr('Entfernen')}">✕</button>`;
   const ic = row.querySelector('.cmd-ic');  setIconBtn(ic, icon);       attachIconField(ic);
   const co = row.querySelector('.cmd-col'); setColorBtn(co, iconColor); attachColorField(co);
   row.querySelector('.cmd-rm').addEventListener('click', () => row.remove());
@@ -111,9 +111,9 @@ function collectStatusRows() {
 }
 function seedStatusRows() {                        // helpful window defaults on first switch
   document.getElementById('statusRows').innerHTML = '';
-  addStatusRow('open',   'offen',   'window-open',   '#e0a44c');
-  addStatusRow('tilted', 'gekippt', 'window-tilt',   '#e0a44c');
-  addStatusRow('closed', 'zu',      'window-closed', '#4caf7d');
+  addStatusRow('open',   tr('offen'),   'window-open',   '#e0a44c');
+  addStatusRow('tilted', tr('gekippt'), 'window-tilt',   '#e0a44c');
+  addStatusRow('closed', tr('zu'),      'window-closed', '#4caf7d');
 }
 
 function setupDialog() {
@@ -359,7 +359,7 @@ async function chartLogChanged(setLabel) {
   }
   if (!parts.length) {
     const o = document.createElement('option');
-    o.value = ''; o.textContent = '– manuell (siehe Erweitert) –';
+    o.value = ''; o.textContent = tr('– manuell (siehe Erweitert) –');
     sel.appendChild(o);
   }
   // keep a stored spec selected when re-opening the dialog for an existing tile
@@ -383,6 +383,8 @@ function fillChart(t) {
   thF('tChLog').value   = t.chLog || '';
   thF('tChSpec').value  = t.chSpec || '';
   thF('tChHours').value = String(t.chHours || 24);
+  thF('tChSmooth').checked = !!t.chSmooth;
+  thF('tChLabels').checked = t.chLabels !== false;
   if (t.chLog) chartLogChanged(false);                   // repopulate the Messwert dropdown
 }
 function collectChart() {
@@ -390,6 +392,8 @@ function collectChart() {
     chLog: thF('tChLog').value.trim(),
     chSpec: thF('tChSpec').value.trim(),
     chHours: parseInt(thF('tChHours').value, 10) || 24,
+    chSmooth: thF('tChSmooth').checked,
+    chLabels: thF('tChLabels').checked,
   };
 }
 
@@ -436,7 +440,7 @@ function pickColor(d) {
 function openAddDialog() {
   if (!deviceCache.length) loadDeviceCache(); // lazy: fills the picker when ready
   editingTileId = null;
-  document.getElementById('dlgTitle').textContent = 'Kachel hinzufügen';
+  document.getElementById('dlgTitle').textContent = tr('Kachel hinzufügen');
   document.getElementById('tileForm').reset();
   document.getElementById('cmdRows').innerHTML = '';
   document.getElementById('statusRows').innerHTML = '';
@@ -454,7 +458,7 @@ async function openEditDialog(id) {
   const t = tiles[id];
   if (!t) return;
   editingTileId = id;
-  document.getElementById('dlgTitle').textContent = 'Kachel bearbeiten';
+  document.getElementById('dlgTitle').textContent = tr('Kachel bearbeiten');
   const f = document.getElementById('tileForm');
   f.reset();
   f.type.value   = t.type;
@@ -546,6 +550,10 @@ function openNoteDialog(id) {
 
 // ---- settings ------------------------------------------------------------
 function setupSettings() {
+  document.getElementById('sLang').addEventListener('change', e => {
+    localStorage.setItem('lang', e.target.value);
+    location.reload();                       // re-translate the whole UI
+  });
   el.settingsDlg = document.getElementById('settingsDialog');
   document.getElementById('sTheme').addEventListener('change', e => applyTheme(e.target.value)); // live
 
@@ -556,8 +564,8 @@ function setupSettings() {
       a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
       a.download = 'fhem-dashboard-' + new Date().toISOString().slice(0, 10) + '.json';
       a.click(); URL.revokeObjectURL(a.href);
-      settingsResult('Layout exportiert ✓', true);
-    } catch (err) { settingsResult('Export-Fehler: ' + err.message, false); }
+      settingsResult(tr('Layout exportiert ✓'), true);
+    } catch (err) { settingsResult(tr('Export-Fehler: ') + err.message, false); }
   });
   const fileInput = document.getElementById('importFile');
   document.getElementById('btnImport').addEventListener('click', () => fileInput.click());
@@ -566,14 +574,14 @@ function setupSettings() {
     if (!f) return;
     try {
       const data = JSON.parse(await f.text());
-      if (!data.dashboards) throw new Error('keine Dashboards in der Datei');
-      if (!confirm('Alle aktuellen Dashboards durch den Import ersetzen?')) return;
+      if (!data.dashboards) throw new Error(tr('keine Dashboards in der Datei'));
+      if (!confirm(tr('Alle aktuellen Dashboards durch den Import ersetzen?'))) return;
       await API.importLayout(data);
       el.settingsDlg.close();
       currentDash = null;
       deviceCache = [];
       await loadDashboards();
-    } catch (err) { settingsResult('Import-Fehler: ' + err.message, false); }
+    } catch (err) { settingsResult(tr('Import-Fehler: ') + err.message, false); }
   });
 
   document.getElementById('settingsForm').addEventListener('submit', async e => {
@@ -582,8 +590,8 @@ function setupSettings() {
     e.preventDefault();                           // keep open for test/save feedback
     const url  = document.getElementById('sFhemUrl').value.trim();
     const test = action === 'test';
-    if (!url) { settingsResult('Bitte eine Adresse eingeben.', false); return; }
-    settingsResult('…prüfe Verbindung…');
+    if (!url) { settingsResult(tr('Bitte eine Adresse eingeben.'), false); return; }
+    settingsResult(tr('…prüfe Verbindung…'));
     try {
       const cfg = {
         fhemUrl:  url,
@@ -593,16 +601,16 @@ function setupSettings() {
       };
       const r = await API.saveSettings(cfg, test);
       if (test) {
-        settingsResult(r.reachable ? '✓ erreichbar: ' + r.fhemUrl
-          : (r.authFailed ? '✗ Login abgelehnt (Benutzer/Passwort prüfen)' : '✗ nicht erreichbar: ' + r.fhemUrl), r.reachable);
+        settingsResult(r.reachable ? tr('✓ erreichbar: ') + r.fhemUrl
+          : (r.authFailed ? tr('✗ Login abgelehnt (Benutzer/Passwort prüfen)') : tr('✗ nicht erreichbar: ') + r.fhemUrl), r.reachable);
       } else if (r.reachable) {
-        settingsResult('✓ gespeichert & verbunden', true);
+        settingsResult(tr('✓ gespeichert & verbunden'), true);
         deviceCache = [];                         // refresh picker for the new instance
         el.settingsDlg.close();
         await loadDashboards();
       } else {
-        settingsResult(r.authFailed ? '⚠ gespeichert, aber Login abgelehnt (Benutzer/Passwort prüfen)'
-          : '⚠ gespeichert, aber nicht erreichbar: ' + r.fhemUrl, false);
+        settingsResult(r.authFailed ? tr('⚠ gespeichert, aber Login abgelehnt (Benutzer/Passwort prüfen)')
+          : tr('⚠ gespeichert, aber nicht erreichbar: ') + r.fhemUrl, false);
       }
     } catch (err) { settingsResult('Fehler: ' + err.message, false); }
   });
@@ -620,13 +628,14 @@ function settingsResult(text, ok) {
 
 async function openSettings() {
   document.getElementById('sTheme').value = localStorage.getItem('theme') || 'aurora';
+  document.getElementById('sLang').value = LANG;
   try {
     const s = await API.settings();
     document.getElementById('sFhemUrl').value = s.fhemUrl || '';
     document.getElementById('sUser').value = s.fhemUser || '';
     const pass = document.getElementById('sPass');
     pass.value = '';
-    pass.placeholder = s.hasPass ? 'gespeichert – leer lassen zum Behalten' : '';
+    pass.placeholder = s.hasPass ? tr('gespeichert – leer lassen zum Behalten') : '';
     document.getElementById('sInsecure').checked = s.insecure !== false;
   } catch (e) { /* ignore */ }
   document.getElementById('sAbout').textContent = `${APP_NAME} V${APP_VERSION}`;

@@ -58,10 +58,10 @@ function ensureIconPicker() {
   const pop = document.createElement('div');
   pop.className = 'icon-picker';
   pop.style.display = 'none';
-  pop.innerHTML = '<input type="text" class="ip-search" placeholder="Icon suchen…" autocomplete="off">'
-    + '<button type="button" class="ip-cell ip-auto" data-key="" title="Standard (automatisch)">Auto</button>'
-    + '<button type="button" class="ip-cell ip-auto" data-key="none" title="Kein Icon">&#8709;</button>'
-    + Tiles.iconList().map(i => `<button type="button" class="ip-cell" data-key="${i.key}" data-label="${esc(i.label.toLowerCase())}" title="${esc(i.label)}">${i.svg}</button>`).join('');
+  pop.innerHTML = '<input type="text" class="ip-search" placeholder="' + tr('Icon suchen…') + '" autocomplete="off">'
+    + '<button type="button" class="ip-cell ip-auto" data-key="" title="' + tr('Standard (automatisch)') + '">Auto</button>'
+    + '<button type="button" class="ip-cell ip-auto" data-key="none" title="' + tr('Kein Icon') + '">&#8709;</button>'
+    + Tiles.iconList().map(i => `<button type="button" class="ip-cell" data-key="${i.key}" data-label="${esc(tr(i.label).toLowerCase())}" title="${esc(tr(i.label))}">${i.svg}</button>`).join('');
   pop.addEventListener('click', e => {
     const c = e.target.closest('.ip-cell'); if (!c) return;
     if (iconPickerCb) iconPickerCb(c.dataset.key);
@@ -112,7 +112,7 @@ document.addEventListener('mousedown', e => {
 // Show the chosen icon (or placeholder) on an icon-pick button + store its key.
 function setIconBtn(btn, key) {
   btn.dataset.icon = key || '';
-  btn.innerHTML = key === 'none' ? '&#8709;' : (key ? Tiles.iconSvg(key) : (btn.dataset.ph || 'Standard'));
+  btn.innerHTML = key === 'none' ? '&#8709;' : (key ? Tiles.iconSvg(key) : (btn.dataset.ph || tr('Standard')));
 }
 function attachIconField(btn) {
   btn.addEventListener('click', () => openIconPicker(btn, btn.dataset.icon, key => setIconBtn(btn, key)));

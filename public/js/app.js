@@ -158,7 +158,7 @@ function renderTabs(activeId) {
   dashboards.forEach(d => {
     const tab = document.createElement('div');
     tab.className = 'tab' + (d.id === activeId ? ' active' : '');
-    tab.innerHTML = `<span class="tab-name">${esc(d.name)}</span><span class="tab-x" title="Raum löschen">✕</span>`;
+    tab.innerHTML = `<span class="tab-name">${esc(d.name)}</span><span class="tab-x" title="${tr('Raum löschen')}">✕</span>`;
     tab.addEventListener('click', e => {
       if (e.target.closest('.tab-x'))      return deleteTab(d.id);
       if (editMode && d.id === activeId)   return renameTab(d.id);
@@ -176,7 +176,7 @@ function renderTabs(activeId) {
   });
   if (editMode) {                                      // adding rooms only in edit mode
     const add = document.createElement('div');
-    add.className = 'tab-add'; add.textContent = '＋'; add.title = 'Neuer Raum';
+    add.className = 'tab-add'; add.textContent = '＋'; add.title = tr('Neuer Raum');
     add.addEventListener('click', addTab);
     el.tabs.appendChild(add);
   }
@@ -195,7 +195,7 @@ async function reorderTabs(srcId, destId) {
 }
 
 async function addTab() {
-  const name = prompt('Name des neuen Raums/Tabs:');
+  const name = prompt(tr('Name des neuen Raums/Tabs:'));
   if (!name) return;
   const { id } = await API.createDashboard(name);
   await loadDashboards(id);
@@ -203,15 +203,15 @@ async function addTab() {
 
 async function renameTab(id) {
   const d = dashboards.find(x => x.id === id);
-  const name = prompt('Raum umbenennen:', d ? d.name : '');
+  const name = prompt(tr('Raum umbenennen:'), d ? d.name : '');
   if (!name) return;
   await API.saveDashboard(id, name, currentDash.layout);
   await loadDashboards(id);
 }
 
 async function deleteTab(id) {
-  if (dashboards.length <= 1) { alert('Mindestens ein Raum muss bleiben.'); return; }
-  if (!confirm('Diesen Raum mit allen Kacheln löschen?')) return;
+  if (dashboards.length <= 1) { alert(tr('Mindestens ein Raum muss bleiben.')); return; }
+  if (!confirm(tr('Diesen Raum mit allen Kacheln löschen?'))) return;
   await API.deleteDashboard(id);
   if (currentDash && currentDash.id === id) currentDash = null;
   await loadDashboards();
@@ -250,7 +250,7 @@ async function refreshCharts() {
     } catch (e) {
       el2.classList.remove('tile-wait');
       const em = el2.querySelector('.ch-empty');
-      if (em) { em.style.display = ''; em.textContent = 'Fehler: ' + e.message; }
+      if (em) { em.style.display = ''; em.textContent = tr('Fehler: ') + e.message; }
     }
   }
 }
@@ -266,13 +266,13 @@ async function refreshReadingsGroups() {
       const { rows } = await API.readingsGroup(t.device);
       target.classList.remove('rg-loading');
       target.innerHTML = renderRgTable(rows);
-    } catch (e) { target.classList.remove('rg-loading'); target.textContent = 'Fehler: ' + e.message; }
+    } catch (e) { target.classList.remove('rg-loading'); target.textContent = tr('Fehler: ') + e.message; }
   }
 }
 
 // Build our own themed table from the parsed readingsGroup rows.
 function renderRgTable(rows) {
-  if (!rows || !rows.length) return '<div class="rg-empty">– keine Daten –</div>';
+  if (!rows || !rows.length) return '<div class="rg-empty">' + tr('– keine Daten –') + '</div>';
   const cols = rows.reduce((m, r) => Math.max(m, r.cells.length), 1);
   let h = '<table class="rg-table">';
   for (const r of rows) {
@@ -627,8 +627,8 @@ function applyLive(map) {
 
 // Local date/time tiles — pure client-side, no FHEM.
 // Line 1: HH:mm   Line 2: "Mo., 30. Jun." (Wochentag., TT. Monat.)
-const WDAYS  = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-const MONTHS = ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+const WDAYS  = I18N_DAYS;
+const MONTHS = I18N_MONTHS;
 function updateClocks() {
   const n = new Date(), p = x => String(x).padStart(2, '0');
   const time = p(n.getHours()) + ':' + p(n.getMinutes());
@@ -655,7 +655,7 @@ function toggleEdit() {
   eachGrid(g => { g.enableMove(editMode); g.enableResize(editMode); }); // incl. group sub-grids
   document.body.classList.toggle('editing', editMode);
   el.editBtn.classList.toggle('active', editMode);
-  el.editBtn.textContent = editMode ? 'Fertig' : '✎';
+  el.editBtn.textContent = editMode ? tr('Fertig') : '✎';
   el.addBtn.classList.toggle('hidden', !editMode);
   el.saveBtn.classList.toggle('hidden', !editMode);
   renderTabs(currentDash && currentDash.id);    // show/hide the "+ Raum" add button, enable tab drag
