@@ -82,7 +82,6 @@ async function init() {
   applyTheme(localStorage.getItem('theme') || 'aurora');
   injectColumnCss(COLS);                     // GridStack only ships CSS up to gs-12
   ['tabs','addBtn','saveBtn','editBtn','settingsBtn','fsBtn','status'].forEach(id => el[id] = document.getElementById(id));
-  await migrateGrid();                       // one-time ×2 layout rescale to the finer grid
 
   grid = GridStack.init({
     column: COLS, cellHeight: 38, margin: 4, float: true,   // free placement; only the common top gap is auto-removed (collapseTop)
@@ -131,6 +130,12 @@ async function init() {
   setupNoteDialog();
   setupSettings();
 
+  // Instant paint from the last snapshot (tiles + last values appear at once,
+  // pulsing until fresh data lands) - then load the real state from the server.
+  paintFromSnapshot();
+  window.addEventListener('pagehide', () => saveSnapshot());
+
+  await migrateGrid();                       // one-time ×2 layout rescale to the finer grid
   // NOTE: the full device list (heavy on single-threaded FHEM) is loaded
   // lazily on first "+ Kachel", not on every page load.
   await loadDashboards();
@@ -219,16 +224,54 @@ async function deleteTab(id) {
 
 async function loadDashboard(id) {
   currentDash = await API.dashboard(id);
-  tiles = {};
-  eachGrid(g => { if (g !== grid) g.destroy(false); }); // tear down old sub-grids
-  grid.removeAll();
-  for (const t of currentDash.layout) addWidget(t);     // addWidget registers + recurses into groups
+  // Painted from the snapshot and the server agrees? Keep the DOM - no flicker.
+  const same = bootPaintedJson && bootPaintedId === id &&
+               JSON.stringify(currentDash.layout) === bootPaintedJson;
+  bootPaintedJson = null;
+  if (!same) {
+    tiles = {};
+    eachGrid(g => { if (g !== grid) g.destroy(false); }); // tear down old sub-grids
+    grid.removeAll();
+    for (const t of currentDash.layout) addWidget(t);     // addWidget registers + recurses into groups
+    applyScale();                                         // re-fit zoom after layout change
+    requestAnimationFrame(syncAllGroups);                 // match group sub-grid columns once laid out
+  }
   renderTabs(id);
-  applyScale();                                         // re-fit zoom after layout change
-  requestAnimationFrame(syncAllGroups);                 // match group sub-grid columns once laid out
   refreshReadingsGroups();
   refreshCharts();
   updateClocks();
+  saveSnapshot();
+}
+
+// ---- boot snapshot: the last dashboard, painted instantly on reload --------
+let bootPaintedJson = null, bootPaintedId = null, _lastMap = null, _lastSnapSave = 0;
+
+function saveSnapshot(map) {
+  try {
+    if (!currentDash) return;
+    localStorage.setItem('snap', JSON.stringify({
+      v: 1, dashboards, activeId: currentDash.id, layout: currentDash.layout, map: map || _lastMap || null,
+    }));
+  } catch (e) { /* storage blocked/full -> reload just paints later */ }
+}
+
+function paintFromSnapshot() {
+  let s;
+  try { s = JSON.parse(localStorage.getItem('snap') || 'null'); } catch (e) { return; }
+  if (!s || !Array.isArray(s.layout) || !s.layout.length) return;
+  dashboards = s.dashboards || [];
+  renderTabs(s.activeId);
+  for (const t of s.layout) addWidget(t);
+  applyScale();
+  requestAnimationFrame(syncAllGroups);
+  if (s.map) { _lastMap = s.map; applyLive(s.map); }    // last known values...
+  grid.el.querySelectorAll('.tile[data-tile-id]').forEach(c => {  // ...pulsing until fresh
+    const t = tiles[c.dataset.tileId];
+    if (t && t.device && t.type !== 'readingsgroup' && t.type !== 'group') c.classList.add('tile-wait');
+  });
+  updateClocks();
+  bootPaintedJson = JSON.stringify(s.layout);
+  bootPaintedId = s.activeId;
 }
 
 // Align every group's sub-grid cell width with the main grid (run after layout).
@@ -615,6 +658,8 @@ function applyMergeLive(item, mergeTile, map) {
 }
 
 function applyLive(map) {
+  _lastMap = map;
+  if (Date.now() - _lastSnapSave > 30000) { _lastSnapSave = Date.now(); saveSnapshot(map); }
   grid.el.querySelectorAll('.grid-stack-item').forEach(item => {
     const id = item.getAttribute('gs-id');
     const tile = tiles[id];
@@ -699,6 +744,7 @@ async function save() {
   try {
     await API.saveDashboard(currentDash.id, currentDash.name, layout);
     currentDash.layout = layout;
+    saveSnapshot();
     flash(el.saveBtn, 'Gespeichert ✓');
   } catch (err) {
     setStatus('err', err.message);
