@@ -104,6 +104,10 @@ async function init() {
   grid.on('change added removed resizestop dragstop', applyScale);
   grid.on('dragstop resizestop dropped removed added', () => collapseTop()); // gently pull off the empty top margin
   grid.on('resizestop', (e, el) => syncGroupColumns(el)); // group box resized -> match its sub-grid columns to the new width
+  grid.on('resize resizestop', (e, item) => {   // charts re-layout live instead of scaling while dragging
+    const c = item.querySelector && item.querySelector('.tile-chart');
+    if (c && c._chPts) Tiles.drawChart(c, tiles[c.dataset.tileId] || {}, c._chPts);
+  });
   grid.on('added removed', () => { clearTimeout(window._lvr); window._lvr = setTimeout(() => Live.reconnect(), 600); }); // device set changed -> re-subscribe
   grid.on('dragstart', cancelLink);            // dragging is for repositioning, not linking
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cancelLink(); });

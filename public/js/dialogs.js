@@ -3,7 +3,7 @@
 // Reading is auto-derived for switches; only value/dimmer show the field.
 function dlgSyncRows() {
   const t = document.getElementById('tType').value;
-  document.getElementById('rowDevice').style.display  = (t === 'group' || t === 'clock' || t === 'note' || t === 'label') ? 'none' : '';
+  document.getElementById('rowDevice').style.display  = (t === 'group' || t === 'clock' || t === 'note' || t === 'label' || t === 'chart') ? 'none' : '';
   document.getElementById('rowUnit').style.display    = (t === 'value' || t === 'chart') ? '' : 'none';
   document.getElementById('rowCmds').style.display    = t === 'button' ? '' : 'none';
   document.getElementById('rowLight').style.display   = t === 'light'  ? '' : 'none';
@@ -14,7 +14,7 @@ function dlgSyncRows() {
   document.getElementById('rowCover').style.display   = t === 'cover' ? '' : 'none';
   document.getElementById('rowStatus').style.display  = t === 'status' ? '' : 'none';
   document.getElementById('rowChart').style.display   = t === 'chart' ? '' : 'none';
-  document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer' || t === 'status' || t === 'chart') ? '' : 'none';
+  document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer' || t === 'status') ? '' : 'none';
   document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
 }
 
@@ -135,6 +135,8 @@ function setupDialog() {
   attachAutocomplete(document.getElementById('tChLog'), () => deviceCache
     .filter(d => /^(filelog|dblog)$/i.test(d.type || ''))
     .map(d => ({ value: d.name, sub: d.type || '' })));
+  document.getElementById('tChLog').addEventListener('change', () => chartLogChanged(true));
+  document.getElementById('tChPart').addEventListener('change', chartPartChanged);
   attachAutocomplete(reading, () => {
     const d = deviceCache.find(x => x.name === dev.value);
     return (d ? d.readings : []).map(r => ({ value: r }));
@@ -169,7 +171,6 @@ function setupDialog() {
     if (type.value === 'light')  initLightOpts();
     if (type.value === 'thermostat') fillThermoAuto(deviceCache.find(x => x.name === dev.value), false);
     if (type.value === 'cover') fillCoverAuto(deviceCache.find(x => x.name === dev.value), false);
-    if (type.value === 'chart') fillChartAuto(deviceCache.find(x => x.name === dev.value), false);
     if (type.value === 'weather' && !dev.value) {   // default to the PROPLANTA device
       const w = deviceCache.find(d => /proplanta|weather/i.test(d.type || ''));
       if (w) { dev.value = w.name; dev.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -188,7 +189,6 @@ function setupDialog() {
     if (type.value === 'light')  document.getElementById('lRgbCmd').value = pickColor(d);
     if (type.value === 'thermostat') fillThermoAuto(d, true);   // device changed -> overwrite
     if (type.value === 'cover') fillCoverAuto(d, true);
-    if (type.value === 'chart') fillChartAuto(d, true);
   });
 
   document.getElementById('tileForm').addEventListener('submit', e => {
@@ -198,7 +198,8 @@ function setupDialog() {
     const f = e.target;
     const device = f.device.value.trim();
     const t = f.type.value;
-    if (!device && t !== 'label' && t !== 'group' && t !== 'clock' && t !== 'note') return; // kein Gerät -> nichts anlegen
+    if (!device && t !== 'label' && t !== 'group' && t !== 'clock' && t !== 'note' && t !== 'chart') return; // kein Gerät -> nichts anlegen
+    if (t === 'chart' && !thF('tChLog').value.trim()) return;   // chart braucht nur ein Log-Gerät
     const d = deviceCache.find(x => x.name === device);
 
     let rd = f.reading.value.trim();
@@ -228,7 +229,8 @@ function setupDialog() {
     const statusMap = t === 'status' ? collectStatusRows() : undefined;
 
     const cfg = {
-      type: t, device, setcmd, colorcmd, buttons, btnDisplay, sources, ctcmd, useRgb, useCt, ctMin, ctMax,
+      type: t, device: t === 'chart' ? '' : device,   // charts read from the log, not a live device
+      setcmd, colorcmd, buttons, btnDisplay, sources, ctcmd, useRgb, useCt, ctMin, ctMax,
       useDim, dimcmd, dimReading, statusMap, ...(thermo || {}), ...(cover || {}), ...(chart || {}),
       icon: document.getElementById('tIconField').dataset.icon || '',
       iconColor: document.getElementById('tIconColor').dataset.color || '',
@@ -318,26 +320,70 @@ function collectThermo() {
   };
 }
 
-// ---- chart: guess the FileLog/DbLog for a device + a matching column spec ----
-function autoChart(d, reading) {
-  if (!d) return { log: '', spec: '' };
-  const logs = deviceCache.filter(x => /^(filelog|dblog)$/i.test(x.type || ''));
-  const cand = logs.find(x => x.name === 'FileLog_' + d.name) ||
-               logs.find(x => x.name.toLowerCase().includes(d.name.toLowerCase()));
-  const isDb = cand && /dblog/i.test(cand.type || '');
-  const spec = isDb ? `${d.name}:${reading || 'state'}` : `4:${reading || 'state'}:0:`;
-  return { log: cand ? cand.name : '', spec };
+// ---- chart: the log device is the source of truth. Its REGEXP internal lists
+// what gets logged ("dev:reading:.*|dev2:reading2:.*") - we offer those as a
+// readable "Messwert" dropdown and generate the cryptic column spec ourselves.
+function chartSpecFor(logName, dev, rd) {
+  const l = deviceCache.find(x => x.name === logName);
+  if (l && /dblog/i.test(l.type || '')) return `${dev}:${rd}`;
+  return `4:${dev}.${rd}:0:`;   // FileLog line "ts dev rd: val" -> col 4, "." matches the space
 }
-function fillChartAuto(d, force) {
-  if (!d) return;
-  const a = autoChart(d, document.getElementById('tReading').value.trim());
-  const put = (id, v) => { const f = thF(id); if (force || !f.value) f.value = v; };
-  put('tChLog', a.log); put('tChSpec', a.spec);
+async function chartLogChanged(setLabel) {
+  const log = thF('tChLog').value.trim();
+  const sel = thF('tChPart');
+  sel.innerHTML = '';
+  if (!log) return;
+  // Beschriftung aus dem Log-Namen: "FileLog_Bad_TempHum" -> "Bad TempHum"
+  const lbl = document.getElementById('tLabel');
+  if (setLabel || !lbl.value) lbl.value = log.replace(/^(FileLog[_.]|Log[_.])/i, '').replace(/_/g, ' ');
+  let parts = [];
+  try {
+    const r = await API.rawCmd('jsonlist2 ' + log.replace(/[^A-Za-z0-9_.\-]/g, ''));
+    const j = JSON.parse(r.result);
+    const re = (((j.Results || [])[0] || {}).Internals || {}).REGEXP || '';
+    const seen = new Set();
+    for (const p of re.split('|')) {
+      const m = /^([\w.\-]+):([\w.\-]+)/.exec(p.trim());
+      if (!m || m[2] === '.*' || seen.has(m[1] + ':' + m[2])) continue;
+      seen.add(m[1] + ':' + m[2]);
+      parts.push({ dev: m[1], rd: m[2] });
+    }
+  } catch (e) { /* offline/DbLog etc. -> manual spec below */ }
+  const oneDev = new Set(parts.map(p => p.dev)).size <= 1;
+  const alias = n => { const d = deviceCache.find(x => x.name === n); return (d && d.alias && d.alias !== n) ? d.alias : n; };
+  for (const p of parts) {
+    const o = document.createElement('option');
+    o.value = p.dev + '\n' + p.rd;                       // \n can't appear in either name
+    o.textContent = oneDev ? p.rd : `${p.rd} – ${alias(p.dev)}`;
+    sel.appendChild(o);
+  }
+  if (!parts.length) {
+    const o = document.createElement('option');
+    o.value = ''; o.textContent = '– manuell (siehe Erweitert) –';
+    sel.appendChild(o);
+  }
+  // keep a stored spec selected when re-opening the dialog for an existing tile
+  const cur = thF('tChSpec').value.trim();
+  let matched = false;
+  for (const o of sel.options) {
+    if (!o.value) continue;
+    const [d, rd] = o.value.split('\n');
+    if (chartSpecFor(log, d, rd) === cur) { sel.value = o.value; matched = true; break; }
+  }
+  if (!matched) chartPartChanged();                      // default: first entry -> generate spec
+}
+function chartPartChanged() {
+  const log = thF('tChLog').value.trim();
+  const v = thF('tChPart').value;
+  if (!log || !v) return;
+  const [dev, rd] = v.split('\n');
+  thF('tChSpec').value = chartSpecFor(log, dev, rd);
 }
 function fillChart(t) {
   thF('tChLog').value   = t.chLog || '';
   thF('tChSpec').value  = t.chSpec || '';
   thF('tChHours').value = String(t.chHours || 24);
+  if (t.chLog) chartLogChanged(false);                   // repopulate the Messwert dropdown
 }
 function collectChart() {
   return {

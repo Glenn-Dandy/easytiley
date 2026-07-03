@@ -87,7 +87,10 @@
 
       <div class="row-extra" id="rowChart">
         <label>Log-Gerät (FileLog / DbLog)
-          <input id="tChLog" autocomplete="off" placeholder="wird automatisch gesucht">
+          <input id="tChLog" autocomplete="off" placeholder="Log wählen…">
+        </label>
+        <label>Messwert
+          <select id="tChPart"></select>
         </label>
         <label>Zeitraum
           <select id="tChHours">
@@ -100,7 +103,7 @@
         </label>
         <details class="th-adv">
           <summary>Erweitert – Log-Spezifikation</summary>
-          <p class="hint">FileLog: <code>4:Reading:0:</code> (Spalte:Filter:Default) · DbLog: <code>Gerät:Reading</code>. Wird beim Gerät-Auswählen vorbelegt.</p>
+          <p class="hint">Wird aus der Messwert-Auswahl erzeugt. FileLog: <code>4:Gerät.Reading:0:</code> · DbLog: <code>Gerät:Reading</code>.</p>
           <label>Spezifikation <input id="tChSpec" autocomplete="off"></label>
         </details>
       </div>
