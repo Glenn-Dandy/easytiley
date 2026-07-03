@@ -87,7 +87,7 @@ const TR = {
   '⚠ gespeichert, aber Login abgelehnt (Benutzer/Passwort prüfen)': '⚠ saved, but login rejected (check username/password)',
   'Bitte eine Adresse eingeben.': 'Please enter an address.',
   'gespeichert – leer lassen zum Behalten': 'saved – leave empty to keep',
-  'Layout exportiert ✓': 'Layout exported ✓', 'Export-Fehler: ': 'Export error: ', 'Import-Fehler: ': 'Import error: ',
+  'Layout exportiert ✓': 'Layout exported ✓', 'Gespeichert ✓': 'Saved ✓', 'Export-Fehler: ': 'Export error: ', 'Import-Fehler: ': 'Import error: ',
   'keine Dashboards in der Datei': 'no dashboards in the file',
   'Alle aktuellen Dashboards durch den Import ersetzen?': 'Replace all current dashboards with the import?',
   // topbar / rooms / edit mode

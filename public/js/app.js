@@ -745,7 +745,7 @@ async function save() {
     await API.saveDashboard(currentDash.id, currentDash.name, layout);
     currentDash.layout = layout;
     saveSnapshot();
-    flash(el.saveBtn, 'Gespeichert ✓');
+    flash(el.saveBtn, tr('Gespeichert ✓'));
   } catch (err) {
     setStatus('err', err.message);
   }
