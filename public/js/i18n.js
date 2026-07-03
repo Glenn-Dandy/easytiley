@@ -99,6 +99,11 @@ const TR = {
   // tile runtime
   'An': 'On', 'Aus': 'Off', 'lädt…': 'loading…', '– keine Daten –': '– no data –', 'Fehler: ': 'Error: ',
   'Standard (automatisch)': 'Default (automatic)', 'Kein Icon': 'No icon', 'Icon suchen…': 'Search icons…',
+  // hint fragments (split by <code> tags in the markup)
+  'Reading-Wert links (z. B.': 'Reading value on the left (e.g.',
+  ') → Icon + Text + Farbe. „Wert" leer = Standard/sonst (Fallback).': ') → icon + text + colour. Empty value = default/fallback.',
+  'Voraussetzung: ein': 'Requires a',
+  '-Device (z. B. AgroWeather).': 'device (e.g. AgroWeather).',
   // icon library labels (picker titles + search)
   'Licht': 'Light', 'Lampe': 'Lamp', 'Deckenlampe': 'Ceiling lamp', 'Steckdose': 'Socket', 'Schalter': 'Switch',
   'Thermometer': 'Thermometer', 'Luftfeuchte': 'Humidity', 'Energie': 'Energy', 'Tür': 'Door', 'Tür offen': 'Door open',
@@ -115,7 +120,13 @@ const TR = {
   'Schlüssel': 'Key', 'Mülleimer': 'Trash', 'Luftdruck': 'Air pressure',
 };
 
-const tr = s => LANG === 'de' ? s : (TR[s] || s);
+// Normalize NBSP in the table keys too (easy to type one by accident).
+for (const k of Object.keys(TR)) {
+  const n = k.replace(/\u00a0/g, ' ');
+  if (n !== k) { TR[n] = TR[k]; delete TR[k]; }
+}
+
+const tr = s => LANG === 'de' ? s : (TR[s.replace(/\u00a0/g, ' ')] || s);
 
 // Translate the static markup once (text nodes + placeholder/title attributes).
 function translateDom(root) {
@@ -123,14 +134,16 @@ function translateDom(root) {
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let n;
   while ((n = w.nextNode())) {
-    const k = n.nodeValue.trim();
-    if (k && TR[k]) n.nodeValue = n.nodeValue.replace(k, TR[k]);
+    const raw = n.nodeValue.trim();
+    const k = raw.replace(/\u00a0/g, ' ');           // markup uses &nbsp; in places
+    if (raw && TR[k]) n.nodeValue = n.nodeValue.replace(raw, TR[k]);
   }
   root.querySelectorAll('[placeholder], [title]').forEach(e => {
+    const norm = x => x.trim().replace(/\u00a0/g, ' ');
     const p = e.getAttribute('placeholder');
-    if (p && TR[p.trim()]) e.setAttribute('placeholder', TR[p.trim()]);
+    if (p && TR[norm(p)]) e.setAttribute('placeholder', TR[norm(p)]);
     const t = e.getAttribute('title');
-    if (t && TR[t.trim()]) e.setAttribute('title', TR[t.trim()]);
+    if (t && TR[norm(t)]) e.setAttribute('title', TR[norm(t)]);
   });
 }
 document.addEventListener('DOMContentLoaded', () => translateDom(document.body));
