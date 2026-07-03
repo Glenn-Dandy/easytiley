@@ -15,7 +15,8 @@ function dlgSyncRows() {
   document.getElementById('rowStatus').style.display  = t === 'status' ? '' : 'none';
   document.getElementById('rowChart').style.display   = t === 'chart' ? '' : 'none';
   document.getElementById('rowReading').style.display = (t === 'value' || t === 'dimmer' || t === 'status') ? '' : 'none';
-  document.getElementById('rowIcon').style.display     = (t === 'clock') ? 'none' : ''; // clock has no chip
+  document.getElementById('rowIcon').style.display     = (t === 'clock' || t === 'weather') ? 'none' : ''; // clock has no chip; weather brings its own icon
+  document.getElementById('rowLabel').style.display    = t === 'weather' ? 'none' : '';                    // weather needs no custom label
 }
 
 // Sensible defaults for the light-tile option block (RGB cmd from device, CT 2000-6500K).

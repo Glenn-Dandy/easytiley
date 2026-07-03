@@ -182,9 +182,11 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
    content — full width, 2 per row, equal size. Normal-case name (not uppercase). */
 .tile-button, .tile-status, .tile-value { gap: 10px; }
 .tile-button .row, .tile-status .row, .tile-value .row { gap: 9px; }
-.tile-button .chip, .tile-status .chip, .tile-value .chip { width: 27px; height: 27px; min-width: 27px; border-radius: 8px;
+.tile-button .chip, .tile-status .chip, .tile-value .chip,
+.tile-switch .chip, .tile-light .chip, .tile-thermo .chip, .tile-cover .chip { width: 27px; height: 27px; min-width: 27px; border-radius: 8px;
   background: transparent; color: var(--accent); }
-.tile-button .chip svg, .tile-status .chip svg, .tile-value .chip svg { width: 18px; height: 18px; }
+.tile-button .chip svg, .tile-status .chip svg, .tile-value .chip svg,
+.tile-switch .chip svg, .tile-light .chip svg, .tile-thermo .chip svg, .tile-cover .chip svg { width: 18px; height: 18px; }
 .tile-button .t-name, .tile-status .t-name, .tile-value .t-name { font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--muted); }
 
 /* value/sensor card: big value centered, small label at the bottom */
