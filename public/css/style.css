@@ -147,7 +147,7 @@ body.editing .tile-del, body.editing .tile-edit, body.editing .tile-link { displ
 .t-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .t-state { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .t-state:empty { display: none; }
-.no-head .chip, .no-head .t-name { display: none; }
+.no-head .t-name { display: none; }   /* "Titel anzeigen" aus versteckt nur den Namen - Icon + Zustand bleiben */
 .switch[role], .tile-switch .row, .tile-light .toggle { cursor: pointer; }
 .tile-switch .row { cursor: pointer; }
 
