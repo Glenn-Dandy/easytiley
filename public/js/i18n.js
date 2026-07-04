@@ -74,6 +74,7 @@ const TR = {
   'Regen': 'Rain', 'Sonne': 'Sun',
   // settings
   'Einstellungen': 'Settings', 'Design': 'Theme', 'Dunkel': 'Dark', 'Hell': 'Light', 'Sprache': 'Language',
+  'Vibration bei Bedienung': 'Vibrate on touch',
   'FHEM-Adresse (IP oder URL)': 'FHEM address (IP or URL)',
   'wird ergänzt. HTTPS wird unterstützt.': 'is appended. HTTPS is supported.', 'Beispiel:': 'Example:',
   'Benutzername': 'Username', '(leer = kein Passwortschutz)': '(empty = no password protection)',

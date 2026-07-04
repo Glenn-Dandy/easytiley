@@ -555,6 +555,8 @@ function setupSettings() {
     localStorage.setItem('lang', e.target.value);
     location.reload();                       // re-translate the whole UI
   });
+  const hap = document.getElementById('sHaptic');
+  hap.addEventListener('change', () => localStorage.setItem('haptic', hap.checked ? '1' : '0'));
   el.settingsDlg = document.getElementById('settingsDialog');
   document.getElementById('sTheme').addEventListener('change', e => applyTheme(e.target.value)); // live
 
@@ -630,6 +632,7 @@ function settingsResult(text, ok) {
 async function openSettings() {
   document.getElementById('sTheme').value = localStorage.getItem('theme') || 'aurora';
   document.getElementById('sLang').value = LANG;
+  document.getElementById('sHaptic').checked = localStorage.getItem('haptic') !== '0';
   try {
     const s = await API.settings();
     document.getElementById('sFhemUrl').value = s.fhemUrl || '';

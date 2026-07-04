@@ -636,6 +636,8 @@ function createMerge(tgt, src, side) {
 // A tile interaction was triggered -> send to FHEM, refresh soon after.
 async function onAction(tile, args) {
   if (editMode || !tile.device) return;   // no toggling while editing
+  // Haptic tick on every device command (Android; silent no-op elsewhere).
+  if (localStorage.getItem('haptic') !== '0' && navigator.vibrate) navigator.vibrate(20);
   try {
     setStatus('ok');
     await API.cmd(tile.device, args);
