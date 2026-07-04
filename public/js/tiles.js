@@ -447,7 +447,7 @@ const Tiles = (() => {
         el.innerHTML = EDIT + header(tile) +
           '<div class="wx-top">' +
             '<div class="wx-cur"><div class="wx-ico"></div>' +
-              '<div class="wx-info"><div class="wx-temp">–</div><div class="wx-cond"></div></div></div>' +
+              '<div class="wx-info"><div class="wx-temp">–</div><div class="wx-cond"></div><div class="wx-hilo"></div></div></div>' +
             '<div class="wx-stats"></div>' +
           '</div>' +
           '<div class="wx-fc"></div>';
@@ -699,6 +699,9 @@ const Tiles = (() => {
         set('.wx-ico', iconHtml(wxIcon(cond)));
         set('.wx-temp', temp != null ? (temp + '°') : '–', true);
         set('.wx-cond', cond || '', true);
+        const hi0 = num(rv('fc0_tempMax')), lo0 = num(rv('fc0_tempMin'));   // today's span
+        set('.wx-hilo', (hi0 != null || lo0 != null)
+          ? '<span class="wx-hi">↑ ' + (hi0 != null ? hi0 + '°' : '–') + '</span><span class="wx-lo2">↓ ' + (lo0 != null ? lo0 + '°' : '–') + '</span>' : '');
         // stats block: two fixed columns — Feuchte/Druck/Wind and Regen/Sonne/UV
         const col1 = [
           ['droplet', src('humidity', 'humidity'), '%',    tr('Feuchte')],
@@ -715,7 +718,7 @@ const Tiles = (() => {
             '<span class="wv"><b>' + val + unit + '</b><span class="wl">' + lbl + '</span></span></div>').join('') + '</div>';
         set('.wx-stats', colHtml(col1) + colHtml(col2));
         let fc = '';
-        for (let i = 0; i < (tile.fcDays || 7); i++) {
+        for (let i = 1; i <= (tile.fcDays || 7); i++) {   // ab morgen - heute steht oben
           const date = rv('fc' + i + '_date'); if (date == null) continue;
           const hi = num(rv('fc' + i + '_tempMax')), lo = num(rv('fc' + i + '_tempMin'));
           const pop = num(rv('fc' + i + '_chOfRainDay'));       // PROPLANTA: Regenwahrscheinlichkeit in %
