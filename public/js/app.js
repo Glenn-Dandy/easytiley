@@ -640,8 +640,7 @@ async function onAction(tile, args) {
   if (localStorage.getItem('haptic') !== '0' && navigator.vibrate) navigator.vibrate(20);
   try {
     setStatus('ok');
-    await API.cmd(tile.device, args);
-    setTimeout(() => Live.start(activeDeviceNames, applyLive, setStatus, 3000), 400);
+    await API.cmd(tile.device, args);   // resulting events arrive via the SSE push
   } catch (err) {
     setStatus('err', err.message);
   }

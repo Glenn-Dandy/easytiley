@@ -238,9 +238,10 @@ try {
         case 'stream': // GET ?names=Lamp,Door  -> SSE of reading updates
             $names = isset($_GET['names']) ? preg_replace('/[^A-Za-z0-9_.,\-]/', '', $_GET['names']) : '';
             $list  = array_values(array_filter(explode(',', $names)));
-            $filter = $list
-                ? '^(' . implode('|', array_map(fn($n) => preg_quote($n, '#'), $list)) . ')$'
-                : '.*';
+            // FHEMWEB's inform filter only honours '.*' or a single plain device
+            // name (regex/list forms silently match nothing) -> subscribe to all
+            // events and filter by device name here instead.
+            $allow = $list ? array_flip($list) : null;
 
             header('Content-Type: text/event-stream; charset=utf-8'); // replaces the JSON header
             header('Cache-Control: no-cache');
@@ -250,7 +251,7 @@ try {
             @set_time_limit(0);
             echo ": connected\n\n"; @flush();
 
-            $fhem->stream($filter, function (string $line) {
+            $fhem->stream('.*', function (string $line) use ($allow) {
                 if ($line === "\0ping") { echo ": ping\n\n"; @flush(); return; }
                 if ($line === '') return;
                 $parts = explode('<<', $line);
@@ -263,6 +264,7 @@ try {
                 if ($dash === false) { $device = $key; $reading = 'state'; }
                 else { $device = substr($key, 0, $dash); $reading = substr($key, $dash + 1); }
                 if ($device === '' || $reading === '' || strpos($reading, ' ') !== false) return;
+                if ($allow !== null && !isset($allow[$device])) return;   // not on this dashboard
                 echo 'data: ' . json_encode(['d' => $device, 'r' => $reading, 'v' => $val], JSON_UNESCAPED_UNICODE) . "\n\n";
                 @flush();
             });
