@@ -1,15 +1,18 @@
 // Live data: FHEM push via Server-Sent-Events (longpoll proxied by the backend).
 // Falls back to periodic polling if SSE isn't available or the stream errors.
 const Live = (() => {
-  let es = null, poll = null;
+  let es = null, poll = null, dog = null, lastBeat = 0;
   let getNames = () => [], onData = () => {}, onStatus = null;
   let map = {}, pending = false;
 
-  // Coalesce a burst of updates into one repaint (next frame).
+  // Coalesce a burst of updates into one repaint. rAF alone freezes on dimmed
+  // kiosk displays (WebView pauses it) - the timeout fallback keeps painting.
   function coalesce() {
     if (pending) return;
     pending = true;
-    requestAnimationFrame(() => { pending = false; onData(map); });
+    const run = () => { if (!pending) return; pending = false; onData(map); };
+    requestAnimationFrame(run);
+    setTimeout(run, 250);
   }
 
   // Full current state (longpoll only sends *changes*, so we need a snapshot).
@@ -33,8 +36,10 @@ const Live = (() => {
     try {
       es = new EventSource('/api/stream?names=' + encodeURIComponent(names.join(',')));
     } catch (e) { startPoll(); return; }
-    es.onopen = () => { stopPoll(); onStatus && onStatus('ok'); };
+    es.onopen = () => { lastBeat = Date.now(); stopPoll(); onStatus && onStatus('ok'); };
+    es.addEventListener('ping', () => { lastBeat = Date.now(); });   // server heartbeat every ~15s
     es.onmessage = ev => {
+      lastBeat = Date.now();
       let u; try { u = JSON.parse(ev.data); } catch { return; }
       const d = map[u.d] || (map[u.d] = { name: u.d, state: '', readings: {} });
       if (u.r === 'state') d.state = u.v;
@@ -51,6 +56,15 @@ const Live = (() => {
     stop();
     getNames = getDeviceNames; onData = onDataCb; onStatus = onStatusCb;
     connect();
+    // Watchdog: tablet wifi power-save kills the TCP silently - EventSource
+    // never notices. No heartbeat/event for 45s means the stream is dead.
+    if (!dog) dog = setInterval(() => {
+      if (es && lastBeat && Date.now() - lastBeat > 45000) { lastBeat = Date.now(); reconnect(); }
+    }, 10000);
+    // Screen back on / tab visible again -> catch up immediately.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && lastBeat && Date.now() - lastBeat > 20000) reconnect();
+    });
   }
   function reconnect() { if (es) { es.close(); es = null; } connect(); } // device set changed
   function stop() { if (es) { es.close(); es = null; } stopPoll(); }

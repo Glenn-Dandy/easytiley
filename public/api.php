@@ -252,7 +252,7 @@ try {
             echo ": connected\n\n"; @flush();
 
             $fhem->stream('.*', function (string $line) use ($allow) {
-                if ($line === "\0ping") { echo ": ping\n\n"; @flush(); return; }
+                if ($line === "\0ping") { echo "event: ping\ndata: 1\n\n"; @flush(); return; } // real event: the client watchdog must see it
                 if ($line === '') return;
                 $parts = explode('<<', $line);
                 if (count($parts) < 2) return;                       // not a status line
