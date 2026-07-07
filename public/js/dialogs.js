@@ -35,6 +35,20 @@ function fillReadings(deviceName) {
   return deviceCache.find(x => x.name === deviceName);
 }
 
+// Live values for the reading dropdown: fetched once per device, shown as the
+// small right-hand column so you don't have to guess what a reading holds.
+const readingVals = {};
+async function loadReadingValues(name) {
+  if (!name || readingVals[name]) return;
+  try {
+    const { devices } = await API.devices(name);
+    if (devices && devices[0]) {
+      readingVals[name] = {};
+      for (const [k, v] of Object.entries(devices[0].readings || {})) readingVals[name][k] = v.value;
+    }
+  } catch (e) { /* dropdown just shows no values */ }
+}
+
 const deviceSets = name => { const d = deviceCache.find(x => x.name === name); return (d && d.sets) || []; };
 
 // ---- weather tile: foreign-device sources for current values -------------
@@ -140,7 +154,11 @@ function setupDialog() {
   document.getElementById('tChPart').addEventListener('change', chartPartChanged);
   attachAutocomplete(reading, () => {
     const d = deviceCache.find(x => x.name === dev.value);
-    return (d ? d.readings : []).map(r => ({ value: r }));
+    const vals = readingVals[dev.value] || {};
+    return (d ? d.readings : []).map(r => ({
+      value: r,
+      sub: vals[r] !== undefined ? String(vals[r]).slice(0, 26) : '',
+    }));
   });
 
   // Weather foreign-source rows: same device + reading autocomplete as above.
@@ -183,6 +201,7 @@ function setupDialog() {
   });
 
   dev.addEventListener('change', () => {
+    loadReadingValues(dev.value);                 // values for the reading dropdown
     const d = fillReadings(dev.value);
     if (d) document.getElementById('tLabel').value = d.alias || d.name; // Geräte-Alias übernehmen
     applyDefaults();
@@ -465,6 +484,7 @@ async function openEditDialog(id) {
   f.type.value   = t.type;
   f.device.value = t.device || '';
   fillReadings(t.device);
+  loadReadingValues(t.device);
   f.reading.value = t.reading || '';
   f.label.value   = t.label || '';
   f.unit.value    = t.unit || '';

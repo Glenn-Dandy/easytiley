@@ -109,6 +109,33 @@ async function init() {
   });
   grid.on('added removed', () => { clearTimeout(window._lvr); window._lvr = setTimeout(() => Live.reconnect(), 600); }); // device set changed -> re-subscribe
   grid.on('dragstart', cancelLink);            // dragging is for repositioning, not linking
+  // Drag a tile onto a room tab -> move it into that room.
+  let dragTileId = null, hoverTabEl = null;
+  const tabAt = (x, y) => {
+    for (const t of el.tabs.querySelectorAll('.tab')) {
+      const r = t.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return t;
+    }
+    return null;
+  };
+  const trackTab = e => {
+    if (!dragTileId) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const t = tabAt(pt.clientX, pt.clientY);
+    const target = (t && !t.classList.contains('active')) ? t : null;
+    if (hoverTabEl && hoverTabEl !== target) hoverTabEl.classList.remove('drop-target');
+    hoverTabEl = target;
+    if (hoverTabEl) hoverTabEl.classList.add('drop-target');
+  };
+  grid.on('dragstart', (e2, item) => { dragTileId = item.getAttribute('gs-id'); });
+  document.addEventListener('mousemove', trackTab, true);
+  document.addEventListener('touchmove', trackTab, true);
+  grid.on('dragstop', () => {
+    const id = dragTileId, tab = hoverTabEl;
+    dragTileId = null;
+    if (hoverTabEl) { hoverTabEl.classList.remove('drop-target'); hoverTabEl = null; }
+    if (id && tab) moveTileToDashboard(id, +tab.dataset.dashId);
+  });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cancelLink(); });
   window.addEventListener('resize', () => { clearTimeout(window._sc); window._sc = setTimeout(applyScale, 120); });
 
@@ -163,10 +190,11 @@ function renderTabs(activeId) {
   dashboards.forEach(d => {
     const tab = document.createElement('div');
     tab.className = 'tab' + (d.id === activeId ? ' active' : '');
+    tab.dataset.dashId = d.id;
     tab.innerHTML = `<span class="tab-name">${esc(d.name)}</span><span class="tab-x" title="${tr('Raum löschen')}">✕</span>`;
     tab.addEventListener('click', e => {
       if (e.target.closest('.tab-x'))      return deleteTab(d.id);
-      if (editMode && d.id === activeId)   return renameTab(d.id);
+      if (editMode && d.id === activeId)   return renameTab(d.id, tab);
       loadDashboard(d.id);
     });
     if (editMode) {                                    // reorder rooms by drag (edit mode only)
@@ -182,7 +210,7 @@ function renderTabs(activeId) {
   if (editMode) {                                      // adding rooms only in edit mode
     const add = document.createElement('div');
     add.className = 'tab-add'; add.textContent = '＋'; add.title = tr('Neuer Raum');
-    add.addEventListener('click', addTab);
+    add.addEventListener('click', () => addTab(add));
     el.tabs.appendChild(add);
   }
 }
@@ -199,19 +227,47 @@ async function reorderTabs(srcId, destId) {
   try { await API.reorderDashboards(arr.map(x => x.id)); } catch (e) { /* order is best-effort */ }
 }
 
-async function addTab() {
-  const name = prompt(tr('Name des neuen Raums/Tabs:'));
-  if (!name) return;
-  const { id } = await API.createDashboard(name);
-  await loadDashboards(id);
+// Small in-design popover (input + OK) under an anchor - replaces prompt().
+function tabPrompt(anchor, initial, cb) {
+  document.querySelectorAll('.tab-pop').forEach(x => x.remove());
+  const pop = document.createElement('div');
+  pop.className = 'tab-pop';
+  pop.innerHTML = `<input value="${esc(initial || '')}" placeholder="${esc(tr('Neuer Raum'))}" autocomplete="off">
+    <button type="button" class="btn btn-primary">✓</button>`;
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+  pop.style.top  = (r.bottom + 6) + 'px';
+  const inp = pop.querySelector('input');
+  let closed = false;
+  const done = ok => {
+    if (closed) return; closed = true;
+    const v = inp.value.trim();
+    pop.remove(); document.removeEventListener('mousedown', away, true);
+    if (ok && v) cb(v);
+  };
+  const away = e => { if (!pop.contains(e.target)) done(false); };
+  pop.querySelector('button').addEventListener('click', () => done(true));
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); done(true); }
+    if (e.key === 'Escape') done(false);
+  });
+  setTimeout(() => { inp.focus(); inp.select(); document.addEventListener('mousedown', away, true); }, 0);
 }
 
-async function renameTab(id) {
+function addTab(anchor) {
+  tabPrompt(anchor, '', async name => {
+    const { id } = await API.createDashboard(name);
+    await loadDashboards(id);
+  });
+}
+
+function renameTab(id, anchor) {
   const d = dashboards.find(x => x.id === id);
-  const name = prompt(tr('Raum umbenennen:'), d ? d.name : '');
-  if (!name) return;
-  await API.saveDashboard(id, name, currentDash.layout);
-  await loadDashboards(id);
+  tabPrompt(anchor, d ? d.name : '', async name => {
+    await API.saveDashboard(id, name, currentDash.layout);
+    await loadDashboards(id);
+  });
 }
 
 async function deleteTab(id) {
@@ -241,6 +297,25 @@ async function loadDashboard(id) {
   refreshCharts();
   updateClocks();
   saveSnapshot();
+}
+
+// Move one top-level tile (incl. groups/merges with their children) into
+// another room: saves both layouts server-side, then repaints this room.
+async function moveTileToDashboard(id, destId) {
+  if (!destId || !currentDash || destId === currentDash.id) return;
+  try {
+    const layout = serializeGrid(grid.el);              // current DOM state, incl. the drag
+    const idx = layout.findIndex(t => t.id === id);
+    if (idx < 0) return;
+    const [moved] = layout.splice(idx, 1);
+    delete moved.x; delete moved.y;
+    moved.autoPosition = true;                          // let the target room find a free spot
+    const dest = await API.dashboard(destId);
+    dest.layout.push(moved);
+    await API.saveDashboard(destId, dest.name, dest.layout);
+    await API.saveDashboard(currentDash.id, currentDash.name, layout);
+    await loadDashboard(currentDash.id);                // repaint without the moved tile
+  } catch (e) { setStatus('err', e.message); }
 }
 
 // ---- boot snapshot: the last dashboard, painted instantly on reload --------

@@ -718,7 +718,7 @@ const Tiles = (() => {
             '<span class="wv"><b>' + val + unit + '</b><span class="wl">' + lbl + '</span></span></div>').join('') + '</div>';
         set('.wx-stats', colHtml(col1) + colHtml(col2));
         let fc = '';
-        for (let i = 1; i <= (tile.fcDays || 7); i++) {   // ab morgen - heute steht oben
+        for (let i = 1; i <= Math.min(tile.fcDays || 6, 6); i++) {   // morgen..+6 (fc7 hat keine Regenwahrscheinlichkeit)
           const date = rv('fc' + i + '_date'); if (date == null) continue;
           const hi = num(rv('fc' + i + '_tempMax')), lo = num(rv('fc' + i + '_tempMin'));
           const pop = num(rv('fc' + i + '_chOfRainDay'));       // PROPLANTA: Regenwahrscheinlichkeit in %
