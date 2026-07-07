@@ -489,7 +489,7 @@ function addWidget(tile, targetGrid = grid) {
   }
   if (tile.type === 'weather') {               // weather needs room for stats + forecast strip
     item.setAttribute('gs-min-w', 9);
-    item.setAttribute('gs-min-h', 5);
+    item.setAttribute('gs-min-h', 6);
   }
   item.appendChild(Tiles.build(tile, onAction));
   targetGrid.el.appendChild(item);

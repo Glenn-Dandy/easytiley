@@ -1,23 +1,25 @@
 # EasyTiley
 
+**🇩🇪 Deutsch** · [🇬🇧 English](README.en.md)
+
 Web-Dashboard für FHEM mit editierbaren Gerätekacheln.
 Kacheln hinzufügen, frei platzieren, vergrößern, verschmelzen und speichern — alles im Browser.
 
 ![EasyTiley Dashboard](docs/screenshot.png)
 
 ```
-Browser ──HTTP──> 1 Docker-Container ──HTTP──> FHEMWEB (192.168.10.2:8083)
-                  (nginx + php-fpm)
-                       │
-                       └── SQLite (data/fhem.db)  ← Dashboards & Kachel-Layouts
+Browser ──HTTP/SSE──> 1 Docker-Container ──HTTP──> FHEMWEB
+                      (nginx + php-fpm)
+                           │
+                           └── SQLite (data/fhem.db)  ← Dashboards & Kachel-Layouts
 ```
 
 > nginx **und** php-fpm laufen zusammen in **einem** Image (via supervisord) — ein Container genügt.
 
-* **Frontend:** Vanilla JS + [Gridstack](https://gridstackjs.com) (Drag&Drop/Resize), eigene Kacheln + Themes.
+* **Frontend:** Vanilla JS + [Gridstack](https://gridstackjs.com) (Drag&Drop/Resize), eigene Kacheln + Themes, zweisprachig (DE/EN).
 * **Backend:** PHP 8.3, spricht FHEMWEB via `jsonlist2` + `set` an (CSRF-Token automatisch).
-* **Live-Daten:** Polling der Dashboard-Geräte (alle 3 s). Erweiterbar auf SSE/longpoll.
-* **Speicher:** SQLite, ein Layout je Dashboard als JSON.
+* **Live-Daten:** FHEM-Push in Echtzeit (longpoll → Server-Sent-Events), 3-s-Polling nur als Fallback.
+* **Speicher:** SQLite, ein Layout je Dashboard als JSON. Läuft komplett offline (keine CDNs).
 
 ## Voraussetzung
 
@@ -32,7 +34,7 @@ sudo usermod -aG docker "$USER"   # danach einmal ab- und neu anmelden
 ## Installieren & Starten
 
 ```bash
-git clone <repo-url> easytiley && cd easytiley
+git clone https://github.com/Glenn-Dandy/easytiley.git && cd easytiley
 mkdir -p data && chmod 777 data      # php-fpm (uid 82) muss in data/ schreiben
 docker compose up -d --build         # baut das Image lokal und startet den Container
 # -> http://localhost:8080
@@ -53,6 +55,10 @@ Einstellungen). Ist FHEMWEB per `attr WEB basicAuth …` geschützt, Benutzernam
 und Passwort in den Einstellungen hinterlegen — sie bleiben serverseitig in
 der SQLite und werden nie an den Browser ausgeliefert.
 
+**Tipp Reverse-Proxy:** Läuft FHEM hinter einem Proxy, dessen Puffern die
+Echtzeit-Events verzögert (nginx: `proxy_buffering off;`) — oder EasyTiley
+einfach direkt auf die LAN-Adresse von FHEM zeigen lassen.
+
 ## Aktualisieren
 
 Im geklonten Ordner (`cd easytiley`):
@@ -68,32 +74,42 @@ Deine Dashboards in `data/fhem.db` bleiben erhalten. Altes Image aufräumen:
 ## Bedienung
 
 1. **⚙ Einstellungen** → FHEM-Adresse eintragen, **Testen**, **Speichern**.
-2. **Bearbeiten** → Editiermodus: Kacheln frei ziehen, an der rechten/unteren
+   Dort auch: Design (dunkel/hell), **Sprache (Deutsch/English)**, Vibration.
+2. **✎ Bearbeiten** → Editiermodus: Kacheln frei ziehen, an der rechten/unteren
    Kante skalieren.
-3. **+ Kachel** → Typ + Gerät wählen (Reading wird für Schalter/Licht automatisch erkannt).
+3. **+ Kachel** → Typ + Gerät wählen (Readings/Befehle werden automatisch erkannt,
+   das Reading-Dropdown zeigt die aktuellen Werte).
 4. **✎** auf einer Kachel → bearbeiten; **✕** → entfernen.
 5. **🔗** → Kachel mit einer Nachbar-Kachel **verschmelzen**: danach eine der
    4 Andock-Kanten der Zielkachel antippen. Verbundene Karten lassen sich auch
-   über-/nebeneinander stapeln; **⧉** löst sie wieder auf.
-6. **Speichern** → Layout landet in SQLite. **Fertig** → Anzeige-/Bedienmodus mit Live-Werten.
+   über-/nebeneinander stapeln; **⧉** löst sie wieder auf. Funktioniert auch
+   innerhalb von Gruppen.
+6. **Kachel auf einen Raum-Tab ziehen** → verschiebt sie in diesen Raum.
+7. **Speichern** → Layout landet in SQLite. **Fertig** → Anzeige-/Bedienmodus mit Live-Werten.
+8. **⛶** → Vollbild (praktisch für Wand-Tablets, funktioniert auch über HTTP).
 
 Kacheltypen: `Wert / Sensor`, `Schalter (on/off)`, `Licht (an/aus + RGB + CT)`,
 `readingsGroup`, `Button(s) / Set-Befehle`, `Thermostat / Heizung`,
-`Status (Fenster / Tür / Kontakt)`, `Wetter (PROPLANTA)`, `Gruppe / Raum-Box`,
-`Uhrzeit / Datum`, `Notiz (Text / Checkliste)`, `Beschriftung / Text`.
+`Status (Fenster / Tür / Kontakt)`, `Rollladen / Jalousie`, `Diagramm / Verlauf
+(FileLog/DbLog)`, `Wetter (PROPLANTA)`, `Gruppe / Raum-Box`, `Uhrzeit / Datum`,
+`Notiz (Text / Checkliste)`, `Beschriftung / Text`.
 
 **Freies Raster:** Kacheln liegen, wo du sie hinsetzt. Nur leerer Platz **über
 allen** Kacheln wird automatisch entfernt — innere Lücken bleiben.
 
-**Räume als Tabs:** Jeder Tab oben ist ein Raum/Dashboard. **＋** legt einen an;
-im Editiermodus benennt ein Klick auf den aktiven Tab ihn um, **✕** löscht ihn.
+**Räume als Tabs:** Jeder Tab oben ist ein Raum/Dashboard. **＋** legt einen an
+(im Editiermodus); Klick auf den aktiven Tab benennt ihn um, **✕** löscht ihn,
+Ziehen sortiert die Tabs um.
 
-**readingsGroup-Kachel:** zeigt eine FHEM-`readingsGroup` (z. B. Wetter). FHEM
-rendert intern, das Backend parst Werte + Icons heraus (DOMDocument) und das
-Frontend zeichnet eine **eigene Tabelle im Dark-Theme** (Aktualisierung alle 30 s).
+**readingsGroup-Kachel:** zeigt eine FHEM-`readingsGroup`. FHEM rendert intern,
+das Backend parst Werte + Icons heraus und das Frontend zeichnet eine **eigene
+Tabelle im Theme-Look** (Aktualisierung alle 30 s).
 
 **Gruppe / Raum-Box:** ein verschachteltes Raster im selben Koordinatensystem wie
 das Hauptraster; Kacheln behalten beim Hinein-/Herausziehen ihre Größe 1:1.
+
+**Diagramm-Kachel:** Verlaufskurven direkt aus FileLog/DbLog — Log-Gerät wählen,
+Messwert aus lesbarer Liste, Zeitraum 6 h – 7 Tage, optional geglättet.
 
 ## API (PHP, unter `/api/`)
 
@@ -103,7 +119,9 @@ das Hauptraster; Kacheln behalten beim Hinein-/Herausziehen ihre Größe 1:1.
 | `/api/devices?names=A,B` | GET | Readings ausgewählter Geräte |
 | `/api/devicelist` | GET | leichte Geräteliste für den Editor |
 | `/api/cmd` | POST | `{device,args}` → `set`, oder `{cmd}` roh |
-| `/api/dashboards` | GET/POST | Liste / neues Dashboard |
+| `/api/stream?names=A,B` | GET | Server-Sent-Events (FHEM-Push) |
+| `/api/chart?log=L&spec=S&hours=N` | GET | Verlaufsdaten aus FileLog/DbLog |
+| `/api/dashboards` | GET/POST | Liste / neues Dashboard / Reihenfolge |
 | `/api/dashboard?id=N` | GET/POST/DELETE | Layout laden / speichern / löschen |
 
 ## Konfiguration (`.env`)
@@ -112,20 +130,22 @@ das Hauptraster; Kacheln behalten beim Hinein-/Herausziehen ihre Größe 1:1.
 |---|---|
 | `FHEM_URL` | `http://192.168.10.2:8083/fhem` |
 | `HTTP_PORT` | `8080` |
+| `TZ` | `Europe/Berlin` |
 
 ## Projektstruktur
 
 ```
 docker/            Dockerfile (php-fpm) + nginx.conf
 src/               Fhem.php (FHEM-Client), Db.php (SQLite)
-public/            api.php (Router) + index.html + js/ + css/
+public/            api.php (Router) + index.html + js/ + css/ + vendor/
 data/              fhem.db (SQLite, gitignored)
 ```
 
 ## Roadmap / mögliche Erweiterungen
 
-* SSE/longpoll statt Polling (Push-Updates direkt aus FHEM).
-* Mehr Kacheltypen (Charts, Rollladen/Cover, Kamera).
+* Weitere Kacheltypen (Kamera, Medien).
+* Stapel-Ansicht für Smartphones.
+* Service Worker (installierbare Offline-PWA).
 
 ## Lizenz
 
