@@ -250,7 +250,9 @@ body:not(.editing) .tile-light .toggle:active { transform: scale(.97); }
 /* rooms (tabs) are re-orderable by drag while editing */
 body.editing .tab { cursor: grab; }
 .tab.drag { opacity: .45; }
-.tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
+.tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }   /* Einfuege-Marker beim Tab-Umsortieren */
+.tab.drop-room { box-shadow: 0 0 0 2px var(--accent), 0 0 16px -2px var(--accent);  /* Ring um den ganzen Tab beim Kachel-Drop */
+  color: var(--text); }
 
 /* status tile: header (chip + name) + big centered state icon + label
    (Titel aus versteckt nur den Namen - der Icon-Chip bleibt, siehe .no-head .t-name) */

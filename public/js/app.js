@@ -123,9 +123,9 @@ async function init() {
     const pt = e.touches ? e.touches[0] : e;
     const t = tabAt(pt.clientX, pt.clientY);
     const target = (t && !t.classList.contains('active')) ? t : null;
-    if (hoverTabEl && hoverTabEl !== target) hoverTabEl.classList.remove('drop-target');
+    if (hoverTabEl && hoverTabEl !== target) hoverTabEl.classList.remove('drop-room');
     hoverTabEl = target;
-    if (hoverTabEl) hoverTabEl.classList.add('drop-target');
+    if (hoverTabEl) hoverTabEl.classList.add('drop-room');
   };
   grid.on('dragstart', (e2, item) => { dragTileId = item.getAttribute('gs-id'); });
   document.addEventListener('mousemove', trackTab, true);
@@ -133,7 +133,7 @@ async function init() {
   grid.on('dragstop', () => {
     const id = dragTileId, tab = hoverTabEl;
     dragTileId = null;
-    if (hoverTabEl) { hoverTabEl.classList.remove('drop-target'); hoverTabEl = null; }
+    if (hoverTabEl) { hoverTabEl.classList.remove('drop-room'); hoverTabEl = null; }
     if (id && tab) moveTileToDashboard(id, +tab.dataset.dashId);
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cancelLink(); });
