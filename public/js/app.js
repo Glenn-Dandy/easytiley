@@ -10,7 +10,7 @@ const $  = sel => document.querySelector(sel);
 const el = {};
 // 24-column grid (finer snap than the old 12). Sizes are in those finer units.
 const GRID_GEN = 2;                 // bump when the column resolution changes
-const APP_NAME = 'EasyTiley', APP_VERSION = '1.04';
+const APP_NAME = 'EasyTiley', APP_VERSION = '1.05-dev';
 const COLS = 23;
 const DEFAULT_SIZE = {
   value:  { w: 4, h: 4 }, switch: { w: 4, h: 4 }, dimmer: { w: 6, h: 4 },
