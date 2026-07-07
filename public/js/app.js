@@ -589,9 +589,11 @@ function dissolveMerge(id) {
   const n = (item && item.gridstackNode) || {};
   const x0 = n.x ?? m.x ?? 0, y0 = n.y ?? m.y ?? 0;
   const kids = (m.children || []).map(c => ({ ...c }));
+  const home = gridOf(item);                 // split back into the grid the card lives in
+  const cols = home.getColumn ? home.getColumn() : COLS;
   removeTile(item, id);
   let x = x0;
-  kids.forEach(c => { const w = c.w || 4; addWidget({ ...c, x: Math.min(x, COLS - w), y: y0, w, h: c.h || 4 }); x += w; });
+  kids.forEach(c => { const w = c.w || 4; addWidget({ ...c, x: Math.min(x, Math.max(0, cols - w)), y: y0, w, h: c.h || 4 }, home); x += w; });
   afterMerge();
 }
 
@@ -672,6 +674,7 @@ const stripGeo = t => {
 
 const itemOf = id => grid.el.querySelector(`.grid-stack-item[gs-id="${id}"]`);
 const liveSize = id => { const n = itemOf(id) && itemOf(id).gridstackNode; return { w: (n && n.w) || 4, h: (n && n.h) || 4 }; };
+const gridOf  = it => (it && it.gridstackNode && it.gridstackNode.grid) || grid;   // owning grid (group sub-grid or main)
 
 // Merge `src` onto `side` of `tgt`. If `tgt` is already a merge whose axis matches
 // the dock side, the source is appended as another cell (and the card grows along
@@ -690,8 +693,9 @@ function createMerge(tgt, src, side) {
     before ? tgt.children.unshift(child) : tgt.children.push(child);
     registerTile(child);
     const tItem = itemOf(tgt.id);                                  // grow the card so the new cell keeps its size
-    if (tItem) horiz ? grid.update(tItem, { w: Math.min((tItem.gridstackNode.w || 4) + ss.w, COLS) })
-                     : grid.update(tItem, { h: (tItem.gridstackNode.h || 4) + ss.h });
+    const tg = gridOf(tItem);
+    if (tItem) horiz ? tg.update(tItem, { w: Math.min((tItem.gridstackNode.w || 4) + ss.w, tg.getColumn()) })
+                     : tg.update(tItem, { h: (tItem.gridstackNode.h || 4) + ss.h });
     removeTile(srcItem, src.id);
     rebuildTileContent(tgt.id);
     return afterMerge();
@@ -708,9 +712,10 @@ function createMerge(tgt, src, side) {
     w: Math.min(horiz ? ts.w + ss.w : Math.max(ts.w, ss.w), COLS),
     h: horiz ? Math.max(ts.h, ss.h) : ts.h + ss.h,
   };
+  const home = gridOf(itemOf(tgt.id));       // merge stays where the target lives (group sub-grid incl.)
   removeTile(srcItem, src.id);
   removeTile(itemOf(tgt.id), tgt.id);
-  addWidget(merge);
+  addWidget(merge, home);
   afterMerge();
 }
 
