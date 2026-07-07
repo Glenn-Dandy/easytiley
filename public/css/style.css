@@ -252,8 +252,8 @@ body.editing .tab { cursor: grab; }
 .tab.drag { opacity: .45; }
 .tab.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
 
-/* status tile: header (chip + name) + big centered state icon + label */
-.tile-status.no-head .row { display: none; }
+/* status tile: header (chip + name) + big centered state icon + label
+   (Titel aus versteckt nur den Namen - der Icon-Chip bleibt, siehe .no-head .t-name) */
 .tile-status .st-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 0; }
 .tile-status .st-ico { width: 54px; height: 54px; }
 .tile-status .st-ico svg { width: 100%; height: 100%; stroke-width: 1.3; }  /* schlanker als die 2px-Chips */

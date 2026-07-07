@@ -1,6 +1,6 @@
 // Main app: dashboard load/save, Gridstack editor, tabs, live wiring.
 // Loads last; ui.js + dialogs.js provide pickers and dialogs (shared scope).
-let grid, currentDash = null, editMode = false;
+let grid, currentDash = null, editMode = false, dashLoading = false;
 let tiles = {};               // id -> tile config
 let deviceCache = [];         // [{name,type,room,readings[],sets[],onoff}]
 let editingTileId = null;     // set while the dialog edits an existing tile
@@ -101,7 +101,7 @@ async function init() {
   // layout looks identical on laptop and tablet (just proportionally smaller).
   applyScale();
   grid.on('change added removed resizestop dragstop', applyScale);
-  grid.on('dragstop resizestop dropped removed added', () => collapseTop()); // gently pull off the empty top margin
+  grid.on('dragstop resizestop dropped removed added', () => { if (!dashLoading) collapseTop(); }); // gently pull off the empty top margin (not per-tile during a room load)
   grid.on('resizestop', (e, el) => syncGroupColumns(el)); // group box resized -> match its sub-grid columns to the new width
   grid.on('resize resizestop', (e, item) => {   // charts re-layout live instead of scaling while dragging
     const c = item.querySelector && item.querySelector('.tile-chart');
@@ -285,10 +285,13 @@ async function loadDashboard(id) {
                JSON.stringify(currentDash.layout) === bootPaintedJson;
   bootPaintedJson = null;
   if (!same) {
+    dashLoading = true;                                   // collapseTop per added tile would scramble saved layouts
     tiles = {};
     eachGrid(g => { if (g !== grid) g.destroy(false); }); // tear down old sub-grids
     grid.removeAll();
     for (const t of currentDash.layout) addWidget(t);     // addWidget registers + recurses into groups
+    dashLoading = false;
+    collapseTop();                                        // once, after everything sits -> relative layout stays intact
     applyScale();                                         // re-fit zoom after layout change
     requestAnimationFrame(syncAllGroups);                 // match group sub-grid columns once laid out
   }
@@ -336,7 +339,10 @@ function paintFromSnapshot() {
   if (!s || !Array.isArray(s.layout) || !s.layout.length) return;
   dashboards = s.dashboards || [];
   renderTabs(s.activeId);
+  dashLoading = true;
   for (const t of s.layout) addWidget(t);
+  dashLoading = false;
+  collapseTop();
   applyScale();
   requestAnimationFrame(syncAllGroups);
   if (s.map) { _lastMap = s.map; applyLive(s.map); }    // last known values...
