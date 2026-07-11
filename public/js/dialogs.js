@@ -577,6 +577,11 @@ function setupSettings() {
   });
   const hap = document.getElementById('sHaptic');
   hap.addEventListener('change', () => localStorage.setItem('haptic', hap.checked ? '1' : '0'));
+  const snd = document.getElementById('sSound');
+  snd.addEventListener('change', () => {
+    localStorage.setItem('sound', snd.checked ? '1' : '0');
+    if (snd.checked) clickSound();               // Hoerprobe + entsperrt Audio in der Geste
+  });
   const perf = document.getElementById('sPerf');
   perf.addEventListener('change', () => {          // wirkt sofort, pro Geraet gespeichert
     localStorage.setItem('perf', perf.checked ? '1' : '0');
@@ -658,6 +663,7 @@ async function openSettings() {
   document.getElementById('sTheme').value = localStorage.getItem('theme') || 'aurora';
   document.getElementById('sLang').value = LANG;
   document.getElementById('sHaptic').checked = localStorage.getItem('haptic') !== '0';
+  document.getElementById('sSound').checked = localStorage.getItem('sound') === '1';
   document.getElementById('sPerf').checked = localStorage.getItem('perf') === '1';
   try {
     const s = await API.settings();

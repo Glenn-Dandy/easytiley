@@ -728,11 +728,40 @@ function createMerge(tgt, src, side) {
   afterMerge();
 }
 
+// Click sound: local file (sounds/click.wav), decoded once, played via Web
+// Audio (low latency, overlapping taps ok). Browsers unlock audio on a user
+// gesture - every call site here IS a gesture.
+let _ac = null, _clickBuf = null, _clickLoading = false;
+function clickSound() {
+  try {
+    if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (_ac.state === 'suspended') _ac.resume();
+    if (!_clickBuf) {
+      if (_clickLoading) return;
+      _clickLoading = true;
+      fetch('sounds/click.wav').then(r => r.arrayBuffer())
+        .then(b => _ac.decodeAudioData(b))
+        .then(buf => { _clickBuf = buf; play(); })
+        .catch(() => {});
+      return;
+    }
+    play();
+    function play() {
+      const src = _ac.createBufferSource();
+      src.buffer = _clickBuf;
+      const g = _ac.createGain(); g.gain.value = 0.6;
+      src.connect(g); g.connect(_ac.destination);
+      src.start();
+    }
+  } catch (e) { /* kein Audio-Support -> still */ }
+}
+
 // A tile interaction was triggered -> send to FHEM, refresh soon after.
 async function onAction(tile, args) {
   if (editMode || !tile.device) return;   // no toggling while editing
   // Haptic tick on every device command (Android; silent no-op elsewhere).
   if (localStorage.getItem('haptic') !== '0' && navigator.vibrate) navigator.vibrate(20);
+  if (localStorage.getItem('sound') === '1') clickSound();
   try {
     setStatus('ok');
     await API.cmd(tile.device, args);   // resulting events arrive via the SSE push
