@@ -3,14 +3,14 @@
 const Live = (() => {
   let es = null, poll = null, dog = null, lastBeat = 0;
   let getNames = () => [], onData = () => {}, onStatus = null;
-  let map = {}, pending = false;
+  let map = {}, pending = false, dirty = new Set();   // devices changed since last repaint
 
   // Coalesce a burst of updates into one repaint. rAF alone freezes on dimmed
   // kiosk displays (WebView pauses it) - the timeout fallback keeps painting.
   function coalesce() {
     if (pending) return;
     pending = true;
-    const run = () => { if (!pending) return; pending = false; onData(map); };
+    const run = () => { if (!pending) return; pending = false; const d = dirty; dirty = new Set(); onData(map, d); };
     requestAnimationFrame(run);
     setTimeout(run, 250);
   }
@@ -23,7 +23,7 @@ const Live = (() => {
       const res = await API.devices(names.join(','));
       map = {};
       for (const d of res.devices) map[d.name] = d;
-      onData(map);
+      onData(map, null);                        // null = alles neu zeichnen
       onStatus && onStatus('ok');
     } catch (e) { onStatus && onStatus('err', e.message); }
   }
@@ -41,6 +41,7 @@ const Live = (() => {
     es.onmessage = ev => {
       lastBeat = Date.now();
       let u; try { u = JSON.parse(ev.data); } catch { return; }
+      dirty.add(u.d);
       const d = map[u.d] || (map[u.d] = { name: u.d, state: '', readings: {} });
       if (u.r === 'state') d.state = u.v;
       (d.readings || (d.readings = {}))[u.r] = { value: u.v };

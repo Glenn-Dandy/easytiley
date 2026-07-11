@@ -237,6 +237,8 @@ const Tiles = (() => {
   // Paint a cover tile from its opening degree (0 = geschlossen, 100 = offen).
   function paintCover(el, sem) {
     sem = Math.min(100, Math.max(0, Math.round(sem)));
+    if (el._cvSem === sem) return;               // unveraendert -> kein DOM-Schreiben
+    el._cvSem = sem;
     const sh = el.querySelector('.cv-shade'); if (sh) sh.style.height = (100 - sem) + '%';
     const wd = el.querySelector('.cv-word');  if (wd) wd.textContent = sem <= 1 ? tr('geschlossen') : (sem >= 99 ? tr('offen') : tr('teils offen'));
     setSlider(el, '.cvs', sem);   // slider + small % label (like the dimmer)
@@ -627,6 +629,10 @@ const Tiles = (() => {
         const rules = tile.statusMap || [];
         let rule = rules.find(r => r.val && norm(r.val) === norm(rv));  // exact value match
         if (!rule) rule = rules.find(r => !r.val);                      // "Standard/sonst" catch-all row
+        const sig = rule ? 'r|' + (rule.icon || '') + '|' + (rule.iconColor || '') + '|' + (rule.label || '')
+                         : 'x|' + rv;
+        if (el._stSig === sig) break;                                  // nichts geaendert -> DOM in Ruhe lassen
+        el._stSig = sig;
         const icoEl = el.querySelector('.st-ico'), lblEl = el.querySelector('.st-lbl');
         if (rule) {                                                    // matched: honour an empty label (icon-only)
           if (icoEl) { icoEl.innerHTML = rule.icon ? iconHtml(rule.icon) : iconFor(tile); icoEl.style.color = safeColor(rule.iconColor) || ''; }
@@ -655,10 +661,14 @@ const Tiles = (() => {
           let idx = st.findIndex(s => eq(devReading(dev, s.rd), s.val));
           const matched = idx >= 0;
           if (!matched) idx = 0;
-          tog.dataset.cur = String(idx);
-          tog.innerHTML = iconHtml(st[idx] && st[idx].icon);
-          tog.style.color = (st[idx] && st[idx].iconColor) || '';
-          tog.classList.toggle('active', matched && st[idx] && st[idx].glow !== false);
+          const tsig = idx + ':' + matched;
+          if (tog._tgSig !== tsig) {
+            tog._tgSig = tsig;
+            tog.dataset.cur = String(idx);
+            tog.innerHTML = iconHtml(st[idx] && st[idx].icon);
+            tog.style.color = (st[idx] && st[idx].iconColor) || '';
+            tog.classList.toggle('active', matched && st[idx] && st[idx].glow !== false);
+          }
         } else {
           // Light each button whose target reading matches — unless glow is off for it.
           el.querySelectorAll('.scenes .scene').forEach(btn => {
@@ -771,7 +781,8 @@ const Tiles = (() => {
             parts.push('<span class="th-fi th-bat' + (low ? ' th-low' : '') + '" title="' + tr('Batterie') + '">' + iconHtml('battery') +
                        esc(bRaw) + (bn != null ? '%' : '') + '</span>');
           }
-          foot.innerHTML = parts.join('');
+          const fsig = parts.join('');
+          if (el._thFootSig !== fsig) { el._thFootSig = fsig; foot.innerHTML = fsig; }
         }
         break;
       }

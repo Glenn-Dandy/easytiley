@@ -80,6 +80,7 @@ async function migrateGrid() {
 
 async function init() {
   applyTheme(localStorage.getItem('theme') || 'aurora');
+  if (localStorage.getItem('perf') === '1') document.body.classList.add('perf');
   injectColumnCss(COLS);                     // GridStack only ships CSS up to gs-12
   ['tabs','addBtn','saveBtn','editBtn','settingsBtn','fsBtn','status'].forEach(id => el[id] = document.getElementById(id));
 
@@ -100,7 +101,13 @@ async function init() {
   // The grid is built at a fixed design width and zoom-scaled to fit, so a
   // layout looks identical on laptop and tablet (just proportionally smaller).
   applyScale();
-  grid.on('change added removed resizestop dragstop', applyScale);
+  let _scaleReq = false;
+  const requestScale = () => {                  // rAF-throttle: 'change' feuert bei jedem Drag-Pixel
+    if (_scaleReq || dashLoading) return;
+    _scaleReq = true;
+    requestAnimationFrame(() => { _scaleReq = false; if (!dashLoading) applyScale(); });
+  };
+  grid.on('change added removed resizestop dragstop', requestScale);
   grid.on('dragstop resizestop dropped removed added', () => { if (!dashLoading) collapseTop(); }); // gently pull off the empty top margin (not per-tile during a room load)
   grid.on('resizestop', (e, el) => syncGroupColumns(el)); // group box resized -> match its sub-grid columns to the new width
   grid.on('resize resizestop', (e, item) => {   // charts re-layout live instead of scaling while dragging
@@ -285,11 +292,13 @@ async function loadDashboard(id) {
                JSON.stringify(currentDash.layout) === bootPaintedJson;
   bootPaintedJson = null;
   if (!same) {
-    dashLoading = true;                                   // collapseTop per added tile would scramble saved layouts
+    dashLoading = true;                                   // collapseTop/applyScale per added tile would thrash
     tiles = {};
     eachGrid(g => { if (g !== grid) g.destroy(false); }); // tear down old sub-grids
     grid.removeAll();
-    for (const t of currentDash.layout) addWidget(t);     // addWidget registers + recurses into groups
+    grid.batchUpdate();
+    try { for (const t of currentDash.layout) addWidget(t); }  // addWidget registers + recurses into groups
+    finally { grid.batchUpdate(false); }
     dashLoading = false;
     collapseTop();                                        // once, after everything sits -> relative layout stays intact
     applyScale();                                         // re-fit zoom after layout change
@@ -744,15 +753,22 @@ function applyMergeLive(item, mergeTile, map) {
   });
 }
 
-function applyLive(map) {
+function applyLive(map, dirty) {
   _lastMap = map;
   if (Date.now() - _lastSnapSave > 30000) { _lastSnapSave = Date.now(); saveSnapshot(map); }
+  if (dirty && dirty.size === 0) return;
+  const mergeDirty = m => (m.children || []).some(c =>
+    c.type === 'merge' ? mergeDirty(c) : (c.device && dirty.has(c.device)));
   grid.el.querySelectorAll('.grid-stack-item').forEach(item => {
     const id = item.getAttribute('gs-id');
     const tile = tiles[id];
     if (!tile) return;
-    if (tile.type === 'merge') { applyMergeLive(item, tile, map); return; } // incl. nested stacks
+    if (tile.type === 'merge') {                 // incl. nested stacks
+      if (!dirty || mergeDirty(tile)) applyMergeLive(item, tile, map);
+      return;
+    }
     if (!tile.device) return;
+    if (dirty && !dirty.has(tile.device)) return;   // Kachel unveraendert -> DOM in Ruhe lassen
     Tiles.apply(item.querySelector('.grid-stack-item-content'), tile, map[tile.device], map);
   });
 }
@@ -766,8 +782,8 @@ function updateClocks() {
   const time = p(n.getHours()) + ':' + p(n.getMinutes());
   const date = `${WDAYS[n.getDay()]}., ${p(n.getDate())}. ${MONTHS[n.getMonth()]}.`;
   document.querySelectorAll('.tile-clock').forEach(el => {
-    const t = el.querySelector('.clk-time'); if (t) t.textContent = time;
-    const d = el.querySelector('.clk-date'); if (d) d.textContent = date;
+    const t = el.querySelector('.clk-time'); if (t && t.textContent !== time) t.textContent = time;
+    const d = el.querySelector('.clk-date'); if (d && d.textContent !== date) d.textContent = date;
   });
 }
 
