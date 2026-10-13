@@ -115,6 +115,16 @@ das Hauptraster; Kacheln behalten beim Hinein-/Herausziehen ihre Größe 1:1.
 **Diagramm-Kachel:** Verlaufskurven direkt aus FileLog/DbLog — Log-Gerät wählen,
 Messwert aus lesbarer Liste, Zeitraum 6 h – 7 Tage, optional geglättet.
 
+## Wand-Tablet: FullScreendy
+
+Für ein festes Wand-Tablet passt die Android-App
+**[FullScreendy](https://github.com/Glenn-Dandy/fullscreendy)** (kostenlos, Open Source):
+ein Vollbild-Kiosk-Browser, der EasyTiley ohne Browserleiste anzeigt und das Tablet
+per **MQTT** als Gerät in FHEM einbindet – Bewegungserkennung weckt das Display,
+Bildschirm und Helligkeit sind aus FHEM steuerbar, dazu Sprachausgabe (TTS), Töne
+und Akkustand. Läuft ab Android 9, auch auf Fire-HD-Tablets.
+[APK herunterladen](https://github.com/Glenn-Dandy/fullscreendy/releases/latest)
+
 ## API (PHP, unter `/api/`)
 
 | Endpoint | Methode | Zweck |

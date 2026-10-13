@@ -17,7 +17,7 @@ LANGS = {
         'DESC': 'Kostenloses Web-Dashboard für FHEM: Kacheln per Drag & Drop, Live-Werte in Echtzeit, '
                 'ideal fürs Wand-Tablet. Licht, Heizung, Rollladen, Wetter, Diagramme – läuft offline in Docker.',
         'KEYWORDS': 'FHEM Dashboard, FHEM Tablet UI, FHEM Oberfläche, Smart Home Dashboard, Hausautomation, '
-                    'Wand-Tablet, FHEMWEB, Docker, Open Source',
+                    'Wand-Tablet, Android Kiosk-Browser, MQTT, FHEMWEB, Docker, Open Source',
         'LOCALE': 'de_DE', 'LOCALE_ALT': 'en_US',
         'IMG_ALT': 'EasyTiley FHEM-Dashboard mit Kacheln für Uhr, Wetter, Licht, Heizung, Rollladen und Diagramm',
         'DEMO_LABEL': 'Live-Demo öffnen',
@@ -28,7 +28,7 @@ LANGS = {
         'DESC': 'Free web dashboard for FHEM: drag & drop tiles, real-time live values, perfect for wall tablets. '
                 'Lights, heating, shutters, weather, charts – runs offline in Docker.',
         'KEYWORDS': 'FHEM dashboard, FHEM tablet UI, FHEM frontend, smart home dashboard, home automation, '
-                    'wall tablet, FHEMWEB, Docker, open source',
+                    'wall tablet, Android kiosk browser, MQTT, FHEMWEB, Docker, open source',
         'LOCALE': 'en_US', 'LOCALE_ALT': 'de_DE',
         'IMG_ALT': 'EasyTiley FHEM dashboard with tiles for clock, weather, lights, heating, shutters and a chart',
         'DEMO_LABEL': 'Open the live demo',

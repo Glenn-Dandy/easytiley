@@ -106,6 +106,15 @@
 
     .support { text-align: center; background: var(--panel); border: 1px solid var(--stroke); border-radius: 22px; padding: 36px 20px; }
     .support .cta { margin-top: 20px; }
+    .companion { display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px; align-items: center;
+      background: var(--panel); border: 1px solid var(--stroke); border-radius: 22px; padding: 30px; }
+    .companion h2 { font-size: 24px; }
+    .ticks { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .ticks li { position: relative; padding-left: 26px; }
+    .ticks li::before { content: "✓"; position: absolute; left: 0; color: var(--good); font-weight: 800; }
+    .tablet { background: #111; border-radius: 22px; padding: 12px; box-shadow: 0 30px 60px -30px #000; }
+    .tablet img { display: block; width: 100%; height: auto; border-radius: 10px; }
+    @media (max-width: 760px) { .companion { grid-template-columns: 1fr; padding: 22px; } }
     .faqs { display: grid; gap: 10px; }
     .faq { background: var(--panel); border: 1px solid var(--stroke); border-radius: 16px; padding: 0 20px; }
     .faq summary { cursor: pointer; font-weight: 700; padding: 16px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
@@ -124,6 +133,7 @@
       <span class="name">EasyTiley</span>
       <nav>
         <a href="#features" class="hide-s" data-de="Funktionen" data-en="Features">Funktionen</a>
+        <a href="#tablet" class="hide-s" data-de="Tablet-App" data-en="Tablet app">Tablet-App</a>
         <a href="#install" class="hide-s" data-de="Installation" data-en="Install">Installation</a>
         <a href="#faq" class="hide-s" data-de="FAQ" data-en="FAQ">FAQ</a>
         <a href="https://github.com/Glenn-Dandy/easytiley">GitHub</a>
@@ -181,6 +191,29 @@
       <ul class="chips"><li data-de="Wert / Sensor" data-en="Value / sensor">Wert / Sensor</li><li data-de="Schalter" data-en="Switch">Schalter</li><li data-de="Licht (RGB + CT)" data-en="Light (RGB + CT)">Licht (RGB + CT)</li><li data-de="Button / Szenen" data-en="Buttons / scenes">Button / Szenen</li><li data-de="Thermostat / Heizung" data-en="Thermostat / heating">Thermostat / Heizung</li><li data-de="Status (Fenster / Tür)" data-en="Status (window / door)">Status (Fenster / Tür)</li><li data-de="Rollladen / Jalousie" data-en="Shutter / blinds">Rollladen / Jalousie</li><li data-de="Diagramm (FileLog / DbLog)" data-en="Chart (FileLog / DbLog)">Diagramm (FileLog / DbLog)</li><li data-de="Wetter (PROPLANTA)" data-en="Weather (PROPLANTA)">Wetter (PROPLANTA)</li><li data-de="Gruppe / Raum-Box" data-en="Group / room box">Gruppe / Raum-Box</li><li data-de="readingsGroup" data-en="readingsGroup">readingsGroup</li><li data-de="Uhrzeit / Datum" data-en="Clock / date">Uhrzeit / Datum</li><li data-de="Notiz / Checkliste" data-en="Note / checklist">Notiz / Checkliste</li><li data-de="Beschriftung" data-en="Label">Beschriftung</li></ul>
     </section>
 
+    <section id="tablet">
+      <div class="companion">
+        <div>
+          <span class="badge" data-de="Passende Android-App" data-en="Companion Android app">Passende Android-App</span>
+          <h2 style="margin-top:12px" data-de="FullScreendy – der Vollbild-Browser fürs Wand-Tablet" data-en="FullScreendy – the fullscreen browser for wall tablets">FullScreendy – der Vollbild-Browser fürs Wand-Tablet</h2>
+          <p class="sub" style="margin:0 0 16px" data-de="Zeigt EasyTiley ohne Browserleiste im Kiosk-Modus und bindet das Tablet per MQTT als Gerät in FHEM ein. Kostenlos und Open Source."
+             data-en="Shows EasyTiley in kiosk mode without any browser bar and connects the tablet to FHEM as a device over MQTT. Free and open source.">Zeigt EasyTiley ohne Browserleiste im Kiosk-Modus und bindet das Tablet per MQTT als Gerät in FHEM ein. Kostenlos und Open Source.</p>
+          <ul class="ticks">
+            <li data-de="Bewegungserkennung per Kamera weckt das Display – kein Bild verlässt das Gerät" data-en="Camera motion detection wakes the display – no image leaves the device">Bewegungserkennung per Kamera weckt das Display – kein Bild verlässt das Gerät</li>
+            <li data-de="Bildschirm an/aus und Helligkeit aus FHEM steuern" data-en="Control screen on/off and brightness from FHEM">Bildschirm an/aus und Helligkeit aus FHEM steuern</li>
+            <li data-de="Sprachausgabe (TTS) und Töne, von FHEM ausgelöst" data-en="Text-to-speech and sounds, triggered by FHEM">Sprachausgabe (TTS) und Töne, von FHEM ausgelöst</li>
+            <li data-de="Akkustand und Ladezustand als Readings in FHEM" data-en="Battery level and charging state as readings in FHEM">Akkustand und Ladezustand als Readings in FHEM</li>
+            <li data-de="Bis zu 3 Dashboards, per MQTT umschaltbar – läuft ab Android 9, auch auf Fire-HD-Tablets" data-en="Up to 3 dashboards, switchable over MQTT – runs on Android 9+, including Fire HD tablets">Bis zu 3 Dashboards, per MQTT umschaltbar – läuft ab Android 9, auch auf Fire-HD-Tablets</li>
+          </ul>
+          <div class="cta" style="justify-content:flex-start;margin-top:20px">
+            <a class="btn primary" href="https://github.com/Glenn-Dandy/fullscreendy/releases/latest" data-de="FullScreendy herunterladen" data-en="Download FullScreendy">FullScreendy herunterladen</a>
+            <a class="btn" href="https://github.com/Glenn-Dandy/fullscreendy" data-de="Mehr auf GitHub" data-en="More on GitHub">Mehr auf GitHub</a>
+          </div>
+        </div>
+        <div class="tablet" aria-hidden="true"><img src="{{ROOT}}screenshot.png" alt="" width="1280" height="800" loading="lazy"></div>
+      </div>
+    </section>
+
     <section id="install">
       <h2 data-de="Installation" data-en="Install">Installation</h2>
       <p class="sub" data-de="Du brauchst nur Docker. Danach im Browser unter ⚙ Einstellungen die FHEM-Adresse eintragen – fertig."
@@ -213,7 +246,7 @@ docker compose up -d --build
         <details class="faq"><summary data-de="Was brauche ich dafür?" data-en="What do I need?">Was brauche ich dafür?</summary><p data-de="Einen laufenden FHEM-Server mit FHEMWEB und einen Rechner mit Docker, zum Beispiel einen Raspberry Pi, ein NAS oder einen Linux-Server. EasyTiley läuft in einem einzigen Container." data-en="A running FHEM server with FHEMWEB and a machine with Docker, for example a Raspberry Pi, a NAS or a Linux server. EasyTiley runs in a single container.">Einen laufenden FHEM-Server mit FHEMWEB und einen Rechner mit Docker, zum Beispiel einen Raspberry Pi, ein NAS oder einen Linux-Server. EasyTiley läuft in einem einzigen Container.</p></details>
         <details class="faq"><summary data-de="Ist EasyTiley kostenlos?" data-en="Is EasyTiley free?">Ist EasyTiley kostenlos?</summary><p data-de="Ja. EasyTiley ist Open Source unter der MIT-Lizenz, ohne Konto, ohne Abo und ohne Cloud." data-en="Yes. EasyTiley is open source under the MIT licence, with no account, no subscription and no cloud.">Ja. EasyTiley ist Open Source unter der MIT-Lizenz, ohne Konto, ohne Abo und ohne Cloud.</p></details>
         <details class="faq"><summary data-de="Funktioniert es mit HTTPS und Passwortschutz in FHEMWEB?" data-en="Does it work with FHEMWEB HTTPS and password protection?">Funktioniert es mit HTTPS und Passwortschutz in FHEMWEB?</summary><p data-de="Ja. HTTPS (auch mit selbstsigniertem Zertifikat) und basicAuth werden unterstützt. Benutzername und Passwort bleiben auf dem Server und werden nie an den Browser geschickt." data-en="Yes. HTTPS (including self-signed certificates) and basicAuth are supported. Username and password stay on the server and are never sent to the browser.">Ja. HTTPS (auch mit selbstsigniertem Zertifikat) und basicAuth werden unterstützt. Benutzername und Passwort bleiben auf dem Server und werden nie an den Browser geschickt.</p></details>
-        <details class="faq"><summary data-de="Eignet es sich als Wand-Tablet-Dashboard?" data-en="Is it suitable as a wall tablet dashboard?">Eignet es sich als Wand-Tablet-Dashboard?</summary><p data-de="Genau dafür ist es gebaut: Vollbild, Echtzeit-Updates per Push, Vibration und Klick-Ton beim Bedienen und ein Modus mit reduzierten Effekten für ältere Tablets." data-en="That is exactly what it is built for: fullscreen, real-time push updates, haptic and click feedback, and a reduced-effects mode for older tablets.">Genau dafür ist es gebaut: Vollbild, Echtzeit-Updates per Push, Vibration und Klick-Ton beim Bedienen und ein Modus mit reduzierten Effekten für ältere Tablets.</p></details>
+        <details class="faq"><summary data-de="Eignet es sich als Wand-Tablet-Dashboard?" data-en="Is it suitable as a wall tablet dashboard?">Eignet es sich als Wand-Tablet-Dashboard?</summary><p data-de="Genau dafür ist es gebaut: Vollbild, Echtzeit-Updates per Push, Vibration und Klick-Ton beim Bedienen und ein Modus mit reduzierten Effekten für ältere Tablets. Als Kiosk-Browser passt die Android-App FullScreendy, die das Tablet zusätzlich per MQTT in FHEM einbindet." data-en="That is exactly what it is built for: fullscreen, real-time push updates, haptic and click feedback, and a reduced-effects mode for older tablets. The Android app FullScreendy is the matching kiosk browser and also connects the tablet to FHEM over MQTT.">Genau dafür ist es gebaut: Vollbild, Echtzeit-Updates per Push, Vibration und Klick-Ton beim Bedienen und ein Modus mit reduzierten Effekten für ältere Tablets.</p></details>
         <details class="faq"><summary data-de="Kann ich EasyTiley vorher ausprobieren?" data-en="Can I try EasyTiley first?">Kann ich EasyTiley vorher ausprobieren?</summary><p data-de="Ja, in der Live-Demo mit simulierten Geräten – direkt im Browser, ohne Installation und ohne FHEM." data-en="Yes, in the live demo with simulated devices – right in the browser, without installing anything and without FHEM.">Ja, in der Live-Demo mit simulierten Geräten – direkt im Browser, ohne Installation und ohne FHEM.</p></details>
       </div>
     </section>
