@@ -74,7 +74,9 @@ Deine Dashboards in `data/fhem.db` bleiben erhalten. Altes Image aufräumen:
 ## Bedienung
 
 1. **⚙ Einstellungen** → FHEM-Adresse eintragen, **Testen**, **Speichern**.
-   Dort auch: Design (dunkel/hell), **Sprache (Deutsch/English)**, Vibration.
+   Dort auch: Design (dunkel/hell), **Sprache (Deutsch/English)**, Vibration,
+   Ton, reduzierte Effekte und **Über EasyTiley** (Version, Fehler melden,
+   Update-Prüfung, Projekt unterstützen).
 2. **✎ Bearbeiten** → Editiermodus: Kacheln frei ziehen, an der rechten/unteren
    Kante skalieren.
 3. **+ Kachel** → Typ + Gerät wählen (Readings/Befehle werden automatisch erkannt,
