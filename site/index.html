@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EasyTiley – FHEM-Dashboard</title>
+  <meta name="description" content="EasyTiley: editierbares Kachel-Dashboard für FHEM. Echtzeit, Drag & Drop, läuft offline in einem Docker-Container.">
+  <meta property="og:title" content="EasyTiley – FHEM-Dashboard">
+  <meta property="og:description" content="Editierbares Kachel-Dashboard für FHEM. Echtzeit, Drag & Drop, ein Docker-Container.">
+  <meta property="og:image" content="screenshot.png">
+  <meta name="theme-color" content="#0b1020">
+  <link rel="icon" type="image/png" href="demo/icons/icon-192.png">
+  <style>
+    :root {
+      --bg: #0b1020; --panel: #151a2b; --panel-2: #1d2338; --stroke: rgba(255,255,255,.08);
+      --text: #e9edf4; --muted: #9aa3b2; --accent: #54a0ff; --accent-fg: #06223a; --good: #43d17a;
+      --glow1: rgba(84,160,255,.28); --glow2: rgba(94,234,212,.16);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f6fb; --panel: #ffffff; --panel-2: #eef1f7; --stroke: rgba(0,0,0,.08);
+        --text: #1b2330; --muted: #5d6676; --accent: #2f74e0; --accent-fg: #ffffff; --good: #1f9d55;
+        --glow1: rgba(59,130,246,.16); --glow2: rgba(94,234,212,.12);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--text); background: var(--bg);
+      background-image: radial-gradient(60vw 50vh at 10% -10%, var(--glow1), transparent 60%),
+                        radial-gradient(50vw 40vh at 100% 0%, var(--glow2), transparent 55%);
+      background-repeat: no-repeat;
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+    header.top { display: flex; align-items: center; gap: 12px; padding: 18px 0; }
+    header.top img { width: 34px; height: 34px; border-radius: 9px; }
+    header.top .name { font-weight: 800; font-size: 18px; }
+    header.top nav { margin-left: auto; display: flex; gap: 18px; align-items: center; font-size: 14px; }
+    header.top nav a { color: var(--muted); text-decoration: none; font-weight: 600; }
+    header.top nav a:hover { color: var(--text); }
+    .lang { display: flex; border: 1px solid var(--stroke); border-radius: 10px; overflow: hidden; }
+    .lang button { background: none; border: 0; color: var(--muted); font: inherit; font-weight: 700; font-size: 13px; padding: 5px 10px; cursor: pointer; }
+    .lang button.on { background: var(--accent); color: var(--accent-fg); }
+
+    .hero { text-align: center; padding: 56px 0 28px; }
+    .badge { display: inline-block; font-size: 13px; font-weight: 700; color: var(--accent); background: var(--panel-2);
+      border: 1px solid var(--stroke); padding: 4px 12px; border-radius: 999px; text-decoration: none; }
+    h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.08; margin: 18px 0 14px; letter-spacing: -1px; }
+    .lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); max-width: 640px; margin: 0 auto; }
+    .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 14px; font-weight: 700;
+      text-decoration: none; border: 1px solid var(--stroke); background: var(--panel); color: var(--text); }
+    .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: 0 12px 30px -12px var(--accent); }
+    .btn:hover { filter: brightness(1.08); }
+
+    .shot { margin: 40px auto 0; border-radius: 18px; overflow: hidden; border: 1px solid var(--stroke);
+      box-shadow: 0 40px 90px -40px #000; display: block; position: relative; }
+    .shot img { display: block; width: 100%; height: auto; }
+    .shot .play { position: absolute; right: 16px; bottom: 16px; }
+
+    section { padding: 64px 0 0; }
+    h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -.4px; }
+    .sub { color: var(--muted); margin: 0 0 26px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; }
+    .card { background: var(--panel); border: 1px solid var(--stroke); border-radius: 18px; padding: 20px; }
+    .card h3 { margin: 10px 0 4px; font-size: 17px; }
+    .card p { margin: 0; color: var(--muted); font-size: 15px; }
+    .ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--panel-2); color: var(--accent); }
+    .ico svg { width: 22px; height: 22px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chips span { background: var(--panel); border: 1px solid var(--stroke); border-radius: 10px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
+
+    pre { position: relative; background: var(--panel); border: 1px solid var(--stroke); border-radius: 16px; padding: 18px 20px;
+      overflow-x: auto; padding-top: 46px; font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 0; }
+    pre .c { color: var(--muted); }
+    .copy { position: absolute; top: 10px; right: 10px; font: inherit; font-family: system-ui, sans-serif; font-size: 13px; font-weight: 700;
+      background: var(--panel-2); color: var(--text); border: 1px solid var(--stroke); border-radius: 9px; padding: 4px 10px; cursor: pointer; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 760px) { .two { grid-template-columns: 1fr; } header.top nav a.hide-s { display: none; } }
+
+    .support { text-align: center; background: var(--panel); border: 1px solid var(--stroke); border-radius: 22px; padding: 36px 20px; }
+    .support .cta { margin-top: 20px; }
+    footer { color: var(--muted); font-size: 14px; text-align: center; padding: 56px 0 40px; }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <img src="demo/icons/icon-192.png" alt="">
+      <span class="name">EasyTiley</span>
+      <nav>
+        <a href="#features" class="hide-s" data-de="Funktionen" data-en="Features">Funktionen</a>
+        <a href="#install" class="hide-s" data-de="Installation" data-en="Install">Installation</a>
+        <a href="https://github.com/Glenn-Dandy/easytiley">GitHub</a>
+        <div class="lang"><button type="button" data-lang="de">DE</button><button type="button" data-lang="en">EN</button></div>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <a class="badge" id="ver" href="https://github.com/Glenn-Dandy/easytiley/releases/latest">V1.06</a>
+      <h1 data-de="Dein FHEM-Dashboard,<br>ganz einfach." data-en="Your FHEM dashboard,<br>made simple.">Dein FHEM-Dashboard,<br>ganz einfach.</h1>
+      <p class="lead" data-de="Kacheln hinzufügen, frei platzieren, vergrößern, verschmelzen – alles im Browser. Live-Werte in Echtzeit, läuft komplett offline in einem Docker-Container."
+         data-en="Add tiles, place them freely, resize, merge – all in the browser. Live values in real time, runs fully offline in a single Docker container.">Kacheln hinzufügen, frei platzieren, vergrößern, verschmelzen – alles im Browser. Live-Werte in Echtzeit, läuft komplett offline in einem Docker-Container.</p>
+      <div class="cta">
+        <a class="btn primary" href="demo/" data-de="▶ Demo ausprobieren" data-en="▶ Try the demo">▶ Demo ausprobieren</a>
+        <a class="btn" href="#install" data-de="Installieren" data-en="Install">Installieren</a>
+        <a class="btn" href="https://github.com/Glenn-Dandy/easytiley" data-de="Quelltext auf GitHub" data-en="Source on GitHub">Quelltext auf GitHub</a>
+      </div>
+      <a class="shot" href="demo/">
+        <img src="screenshot.png" alt="EasyTiley Dashboard" width="1280" height="800">
+      </a>
+    </div>
+
+    <section id="features">
+      <h2 data-de="Was EasyTiley kann" data-en="What EasyTiley does">Was EasyTiley kann</h2>
+      <p class="sub" data-de="Gebaut für Wand-Tablets und den Alltag – nicht für Konfigurationsdateien."
+         data-en="Built for wall tablets and everyday use – not for config files.">Gebaut für Wand-Tablets und den Alltag – nicht für Konfigurationsdateien.</p>
+      <div class="grid">
+        <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></div>
+          <h3 data-de="Freies Raster" data-en="Free grid">Freies Raster</h3>
+          <p data-de="Kacheln per Drag &amp; Drop platzieren und skalieren, zu Karten verschmelzen, in Raum-Boxen gruppieren."
+             data-en="Drag &amp; drop and resize tiles, merge them into cards, group them in room boxes.">Kacheln per Drag &amp; Drop platzieren und skalieren, zu Karten verschmelzen, in Raum-Boxen gruppieren.</p></div>
+        <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          <h3 data-de="Echtzeit" data-en="Real time">Echtzeit</h3>
+          <p data-de="FHEM-Push über Server-Sent-Events: Werte und Zustände ändern sich sofort, ohne Neuladen."
+             data-en="FHEM push via server-sent events: values and states update instantly, no reload.">FHEM-Push über Server-Sent-Events: Werte und Zustände ändern sich sofort, ohne Neuladen.</p></div>
+        <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></div>
+          <h3 data-de="Erkennt deine Geräte" data-en="Knows your devices">Erkennt deine Geräte</h3>
+          <p data-de="Readings und Set-Befehle werden automatisch erkannt – Gerät wählen, fertig."
+             data-en="Readings and set commands are detected automatically – pick a device, done.">Readings und Set-Befehle werden automatisch erkannt – Gerät wählen, fertig.</p></div>
+        <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
+          <h3 data-de="Für Wand-Tablets" data-en="Made for wall tablets">Für Wand-Tablets</h3>
+          <p data-de="Vollbild, Vibration und Klick-Ton, Modus für schwache Tablets, dunkles und helles Design."
+             data-en="Fullscreen, haptic and click feedback, a mode for low-end tablets, dark and light theme.">Vollbild, Vibration und Klick-Ton, Modus für schwache Tablets, dunkles und helles Design.</p></div>
+        <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <h3 data-de="Bleibt bei dir" data-en="Stays with you">Bleibt bei dir</h3>
+          <p data-de="Keine Cloud, kein Konto, keine CDNs. HTTPS und Passwortschutz von FHEMWEB werden unterstützt."
+             data-en="No cloud, no account, no CDNs. FHEMWEB HTTPS and password protection are supported.">Keine Cloud, kein Konto, keine CDNs. HTTPS und Passwortschutz von FHEMWEB werden unterstützt.</p></div>
+        <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg></div>
+          <h3 data-de="Deutsch &amp; Englisch" data-en="German &amp; English">Deutsch &amp; Englisch</h3>
+          <p data-de="Die ganze Oberfläche zweisprachig, umschaltbar in den Einstellungen."
+             data-en="The whole interface in two languages, switchable in the settings.">Die ganze Oberfläche zweisprachig, umschaltbar in den Einstellungen.</p></div>
+      </div>
+
+      <h3 style="margin:34px 0 12px" data-de="Kacheltypen" data-en="Tile types">Kacheltypen</h3>
+      <div class="chips" id="types"></div>
+    </section>
+
+    <section id="install">
+      <h2 data-de="Installation" data-en="Install">Installation</h2>
+      <p class="sub" data-de="Du brauchst nur Docker. Danach im Browser unter ⚙ Einstellungen die FHEM-Adresse eintragen – fertig."
+         data-en="All you need is Docker. Then enter your FHEM address under ⚙ Settings in the browser – done.">Du brauchst nur Docker. Danach im Browser unter ⚙ Einstellungen die FHEM-Adresse eintragen – fertig.</p>
+      <div class="two">
+        <div>
+          <h3 style="margin:0 0 10px" data-de="Installieren" data-en="Install">Installieren</h3>
+<pre id="p1"><button class="copy" type="button" data-copy="p1">Copy</button>git clone https://github.com/Glenn-Dandy/easytiley.git
+cd easytiley
+mkdir -p data &amp;&amp; chmod 777 data
+docker compose up -d --build
+<span class="c"># → http://localhost:8080</span></pre>
+        </div>
+        <div>
+          <h3 style="margin:0 0 10px" data-de="Aktualisieren" data-en="Update">Aktualisieren</h3>
+<pre id="p2"><button class="copy" type="button" data-copy="p2">Copy</button>cd easytiley
+git pull
+docker compose up -d --build
+<span class="c" data-de="# Dashboards in data/fhem.db bleiben" data-en="# dashboards in data/fhem.db are kept"># Dashboards in data/fhem.db bleiben</span></pre>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:16px" data-de="Ausführliche Anleitung, Reverse-Proxy-Tipps und API im &lt;a href=&quot;https://github.com/Glenn-Dandy/easytiley#readme&quot;&gt;README&lt;/a&gt;."
+         data-en="Full guide, reverse proxy tips and the API in the &lt;a href=&quot;https://github.com/Glenn-Dandy/easytiley/blob/master/README.en.md&quot;&gt;README&lt;/a&gt;.">Ausführliche Anleitung, Reverse-Proxy-Tipps und API im <a href="https://github.com/Glenn-Dandy/easytiley#readme">README</a>.</p>
+    </section>
+
+    <section>
+      <div class="support">
+        <h2 data-de="Gefällt dir EasyTiley?" data-en="Do you like EasyTiley?">Gefällt dir EasyTiley?</h2>
+        <p class="sub" style="margin:0" data-de="Es ist kostenlos und quelloffen. Ein Stern, eine Idee oder ein Kaffee helfen dem Projekt."
+           data-en="It is free and open source. A star, an idea or a coffee helps the project.">Es ist kostenlos und quelloffen. Ein Stern, eine Idee oder ein Kaffee helfen dem Projekt.</p>
+        <div class="cta">
+          <a class="btn primary" href="https://paypal.me/GlennDandy" data-de="♥ Projekt unterstützen" data-en="♥ Support the project">♥ Projekt unterstützen</a>
+          <a class="btn" href="https://github.com/Glenn-Dandy/easytiley" data-de="★ Stern auf GitHub" data-en="★ Star on GitHub">★ Stern auf GitHub</a>
+          <a class="btn" href="https://github.com/Glenn-Dandy/easytiley/issues/new?labels=enhancement&amp;title=%5BIdee%5D%20" data-de="Idee vorschlagen" data-en="Suggest an idea">Idee vorschlagen</a>
+          <a class="btn" href="https://github.com/Glenn-Dandy/easytiley/issues/new?labels=bug&amp;title=%5BBug%5D%20" data-de="Fehler melden" data-en="Report a bug">Fehler melden</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span data-de="MIT-Lizenz" data-en="MIT licence">MIT-Lizenz</span> · © Glenn-Dandy ·
+      <a href="https://github.com/Glenn-Dandy/easytiley/releases" data-de="Versionen" data-en="Releases">Versionen</a>
+    </footer>
+  </div>
+
+  <script>
+    const TYPES = {
+      de: ['Wert / Sensor', 'Schalter', 'Licht (RGB + CT)', 'Button / Szenen', 'Thermostat', 'Status (Fenster / Tür)',
+           'Rollladen / Jalousie', 'Diagramm (FileLog / DbLog)', 'Wetter (PROPLANTA)', 'Gruppe / Raum-Box',
+           'readingsGroup', 'Uhrzeit / Datum', 'Notiz / Checkliste', 'Beschriftung'],
+      en: ['Value / sensor', 'Switch', 'Light (RGB + CT)', 'Buttons / scenes', 'Thermostat', 'Status (window / door)',
+           'Shutter / blinds', 'Chart (FileLog / DbLog)', 'Weather (PROPLANTA)', 'Group / room box',
+           'readingsGroup', 'Clock / date', 'Note / checklist', 'Label'],
+    };
+    function setLang(lang) {
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-de]').forEach(e => { e.innerHTML = e.dataset[lang]; });
+      document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+      const t = document.getElementById('types'); t.textContent = '';
+      for (const s of TYPES[lang]) { const c = document.createElement('span'); c.textContent = s; t.appendChild(c); }
+      document.querySelectorAll('.copy').forEach(b => { b.textContent = lang === 'de' ? 'Kopieren' : 'Copy'; });
+      try { localStorage.setItem('lang', lang); } catch (e) { /* fine */ }   // the demo picks the same language
+    }
+    let lang = 'de';
+    try { lang = localStorage.getItem('lang') || ((navigator.language || '').toLowerCase().startsWith('de') ? 'de' : 'en'); } catch (e) { /* default */ }
+    setLang(lang === 'en' ? 'en' : 'de');
+    document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+
+    document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => {
+      const pre = document.getElementById(b.dataset.copy).cloneNode(true);
+      pre.querySelectorAll('.copy, .c').forEach(n => n.remove());
+      navigator.clipboard && navigator.clipboard.writeText(pre.textContent.trim()).then(() => {
+        const old = b.textContent; b.textContent = '✓'; setTimeout(() => { b.textContent = old; }, 1200);
+      });
+    }));
+
+    // Latest release for the badge (falls back to the version baked in above).
+    fetch('https://api.github.com/repos/Glenn-Dandy/easytiley/releases/latest')
+      .then(r => r.ok ? r.json() : null)
+      .then(r => { if (r && r.tag_name) document.getElementById('ver').textContent = 'V' + r.tag_name.replace(/^v/i, ''); })
+      .catch(() => {});
+  </script>
+</body>
+</html>
