@@ -1,15 +1,37 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{LANG}}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EasyTiley – FHEM-Dashboard</title>
-  <meta name="description" content="EasyTiley: editierbares Kachel-Dashboard für FHEM. Echtzeit, Drag & Drop, läuft offline in einem Docker-Container.">
-  <meta property="og:title" content="EasyTiley – FHEM-Dashboard">
-  <meta property="og:description" content="Editierbares Kachel-Dashboard für FHEM. Echtzeit, Drag & Drop, ein Docker-Container.">
-  <meta property="og:image" content="screenshot.png">
+  <title>{{TITLE}}</title>
+  <meta name="description" content="{{DESC}}">
+  <meta name="keywords" content="{{KEYWORDS}}">
+  <meta name="author" content="Glenn-Dandy">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="{{URL}}">
+  <link rel="alternate" hreflang="de" href="{{BASE}}">
+  <link rel="alternate" hreflang="en" href="{{BASE}}en/">
+  <link rel="alternate" hreflang="x-default" href="{{BASE}}">
+  <link rel="sitemap" type="application/xml" href="{{BASE}}sitemap.xml">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="EasyTiley">
+  <meta property="og:url" content="{{URL}}">
+  <meta property="og:title" content="{{TITLE}}">
+  <meta property="og:description" content="{{DESC}}">
+  <meta property="og:locale" content="{{LOCALE}}">
+  <meta property="og:locale:alternate" content="{{LOCALE_ALT}}">
+  <meta property="og:image" content="{{BASE}}screenshot.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="800">
+  <meta property="og:image:alt" content="{{IMG_ALT}}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{TITLE}}">
+  <meta name="twitter:description" content="{{DESC}}">
+  <meta name="twitter:image" content="{{BASE}}screenshot.png">
   <meta name="theme-color" content="#0b1020">
-  <link rel="icon" type="image/png" href="demo/icons/icon-192.png">
+  <link rel="icon" type="image/png" href="{{ROOT}}demo/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="{{ROOT}}demo/icons/icon-192.png">
+  <script type="application/ld+json">{{JSONLD}}</script>
   <style>
     :root {
       --bg: #0b1020; --panel: #151a2b; --panel-2: #1d2338; --stroke: rgba(255,255,255,.08);
@@ -41,8 +63,8 @@
     header.top nav a { color: var(--muted); text-decoration: none; font-weight: 600; }
     header.top nav a:hover { color: var(--text); }
     .lang { display: flex; border: 1px solid var(--stroke); border-radius: 10px; overflow: hidden; }
-    .lang button { background: none; border: 0; color: var(--muted); font: inherit; font-weight: 700; font-size: 13px; padding: 5px 10px; cursor: pointer; }
-    .lang button.on { background: var(--accent); color: var(--accent-fg); }
+    .lang a { color: var(--muted); font-weight: 700; font-size: 13px; padding: 5px 10px; text-decoration: none; }
+    .lang a.on { background: var(--accent); color: var(--accent-fg); }
 
     .hero { text-align: center; padding: 56px 0 28px; }
     .badge { display: inline-block; font-size: 13px; font-weight: 700; color: var(--accent); background: var(--panel-2);
@@ -70,7 +92,8 @@
     .ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--panel-2); color: var(--accent); }
     .ico svg { width: 22px; height: 22px; }
     .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-    .chips span { background: var(--panel); border: 1px solid var(--stroke); border-radius: 10px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
+    .chips { list-style: none; padding: 0; margin: 0; }
+    .chips li { background: var(--panel); border: 1px solid var(--stroke); border-radius: 10px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
 
     pre { position: relative; background: var(--panel); border: 1px solid var(--stroke); border-radius: 16px; padding: 18px 20px;
       overflow-x: auto; padding-top: 46px; font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 0; }
@@ -82,6 +105,13 @@
 
     .support { text-align: center; background: var(--panel); border: 1px solid var(--stroke); border-radius: 22px; padding: 36px 20px; }
     .support .cta { margin-top: 20px; }
+    .faqs { display: grid; gap: 10px; }
+    .faq { background: var(--panel); border: 1px solid var(--stroke); border-radius: 16px; padding: 0 20px; }
+    .faq summary { cursor: pointer; font-weight: 700; padding: 16px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: "+"; color: var(--accent); font-size: 20px; line-height: 1; }
+    .faq[open] summary::after { content: "–"; }
+    .faq p { margin: 0 0 16px; color: var(--muted); }
     footer { color: var(--muted); font-size: 14px; text-align: center; padding: 56px 0 40px; }
     footer a { color: var(--muted); }
   </style>
@@ -89,28 +119,29 @@
 <body>
   <div class="wrap">
     <header class="top">
-      <img src="demo/icons/icon-192.png" alt="">
+      <img src="{{ROOT}}demo/icons/icon-192.png" alt="EasyTiley Logo" width="34" height="34">
       <span class="name">EasyTiley</span>
       <nav>
         <a href="#features" class="hide-s" data-de="Funktionen" data-en="Features">Funktionen</a>
         <a href="#install" class="hide-s" data-de="Installation" data-en="Install">Installation</a>
+        <a href="#faq" class="hide-s" data-de="FAQ" data-en="FAQ">FAQ</a>
         <a href="https://github.com/Glenn-Dandy/easytiley">GitHub</a>
-        <div class="lang"><button type="button" data-lang="de">DE</button><button type="button" data-lang="en">EN</button></div>
+        <div class="lang"><a href="{{ROOT}}" hreflang="de" lang="de" class="{{ON_DE}}">DE</a><a href="{{ROOT}}en/" hreflang="en" lang="en" class="{{ON_EN}}">EN</a></div>
       </nav>
     </header>
 
     <div class="hero">
-      <a class="badge" id="ver" href="https://github.com/Glenn-Dandy/easytiley/releases/latest">V1.06</a>
+      <a class="badge" id="ver" href="https://github.com/Glenn-Dandy/easytiley/releases/latest">V{{VERSION}}</a>
       <h1 data-de="Dein FHEM-Dashboard,<br>ganz einfach." data-en="Your FHEM dashboard,<br>made simple.">Dein FHEM-Dashboard,<br>ganz einfach.</h1>
-      <p class="lead" data-de="Kacheln hinzufügen, frei platzieren, vergrößern, verschmelzen – alles im Browser. Live-Werte in Echtzeit, läuft komplett offline in einem Docker-Container."
-         data-en="Add tiles, place them freely, resize, merge – all in the browser. Live values in real time, runs fully offline in a single Docker container.">Kacheln hinzufügen, frei platzieren, vergrößern, verschmelzen – alles im Browser. Live-Werte in Echtzeit, läuft komplett offline in einem Docker-Container.</p>
+      <p class="lead" data-de="EasyTiley ist ein kostenloses, quelloffenes Web-Dashboard für die Hausautomation FHEM. Kacheln per Drag &amp; Drop anlegen, Live-Werte in Echtzeit – ideal fürs Wand-Tablet, läuft offline in einem Docker-Container."
+         data-en="EasyTiley is a free, open-source web dashboard for the FHEM home automation server. Build tiles with drag &amp; drop, see live values in real time – perfect for wall tablets, runs offline in one Docker container.">x</p>
       <div class="cta">
-        <a class="btn primary" href="demo/" data-de="▶ Demo ausprobieren" data-en="▶ Try the demo">▶ Demo ausprobieren</a>
+        <a class="btn primary" href="{{ROOT}}demo/" data-de="▶ Demo ausprobieren" data-en="▶ Try the demo">▶ Demo ausprobieren</a>
         <a class="btn" href="#install" data-de="Installieren" data-en="Install">Installieren</a>
         <a class="btn" href="https://github.com/Glenn-Dandy/easytiley" data-de="Quelltext auf GitHub" data-en="Source on GitHub">Quelltext auf GitHub</a>
       </div>
-      <a class="shot" href="demo/">
-        <img src="screenshot.png" alt="EasyTiley Dashboard" width="1280" height="800">
+      <a class="shot" href="{{ROOT}}demo/" aria-label="{{DEMO_LABEL}}">
+        <img src="{{ROOT}}screenshot.png" alt="{{IMG_ALT}}" width="1280" height="800" fetchpriority="high">
       </a>
     </div>
 
@@ -146,7 +177,7 @@
       </div>
 
       <h3 style="margin:34px 0 12px" data-de="Kacheltypen" data-en="Tile types">Kacheltypen</h3>
-      <div class="chips" id="types"></div>
+      <ul class="chips"><li data-de="Wert / Sensor" data-en="Value / sensor">Wert / Sensor</li><li data-de="Schalter" data-en="Switch">Schalter</li><li data-de="Licht (RGB + CT)" data-en="Light (RGB + CT)">Licht (RGB + CT)</li><li data-de="Button / Szenen" data-en="Buttons / scenes">Button / Szenen</li><li data-de="Thermostat / Heizung" data-en="Thermostat / heating">Thermostat / Heizung</li><li data-de="Status (Fenster / Tür)" data-en="Status (window / door)">Status (Fenster / Tür)</li><li data-de="Rollladen / Jalousie" data-en="Shutter / blinds">Rollladen / Jalousie</li><li data-de="Diagramm (FileLog / DbLog)" data-en="Chart (FileLog / DbLog)">Diagramm (FileLog / DbLog)</li><li data-de="Wetter (PROPLANTA)" data-en="Weather (PROPLANTA)">Wetter (PROPLANTA)</li><li data-de="Gruppe / Raum-Box" data-en="Group / room box">Gruppe / Raum-Box</li><li data-de="readingsGroup" data-en="readingsGroup">readingsGroup</li><li data-de="Uhrzeit / Datum" data-en="Clock / date">Uhrzeit / Datum</li><li data-de="Notiz / Checkliste" data-en="Note / checklist">Notiz / Checkliste</li><li data-de="Beschriftung" data-en="Label">Beschriftung</li></ul>
     </section>
 
     <section id="install">
@@ -156,7 +187,7 @@
       <div class="two">
         <div>
           <h3 style="margin:0 0 10px" data-de="Installieren" data-en="Install">Installieren</h3>
-<pre id="p1"><button class="copy" type="button" data-copy="p1">Copy</button>git clone https://github.com/Glenn-Dandy/easytiley.git
+<pre id="p1"><button class="copy" type="button" data-copy="p1" data-de="Kopieren" data-en="Copy">Kopieren</button>git clone https://github.com/Glenn-Dandy/easytiley.git
 cd easytiley
 mkdir -p data &amp;&amp; chmod 777 data
 docker compose up -d --build
@@ -164,7 +195,7 @@ docker compose up -d --build
         </div>
         <div>
           <h3 style="margin:0 0 10px" data-de="Aktualisieren" data-en="Update">Aktualisieren</h3>
-<pre id="p2"><button class="copy" type="button" data-copy="p2">Copy</button>cd easytiley
+<pre id="p2"><button class="copy" type="button" data-copy="p2" data-de="Kopieren" data-en="Copy">Kopieren</button>cd easytiley
 git pull
 docker compose up -d --build
 <span class="c" data-de="# Dashboards in data/fhem.db bleiben" data-en="# dashboards in data/fhem.db are kept"># Dashboards in data/fhem.db bleiben</span></pre>
@@ -172,6 +203,18 @@ docker compose up -d --build
       </div>
       <p class="sub" style="margin-top:16px" data-de="Ausführliche Anleitung, Reverse-Proxy-Tipps und API im &lt;a href=&quot;https://github.com/Glenn-Dandy/easytiley#readme&quot;&gt;README&lt;/a&gt;."
          data-en="Full guide, reverse proxy tips and the API in the &lt;a href=&quot;https://github.com/Glenn-Dandy/easytiley/blob/master/README.en.md&quot;&gt;README&lt;/a&gt;.">Ausführliche Anleitung, Reverse-Proxy-Tipps und API im <a href="https://github.com/Glenn-Dandy/easytiley#readme">README</a>.</p>
+    </section>
+
+    <section id="faq">
+      <h2 data-de="Häufige Fragen" data-en="Frequently asked questions">Häufige Fragen</h2>
+      <div class="faqs">
+        <details class="faq"><summary data-de="Was ist EasyTiley?" data-en="What is EasyTiley?">Was ist EasyTiley?</summary><p data-de="Ein Web-Dashboard für FHEM. Du stellst dir Kacheln für Lampen, Heizung, Rollläden, Sensoren, Wetter und Diagramme zusammen und bedienst dein Smart Home im Browser – am PC, Handy oder Wand-Tablet." data-en="A web dashboard for FHEM. You put together tiles for lights, heating, shutters, sensors, weather and charts and control your smart home in the browser – on a PC, phone or wall tablet.">Ein Web-Dashboard für FHEM. Du stellst dir Kacheln für Lampen, Heizung, Rollläden, Sensoren, Wetter und Diagramme zusammen und bedienst dein Smart Home im Browser – am PC, Handy oder Wand-Tablet.</p></details>
+        <details class="faq"><summary data-de="Was brauche ich dafür?" data-en="What do I need?">Was brauche ich dafür?</summary><p data-de="Einen laufenden FHEM-Server mit FHEMWEB und einen Rechner mit Docker, zum Beispiel einen Raspberry Pi, ein NAS oder einen Linux-Server. EasyTiley läuft in einem einzigen Container." data-en="A running FHEM server with FHEMWEB and a machine with Docker, for example a Raspberry Pi, a NAS or a Linux server. EasyTiley runs in a single container.">Einen laufenden FHEM-Server mit FHEMWEB und einen Rechner mit Docker, zum Beispiel einen Raspberry Pi, ein NAS oder einen Linux-Server. EasyTiley läuft in einem einzigen Container.</p></details>
+        <details class="faq"><summary data-de="Ist EasyTiley kostenlos?" data-en="Is EasyTiley free?">Ist EasyTiley kostenlos?</summary><p data-de="Ja. EasyTiley ist Open Source unter der MIT-Lizenz, ohne Konto, ohne Abo und ohne Cloud." data-en="Yes. EasyTiley is open source under the MIT licence, with no account, no subscription and no cloud.">Ja. EasyTiley ist Open Source unter der MIT-Lizenz, ohne Konto, ohne Abo und ohne Cloud.</p></details>
+        <details class="faq"><summary data-de="Funktioniert es mit HTTPS und Passwortschutz in FHEMWEB?" data-en="Does it work with FHEMWEB HTTPS and password protection?">Funktioniert es mit HTTPS und Passwortschutz in FHEMWEB?</summary><p data-de="Ja. HTTPS (auch mit selbstsigniertem Zertifikat) und basicAuth werden unterstützt. Benutzername und Passwort bleiben auf dem Server und werden nie an den Browser geschickt." data-en="Yes. HTTPS (including self-signed certificates) and basicAuth are supported. Username and password stay on the server and are never sent to the browser.">Ja. HTTPS (auch mit selbstsigniertem Zertifikat) und basicAuth werden unterstützt. Benutzername und Passwort bleiben auf dem Server und werden nie an den Browser geschickt.</p></details>
+        <details class="faq"><summary data-de="Eignet es sich als Wand-Tablet-Dashboard?" data-en="Is it suitable as a wall tablet dashboard?">Eignet es sich als Wand-Tablet-Dashboard?</summary><p data-de="Genau dafür ist es gebaut: Vollbild, Echtzeit-Updates per Push, Vibration und Klick-Ton beim Bedienen und ein Modus mit reduzierten Effekten für ältere Tablets." data-en="That is exactly what it is built for: fullscreen, real-time push updates, haptic and click feedback, and a reduced-effects mode for older tablets.">Genau dafür ist es gebaut: Vollbild, Echtzeit-Updates per Push, Vibration und Klick-Ton beim Bedienen und ein Modus mit reduzierten Effekten für ältere Tablets.</p></details>
+        <details class="faq"><summary data-de="Kann ich EasyTiley vorher ausprobieren?" data-en="Can I try EasyTiley first?">Kann ich EasyTiley vorher ausprobieren?</summary><p data-de="Ja, in der Live-Demo mit simulierten Geräten – direkt im Browser, ohne Installation und ohne FHEM." data-en="Yes, in the live demo with simulated devices – right in the browser, without installing anything and without FHEM.">Ja, in der Live-Demo mit simulierten Geräten – direkt im Browser, ohne Installation und ohne FHEM.</p></details>
+      </div>
     </section>
 
     <section>
@@ -195,27 +238,7 @@ docker compose up -d --build
   </div>
 
   <script>
-    const TYPES = {
-      de: ['Wert / Sensor', 'Schalter', 'Licht (RGB + CT)', 'Button / Szenen', 'Thermostat', 'Status (Fenster / Tür)',
-           'Rollladen / Jalousie', 'Diagramm (FileLog / DbLog)', 'Wetter (PROPLANTA)', 'Gruppe / Raum-Box',
-           'readingsGroup', 'Uhrzeit / Datum', 'Notiz / Checkliste', 'Beschriftung'],
-      en: ['Value / sensor', 'Switch', 'Light (RGB + CT)', 'Buttons / scenes', 'Thermostat', 'Status (window / door)',
-           'Shutter / blinds', 'Chart (FileLog / DbLog)', 'Weather (PROPLANTA)', 'Group / room box',
-           'readingsGroup', 'Clock / date', 'Note / checklist', 'Label'],
-    };
-    function setLang(lang) {
-      document.documentElement.lang = lang;
-      document.querySelectorAll('[data-de]').forEach(e => { e.innerHTML = e.dataset[lang]; });
-      document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
-      const t = document.getElementById('types'); t.textContent = '';
-      for (const s of TYPES[lang]) { const c = document.createElement('span'); c.textContent = s; t.appendChild(c); }
-      document.querySelectorAll('.copy').forEach(b => { b.textContent = lang === 'de' ? 'Kopieren' : 'Copy'; });
-      try { localStorage.setItem('lang', lang); } catch (e) { /* fine */ }   // the demo picks the same language
-    }
-    let lang = 'de';
-    try { lang = localStorage.getItem('lang') || ((navigator.language || '').toLowerCase().startsWith('de') ? 'de' : 'en'); } catch (e) { /* default */ }
-    setLang(lang === 'en' ? 'en' : 'de');
-    document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+    try { localStorage.setItem('lang', document.documentElement.lang); } catch (e) { /* demo falls back to the browser language */ }
 
     document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => {
       const pre = document.getElementById(b.dataset.copy).cloneNode(true);
@@ -225,7 +248,7 @@ docker compose up -d --build
       });
     }));
 
-    // Latest release for the badge (falls back to the version baked in above).
+    // Latest release for the badge (falls back to the version baked in at build time).
     fetch('https://api.github.com/repos/Glenn-Dandy/easytiley/releases/latest')
       .then(r => r.ok ? r.json() : null)
       .then(r => { if (r && r.tag_name) document.getElementById('ver').textContent = 'V' + r.tag_name.replace(/^v/i, ''); })
