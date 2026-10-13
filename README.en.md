@@ -113,6 +113,16 @@ grid; tiles keep their exact size when dragged in or out.
 device, choose the measurement from a readable list, time range 6 h – 7 days,
 optional smoothing.
 
+## Wall tablet: FullScreendy
+
+For a wall-mounted tablet, use the Android app
+**[FullScreendy](https://github.com/Glenn-Dandy/fullscreendy)** (free, open source):
+a fullscreen kiosk browser that shows EasyTiley without any browser bar and connects
+the tablet to FHEM as a device over **MQTT** – motion detection wakes the display,
+screen and brightness can be controlled from FHEM, plus text-to-speech, sounds and
+battery level. Runs on Android 9+, including Fire HD tablets.
+[Download the APK](https://github.com/Glenn-Dandy/fullscreendy/releases/latest)
+
 ## API (PHP, under `/api/`)
 
 | Endpoint | Method | Purpose |
