@@ -6,7 +6,7 @@ set -eu
 cd "$(dirname "$0")/.."
 OUT="${1:-_site}"
 rm -rf "$OUT" && mkdir -p "$OUT/demo"
-cp docs/screenshot.png "$OUT/"
+cp docs/screenshot.png site/google*.html "$OUT/"   # screenshot + Search Console verification
 cp -r public/index.html public/manifest.webmanifest public/css public/js public/icons public/sounds public/vendor "$OUT/demo/"
 cp site/demo-shim.js "$OUT/demo/js/"
 # load the shim right after api.js (it overrides API + EventSource before the app starts)
