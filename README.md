@@ -5,6 +5,8 @@
 Web-Dashboard für FHEM mit editierbaren Gerätekacheln.
 Kacheln hinzufügen, frei platzieren, vergrößern, verschmelzen und speichern — alles im Browser.
 
+**▶ [Live-Demo ausprobieren](https://glenn-dandy.github.io/easytiley/demo/)** · [Projektseite](https://glenn-dandy.github.io/easytiley/)
+
 ![EasyTiley Dashboard](docs/screenshot.png)
 
 ```

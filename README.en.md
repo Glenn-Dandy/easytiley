@@ -5,6 +5,8 @@
 A web dashboard for FHEM with editable device tiles.
 Add tiles, place them freely, resize, merge and save — all in the browser.
 
+**▶ [Try the live demo](https://glenn-dandy.github.io/easytiley/demo/)** · [Project page](https://glenn-dandy.github.io/easytiley/)
+
 ![EasyTiley Dashboard](docs/screenshot.png)
 
 ```
