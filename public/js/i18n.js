@@ -97,6 +97,18 @@ const TR = {
   'Raum umbenennen:': 'Rename room:', 'Mindestens ein Raum muss bleiben.': 'At least one room must remain.',
   'Diesen Raum mit allen Kacheln löschen?': 'Delete this room with all its tiles?', 'Raum löschen': 'Delete room',
   'Entfernen': 'Remove', 'Mit Nachbar verbinden': 'Merge with neighbour',
+  // about page
+  'Über EasyTiley': 'About EasyTiley', 'Dein FHEM-Dashboard, ganz einfach.': 'Your FHEM dashboard, made simple.',
+  'Feedback': 'Feedback', 'Fehler melden': 'Report a bug', 'Idee vorschlagen': 'Suggest an idea',
+  'Projekt': 'Project', 'Stern auf GitHub geben': 'Star on GitHub', 'Quelltext ansehen': 'View source code',
+  'Projekt unterstützen': 'Support the project', 'Datenschutz': 'Privacy',
+  'Keine Anmeldung, kein Konto, keine Cloud. EasyTiley läuft auf deinem eigenen Server und spricht nur mit deinem FHEM. Ins Internet geht nur die Update-Prüfung (GitHub), und die nur auf Knopfdruck.':
+    'No sign-up, no account, no cloud. EasyTiley runs on your own server and only talks to your FHEM. The only internet connection is the update check (GitHub), and only when you tap it.',
+  'Update': 'Update', 'Nach Update suchen': 'Check for updates', 'Ich schau mal nach …': 'Checking …',
+  'Version ': 'Version ', ' ist da!': ' is available!', 'Was ist neu?': "What's new?",
+  'Du hast die neueste Version.': 'You have the latest version.',
+  'GitHub war gerade nicht erreichbar.': 'GitHub could not be reached right now.',
+  'MIT-Lizenz · © Glenn-Dandy · Raster GridStack.js (MIT)': 'MIT licence · © Glenn-Dandy · Grid by GridStack.js (MIT)',
   // tile runtime
   'An': 'On', 'Aus': 'Off', 'lädt…': 'loading…', '– keine Daten –': '– no data –', 'Fehler: ': 'Error: ',
   'Standard (automatisch)': 'Default (automatic)', 'Kein Icon': 'No icon', 'Icon suchen…': 'Search icons…',

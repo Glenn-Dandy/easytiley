@@ -636,3 +636,33 @@ body.theme-clean .ac-menu { background: #fff; }
 .lct-cfg { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .lct-cfg label { margin: 0; display: inline-flex; align-items: center; gap: 5px; }
 .lct-cfg input { width: 78px; margin: 0; }
+
+/* ---- About page (settings -> "Über EasyTiley") ---- */
+.about-link {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 16px; padding: 12px 14px;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--stroke); border-radius: 12px;
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left;
+}
+.about-link .about-ver { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 13px; }
+.about-chev, .about-row span { color: var(--muted); font-size: 20px; line-height: 1; }
+#aboutDialog form { max-height: 86vh; overflow-y: auto; overscroll-behavior: contain; }
+.about-head { text-align: center; margin-bottom: 18px; }
+.about-logo { width: 72px; height: 72px; border-radius: 18px; }
+.about-head h3 { margin: 8px 0 2px; font-size: 22px; }
+.about-version { color: var(--muted); font-size: 13px; }
+.about-tag { margin-top: 6px; font-size: 14px; font-weight: 600; }
+.about-sec { margin: 14px 0 6px 6px; font-size: 13px; font-weight: 700; color: var(--accent); }
+.about-card { background: var(--panel-2); border-radius: 16px; overflow: hidden; }
+.about-row {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  padding: 13px 16px; background: none; border: 0; color: var(--text); text-decoration: none;
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left;
+}
+.about-row + .about-row { border-top: 1px solid var(--line); }
+.about-row:hover { background: var(--line); }
+.about-text { padding: 13px 16px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.about-card .about-row + .about-text { border-top: 1px solid var(--line); }
+.about-text.ok { color: var(--good); }
+.about-text.err { color: var(--bad); }
+.about-text a { color: var(--accent); font-weight: 600; }
+.about-foot { margin: 16px 0 0; text-align: center; font-size: 12px; color: var(--muted); }

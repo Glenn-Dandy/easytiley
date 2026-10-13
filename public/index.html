@@ -270,12 +270,52 @@
         <input type="file" id="importFile" accept="application/json" hidden>
       </div>
 
-      <p class="hint" id="sAbout"></p>
+      <button type="button" id="btnAbout" class="about-link"><span>Über EasyTiley</span><span class="about-ver" id="sAbout"></span><span class="about-chev">›</span></button>
 
       <menu>
         <button value="cancel" class="btn">Schließen</button>
         <button value="test" id="sTest" class="btn">Testen</button>
         <button value="ok" id="sOk" class="btn btn-primary">Speichern</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- About dialog (opened from settings) -->
+  <dialog id="aboutDialog">
+    <form method="dialog" class="about">
+      <div class="about-head">
+        <img src="icons/icon-192.png" alt="" class="about-logo">
+        <h3>EasyTiley</h3>
+        <div class="about-version" id="aVersion"></div>
+        <div class="about-tag">Dein FHEM-Dashboard, ganz einfach.</div>
+      </div>
+
+      <div class="about-sec">Feedback</div>
+      <div class="about-card">
+        <a class="about-row" id="aBug" target="_blank" rel="noopener">Fehler melden<span>›</span></a>
+        <a class="about-row" id="aIdea" target="_blank" rel="noopener">Idee vorschlagen<span>›</span></a>
+      </div>
+
+      <div class="about-sec">Projekt</div>
+      <div class="about-card">
+        <a class="about-row" id="aStar" target="_blank" rel="noopener">Stern auf GitHub geben<span>›</span></a>
+        <a class="about-row" id="aSource" target="_blank" rel="noopener">Quelltext ansehen<span>›</span></a>
+        <a class="about-row" id="aSupport" target="_blank" rel="noopener">Projekt unterstützen<span>›</span></a>
+      </div>
+
+      <div class="about-sec">Datenschutz</div>
+      <div class="about-card about-text">Keine Anmeldung, kein Konto, keine Cloud. EasyTiley läuft auf deinem eigenen Server und spricht nur mit deinem FHEM. Ins Internet geht nur die Update-Prüfung (GitHub), und die nur auf Knopfdruck.</div>
+
+      <div class="about-sec">Update</div>
+      <div class="about-card">
+        <button type="button" class="about-row" id="aCheck">Nach Update suchen<span>›</span></button>
+        <div class="about-text" id="aUpdate" hidden></div>
+      </div>
+
+      <p class="about-foot">MIT-Lizenz · © Glenn-Dandy · Raster GridStack.js (MIT)</p>
+
+      <menu>
+        <button value="cancel" class="btn" autofocus>Schließen</button>
       </menu>
     </form>
   </dialog>

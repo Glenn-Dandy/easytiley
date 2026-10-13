@@ -263,10 +263,14 @@ function setupDialog() {
 
     if (editingTileId) {                          // --- update existing tile ---
       const ex = tiles[editingTileId] || {};
-      if (ex.type === 'group') {                  // groups: rename only (keep nested grid + children)
-        ex.label = cfg.label;
-        const lbl = document.querySelector(`.grid-stack-item[gs-id="${editingTileId}"] .tile-label`);
-        if (lbl) lbl.textContent = cfg.label;
+      if (ex.type === 'group') {                  // groups: header only (keep nested grid + children)
+        Object.assign(ex, { label: cfg.label, icon: cfg.icon, iconColor: cfg.iconColor, hideHeader: cfg.hideHeader });
+        const content = document.querySelector(`.grid-stack-item[gs-id="${editingTileId}"] > .grid-stack-item-content`);
+        const head = content && content.querySelector(':scope > .ghead');
+        if (head) {
+          head.replaceWith(Tiles.build(ex, onAction).querySelector(':scope > .ghead'));
+          content.classList.toggle('no-head', !!ex.hideHeader);
+        }
       } else {
         tiles[editingTileId] = { ...ex, ...cfg };
         rebuildTileContent(editingTileId);
@@ -588,6 +592,7 @@ function setupSettings() {
     document.body.classList.toggle('perf', perf.checked);
   });
   el.settingsDlg = document.getElementById('settingsDialog');
+  setupAbout();
   document.getElementById('sTheme').addEventListener('change', e => applyTheme(e.target.value)); // live
 
   document.getElementById('btnExport').addEventListener('click', async () => {
@@ -674,8 +679,69 @@ async function openSettings() {
     pass.placeholder = s.hasPass ? tr('gespeichert – leer lassen zum Behalten') : '';
     document.getElementById('sInsecure').checked = s.insecure !== false;
   } catch (e) { /* ignore */ }
-  document.getElementById('sAbout').textContent = `${APP_NAME} V${APP_VERSION}`;
+  document.getElementById('sAbout').textContent = 'V' + APP_VERSION;
   settingsResult('');
   el.settingsDlg.showModal();
 }
 
+
+// ---- About page (from settings): feedback, project links, privacy, update check ----
+const REPO = 'Glenn-Dandy/easytiley';
+const REPO_URL = 'https://github.com/' + REPO;
+const SUPPORT_URL = 'https://paypal.me/GlennDandy';
+
+function issueUrl(titlePrefix, label) {
+  const body = '\n\n---\n' +
+    `**App:** ${APP_NAME} ${APP_VERSION}\n` +
+    `**Browser:** ${navigator.userAgent}\n` +
+    `**Bildschirm:** ${screen.width}×${screen.height} @${window.devicePixelRatio || 1}x\n`;
+  return `${REPO_URL}/issues/new?labels=${encodeURIComponent(label)}&title=${encodeURIComponent(titlePrefix)}&body=${encodeURIComponent(body)}`;
+}
+
+// "1.06" / "v1.06" / "1.06-dev" -> [1, 6]; a -dev build counts as older than its release.
+function verNewer(remote, local) {
+  const parse = v => String(v).replace(/^v/i, '').split('-')[0].split('.').map(n => parseInt(n, 10) || 0);
+  const a = parse(remote), b = parse(local);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+  }
+  return /-/.test(local);
+}
+
+async function checkUpdate() {
+  const out = document.getElementById('aUpdate');
+  out.hidden = false; out.className = 'about-text'; out.textContent = tr('Ich schau mal nach …');
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!r.ok) throw new Error(r.status);
+    const rel = await r.json();
+    out.textContent = '';
+    if (verNewer(rel.tag_name, APP_VERSION)) {
+      out.className = 'about-text ok';
+      out.append(tr('Version ') + String(rel.tag_name).replace(/^v/i, '') + tr(' ist da!') + ' ');
+      const a = document.createElement('a');
+      a.href = rel.html_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = tr('Was ist neu?');
+      out.append(a);
+    } else {
+      out.textContent = tr('Du hast die neueste Version.');
+    }
+  } catch (e) {
+    out.className = 'about-text err';
+    out.textContent = tr('GitHub war gerade nicht erreichbar.');
+  }
+}
+
+function setupAbout() {
+  const dlg = document.getElementById('aboutDialog');
+  document.getElementById('aBug').href     = issueUrl('[Bug] ', 'bug');
+  document.getElementById('aIdea').href    = issueUrl('[Idee] ', 'enhancement');
+  document.getElementById('aStar').href    = REPO_URL;
+  document.getElementById('aSource').href  = REPO_URL;
+  document.getElementById('aSupport').href = SUPPORT_URL;
+  document.getElementById('aCheck').addEventListener('click', checkUpdate);
+  document.getElementById('btnAbout').addEventListener('click', () => {
+    document.getElementById('aVersion').textContent = tr('Version ') + APP_VERSION;
+    document.getElementById('aUpdate').hidden = true;
+    dlg.showModal();                             // stacks on top of the settings dialog
+  });
+}
