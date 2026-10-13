@@ -73,7 +73,9 @@ Your dashboards in `data/fhem.db` are preserved. Clean up the old image with
 ## Usage
 
 1. **⚙ Settings** → enter the FHEM address, **Test**, **Save**.
-   Also there: theme (dark/light), **language (Deutsch/English)**, vibration.
+   Also there: theme (dark/light), **language (Deutsch/English)**, vibration,
+   sound, reduced effects and **About EasyTiley** (version, bug reports,
+   update check, support the project).
 2. **✎ Edit** → edit mode: drag tiles freely, resize at the right/bottom edge.
 3. **+ tile** → pick type + device (readings/commands are detected automatically;
    the reading dropdown shows current values).
