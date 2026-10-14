@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{P_TITLE}}</title>
+  <meta name="description" content="{{P_DESC}}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{{P_URL}}">
+  <link rel="alternate" hreflang="de" href="{{BASE}}datenschutz/">
+  <link rel="alternate" hreflang="en" href="{{BASE}}en/privacy/">
+  <link rel="alternate" hreflang="x-default" href="{{BASE}}datenschutz/">
+  <meta name="theme-color" content="#0b1020">
+  <link rel="icon" type="image/png" href="{{BASE}}demo/icons/icon-192.png">
+  <style>
+    :root {
+      --bg: #0b1020; --panel: #151a2b; --stroke: rgba(255,255,255,.08);
+      --text: #e9edf4; --muted: #9aa3b2; --accent: #54a0ff;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg: #f4f6fb; --panel: #ffffff; --stroke: rgba(0,0,0,.08); --text: #1b2330; --muted: #5d6676; --accent: #2f74e0; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--text); background: var(--bg);
+      font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); overflow-wrap: anywhere; }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 0 20px; }
+    header.top { display: flex; align-items: center; gap: 12px; padding: 18px 0; }
+    header.top img { width: 34px; height: 34px; border-radius: 9px; }
+    header.top .name { font-weight: 800; font-size: 18px; color: var(--text); text-decoration: none; }
+    header.top nav { margin-left: auto; display: flex; gap: 14px; font-size: 14px; font-weight: 600; }
+    header.top nav a { color: var(--muted); text-decoration: none; }
+    header.top nav a.on { color: var(--text); }
+    h1 { font-size: clamp(28px, 6vw, 38px); line-height: 1.15; margin: 24px 0 6px; }
+    h2 { font-size: 20px; margin: 34px 0 8px; }
+    .stand { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+    .tldr { background: var(--panel); border: 1px solid var(--stroke); border-radius: 16px; padding: 16px 20px; }
+    .tldr ul { margin: 8px 0 0; padding-left: 20px; }
+    p, li { color: var(--text); }
+    .muted { color: var(--muted); }
+    footer { color: var(--muted); font-size: 14px; text-align: center; padding: 56px 0 40px; }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <img src="{{BASE}}demo/icons/icon-192.png" alt="EasyTiley Logo" width="34" height="34">
+      <a class="name" href="{{HOME}}">EasyTiley</a>
+      <nav>
+        <a href="{{BASE}}datenschutz/" hreflang="de" lang="de" class="{{ON_DE}}">DE</a>
+        <a href="{{BASE}}en/privacy/" hreflang="en" lang="en" class="{{ON_EN}}">EN</a>
+      </nav>
+    </header>
+    <main>
+{{BODY}}
+    </main>
+    <footer>
+      <a href="{{HOME}}">EasyTiley</a> · <span>{{LICENSE}}</span> · © Glenn-Dandy
+    </footer>
+  </div>
+</body>
+</html>
