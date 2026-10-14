@@ -101,7 +101,7 @@ const TR = {
   'Über EasyTiley': 'About EasyTiley', 'Dein FHEM-Dashboard, ganz einfach.': 'Your FHEM dashboard, made simple.',
   'Feedback': 'Feedback', 'Fehler melden': 'Report a bug', 'Idee vorschlagen': 'Suggest an idea',
   'Projekt': 'Project', 'Stern auf GitHub geben': 'Star on GitHub', 'Quelltext ansehen': 'View source code',
-  'Projekt unterstützen': 'Support the project', 'Datenschutz': 'Privacy',
+  'Projekt unterstützen': 'Support the project', 'Datenschutz': 'Privacy', 'Datenschutzerklärung': 'Privacy policy',
   'Keine Anmeldung, kein Konto, keine Cloud. EasyTiley läuft auf deinem eigenen Server und spricht nur mit deinem FHEM. Ins Internet geht nur die Update-Prüfung (GitHub), und die nur auf Knopfdruck.':
     'No sign-up, no account, no cloud. EasyTiley runs on your own server and only talks to your FHEM. The only internet connection is the update check (GitHub), and only when you tap it.',
   'Update': 'Update', 'Nach Update suchen': 'Check for updates', 'Ich schau mal nach …': 'Checking …',

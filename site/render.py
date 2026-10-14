@@ -72,6 +72,7 @@ def render(tpl, lang):
     ]
     tokens = dict(t, LANG=lang, URL=url, BASE=BASE, ROOT='' if lang == 'de' else '../', VERSION=version(),
                   ON_DE='on' if lang == 'de' else '', ON_EN='on' if lang == 'en' else '',
+                  PRIVACY='datenschutz/' if lang == 'de' else 'privacy/',
                   JSONLD=json.dumps(ld, ensure_ascii=False).replace('</', '<\\/'))
     for k, v in tokens.items():
         if k in ('TITLE', 'DESC', 'IMG_ALT', 'DEMO_LABEL', 'KEYWORDS'):
@@ -94,12 +95,43 @@ def demo_meta(out):
     open(p, 'w', encoding='utf-8').write(html)
 
 
+PRIVACY = {  # date of the last content change of the privacy policy
+    'de': {'STAND': '14.10.2026', 'P_TITLE': 'Datenschutzerklärung – EasyTiley', 'LICENSE': 'MIT-Lizenz',
+           'P_DESC': 'Datenschutzerklärung von EasyTiley: keine Telemetrie, kein Tracking, keine Cookies. '
+                     'Die Software läuft auf deinem eigenen Server.'},
+    'en': {'STAND': 'October 14, 2026', 'P_TITLE': 'Privacy Policy – EasyTiley', 'LICENSE': 'MIT licence',
+           'P_DESC': 'EasyTiley privacy policy: no telemetry, no tracking, no cookies. '
+                     'The software runs on your own server.'},
+}
+
+
+def privacy(out):
+    tpl = open(os.path.join(ROOT_DIR, 'site/privacy.html'), encoding='utf-8').read()
+    for lang, path in (('de', 'datenschutz'), ('en', 'en/privacy')):
+        t = PRIVACY[lang]
+        body = open(os.path.join(ROOT_DIR, 'site/privacy.%s.html' % lang), encoding='utf-8').read()
+        tokens = dict(t, BODY=body.replace('{{STAND}}', t['STAND']), LANG=lang, BASE=BASE, P_URL=BASE + path + '/',
+                      HOME=BASE + ('' if lang == 'de' else 'en/'),
+                      ON_DE='on' if lang == 'de' else '', ON_EN='on' if lang == 'en' else '')
+        html = tpl
+        for k in ('BODY',) + tuple(k for k in tokens if k != 'BODY'):
+            html = html.replace('{{%s}}' % k, tokens[k])
+        left = re.findall(r'\{\{\w+\}\}', html)
+        if left:
+            sys.exit('unfilled tokens in privacy: %s' % sorted(set(left)))
+        os.makedirs(os.path.join(out, path), exist_ok=True)
+        open(os.path.join(out, path, 'index.html'), 'w', encoding='utf-8').write(html)
+
+
 def sitemap(out):
     today = datetime.date.today().isoformat()
     alt = ('    <xhtml:link rel="alternate" hreflang="de" href="%s"/>\n'
            '    <xhtml:link rel="alternate" hreflang="en" href="%sen/"/>\n'
            '    <xhtml:link rel="alternate" hreflang="x-default" href="%s"/>\n') % (BASE, BASE, BASE)
-    urls = [(BASE, '1.0', alt), (BASE + 'en/', '0.9', alt), (BASE + 'demo/', '0.6', '')]
+    palt = ('    <xhtml:link rel="alternate" hreflang="de" href="%sdatenschutz/"/>\n'
+            '    <xhtml:link rel="alternate" hreflang="en" href="%sen/privacy/"/>\n') % (BASE, BASE)
+    urls = [(BASE, '1.0', alt), (BASE + 'en/', '0.9', alt), (BASE + 'demo/', '0.6', ''),
+            (BASE + 'datenschutz/', '0.2', palt), (BASE + 'en/privacy/', '0.2', palt)]
     body = ''.join('  <url>\n    <loc>%s</loc>\n    <lastmod>%s</lastmod>\n    <priority>%s</priority>\n%s  </url>\n'
                    % (u, today, pr, a) for u, pr, a in urls)
     open(os.path.join(out, 'sitemap.xml'), 'w', encoding='utf-8').write(
@@ -115,5 +147,6 @@ if __name__ == '__main__':
     os.makedirs(os.path.join(out, 'en'), exist_ok=True)
     open(os.path.join(out, 'en/index.html'), 'w', encoding='utf-8').write(render(tpl, 'en'))
     demo_meta(out)
+    privacy(out)
     sitemap(out)
-    print('rendered de, en, demo meta, sitemap')
+    print('rendered de, en, demo meta, privacy, sitemap')

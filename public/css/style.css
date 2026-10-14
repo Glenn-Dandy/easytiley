@@ -661,7 +661,7 @@ body.theme-clean .ac-menu { background: #fff; }
 .about-row + .about-row { border-top: 1px solid var(--line); }
 .about-row:hover { background: var(--line); }
 .about-text { padding: 13px 16px; font-size: 13px; line-height: 1.45; color: var(--muted); }
-.about-card .about-row + .about-text { border-top: 1px solid var(--line); }
+.about-card .about-row + .about-text, .about-card .about-text + .about-row { border-top: 1px solid var(--line); }
 .about-text.ok { color: var(--good); }
 .about-text.err { color: var(--bad); }
 .about-text a { color: var(--accent); font-weight: 600; }

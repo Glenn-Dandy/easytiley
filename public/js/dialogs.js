@@ -689,6 +689,7 @@ async function openSettings() {
 const REPO = 'Glenn-Dandy/easytiley';
 const REPO_URL = 'https://github.com/' + REPO;
 const SUPPORT_URL = 'https://paypal.me/GlennDandy';
+const PRIVACY_URL = 'https://glenn-dandy.github.io/easytiley/' + (LANG === 'de' ? 'datenschutz/' : 'en/privacy/');
 
 function issueUrl(titlePrefix, label) {
   const body = '\n\n---\n' +
@@ -738,6 +739,7 @@ function setupAbout() {
   document.getElementById('aStar').href    = REPO_URL;
   document.getElementById('aSource').href  = REPO_URL;
   document.getElementById('aSupport').href = SUPPORT_URL;
+  document.getElementById('aPrivacy').href = PRIVACY_URL;
   document.getElementById('aCheck').addEventListener('click', checkUpdate);
   document.getElementById('btnAbout').addEventListener('click', () => {
     document.getElementById('aVersion').textContent = tr('Version ') + APP_VERSION;
