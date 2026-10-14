@@ -63,6 +63,7 @@
     header.top nav { margin-left: auto; display: flex; gap: 18px; align-items: center; font-size: 14px; }
     header.top nav a { color: var(--muted); text-decoration: none; font-weight: 600; }
     header.top nav a:hover { color: var(--text); }
+    header.top nav a.nav-support { color: #e0556b; }
     .lang { display: flex; border: 1px solid var(--stroke); border-radius: 10px; overflow: hidden; }
     .lang a { color: var(--muted); font-weight: 700; font-size: 13px; padding: 5px 10px; text-decoration: none; }
     .lang a.on { background: var(--accent); color: var(--accent-fg); }
@@ -136,6 +137,7 @@
         <a href="#tablet" class="hide-s" data-de="Tablet-App" data-en="Tablet app">Tablet-App</a>
         <a href="#install" class="hide-s" data-de="Installation" data-en="Install">Installation</a>
         <a href="#faq" class="hide-s" data-de="FAQ" data-en="FAQ">FAQ</a>
+        <a href="#support" class="nav-support" data-de="♥ Unterstützen" data-en="♥ Support">♥ Unterstützen</a>
         <a href="https://github.com/Glenn-Dandy/easytiley">GitHub</a>
         <div class="lang"><a href="{{ROOT}}" hreflang="de" lang="de" class="{{ON_DE}}">DE</a><a href="{{ROOT}}en/" hreflang="en" lang="en" class="{{ON_EN}}">EN</a></div>
       </nav>
@@ -251,7 +253,7 @@ docker compose up -d --build
       </div>
     </section>
 
-    <section>
+    <section id="support">
       <div class="support">
         <h2 data-de="Gefällt dir EasyTiley?" data-en="Do you like EasyTiley?">Gefällt dir EasyTiley?</h2>
         <p class="sub" style="margin:0" data-de="Es ist kostenlos und quelloffen. Ein Stern, eine Idee oder ein Kaffee helfen dem Projekt."
