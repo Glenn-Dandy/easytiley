@@ -1,5 +1,5 @@
-# Single self-contained image: nginx + php-fpm 8.3 (run together via supervisord).
-FROM php:8.3-fpm-alpine
+# Single self-contained image: nginx + php-fpm 8.3.36 (run together via supervisord).
+FROM php:8.3.36-fpm-alpine
 
 # nginx + supervisor + pdo_sqlite
 RUN apk add --no-cache nginx supervisor sqlite-libs \
